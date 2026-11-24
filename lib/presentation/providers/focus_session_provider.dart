@@ -1,7 +1,7 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pace/data/models/focus_session_model.dart';
 import 'package:pace/services/native_service.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
@@ -102,6 +102,10 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
 
   // KEY FIX: Single source of truth for manual ending
   bool _isManuallyEnding = false;
+
+  // Id of the last session whose terminal state was written, so it is never
+  // written (and counted in the totals) twice.
+  String? _finishedSessionId;
 
   @override
   FocusSessionState build() {
@@ -482,32 +486,54 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
     }
   }
 
-  Future<void> _saveCompletedSession(Map<String, dynamic> data) async {
-    try {
-      final user = ref.read(currentUserProvider).value;
-      if (user == null || state.sessionId == null) return;
+  /// Auto-completion (the timer ran out): saves without asking the user.
+  void _saveCompletedSession(Map<String, dynamic> data) {
+    // Prefer native's wall-clock actualDuration over the Dart local timer,
+    // which can drift if the engine was throttled/backgrounded mid-session.
+    final actualDuration =
+        _safeInt(data['actualDuration']) ?? state.elapsedMinutes;
+    _finishCurrentSession(
+      endReason: SessionEndReason.timerFinished,
+      actualMinutes: actualDuration,
+    );
+  }
 
-      // Prefer native's wall-clock actualDuration over the Dart local timer,
-      // which can drift if the engine was throttled/backgrounded mid-session.
-      final actualDuration =
-          _safeInt(data['actualDuration']) ?? state.elapsedMinutes;
-      final todayDate = _getTodayDateString();
-      final completionRate = _computeCompletionRate(actualDuration);
+  /// Writes the terminal state of the current session exactly once, whichever
+  /// way it ended (timer, user save, user discard). Does not wait for the
+  /// server, so it never blocks the UI offline.
+  void _finishCurrentSession({
+    required String endReason,
+    required int actualMinutes,
+    bool discard = false,
+    String? notes,
+    String? tag,
+  }) {
+    final sessionId = state.sessionId;
+    final user = ref.read(currentUserProvider).value;
+    if (sessionId == null || user == null) return;
+    if (_finishedSessionId == sessionId) return; // already written
+    _finishedSessionId = sessionId;
 
-      await ref
-          .read(sessionRepositoryProvider)
-          .completeSession(
-            sessionId: state.sessionId!,
-            userId: user.uid,
-            actualDuration: actualDuration,
-            completionRate: completionRate,
-            date: todayDate,
-          );
+    final completionRate = _computeCompletionRate(actualMinutes);
+    final status = discard
+        ? SessionStatus.discarded
+        : completionRate >= 100
+        ? SessionStatus.completed
+        : SessionStatus.endedEarly;
 
-      debugPrint('✅ Session auto-saved to Firestore');
-    } catch (e) {
-      debugPrint('❌ Error saving completed session: $e');
-    }
+    ref
+        .read(sessionRepositoryProvider)
+        .finishSession(
+          sessionId: sessionId,
+          userId: user.uid,
+          status: status,
+          endReason: endReason,
+          actualMinutes: actualMinutes,
+          completionRate: completionRate,
+          date: _getTodayDateString(),
+          notes: notes,
+          tag: tag,
+        );
   }
 
   double _computeCompletionRate(int actualDuration) {
@@ -528,32 +554,22 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
     };
   }
 
-  // KEY FIX: Reset flag when saving with notes
+  /// Manual end, then Save: records the session with the user's notes and tag.
   Future<void> completeSessionWithNotes({String? notes, String? tag}) async {
     try {
-      final user = ref.read(currentUserProvider).value;
-      if (user == null || state.sessionId == null) return;
-
       // Prefer native's wall-clock actualDuration (captured from the
       // session_completed event, even when its navigation was ignored during
       // manual ending) over the Dart local timer.
       final actualDuration =
           _safeInt(state.completionData?['actualDuration']) ??
           state.elapsedMinutes;
-      final todayDate = _getTodayDateString();
-      final completionRate = _computeCompletionRate(actualDuration);
 
-      await ref
-          .read(sessionRepositoryProvider)
-          .updateSession(state.sessionId!, {
-            'actualDuration': actualDuration,
-            'completionRate': completionRate,
-            'endTime': Timestamp.now(),
-            'status': 'completed',
-            'notes': notes ?? '',
-            'tag': tag ?? 'untagged',
-            'completedAt': todayDate,
-          });
+      _finishCurrentSession(
+        endReason: SessionEndReason.userEnded,
+        actualMinutes: actualDuration,
+        notes: notes ?? '',
+        tag: tag ?? 'untagged',
+      );
 
       // Reset flag and state
       _isManuallyEnding = false;
@@ -568,26 +584,23 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
     }
   }
 
-  // KEY FIX: Reset flag when discarding
+  /// Manual end, then Discard: the session document is kept with status
+  /// `discarded` (hidden from lists, counts toward no totals).
   void discardSession() {
     try {
-      final sessionId = state.sessionId;
+      final actualDuration =
+          _safeInt(state.completionData?['actualDuration']) ??
+          state.elapsedMinutes;
+
+      _finishCurrentSession(
+        endReason: SessionEndReason.userDiscarded,
+        actualMinutes: actualDuration,
+        discard: true,
+      );
 
       _isManuallyEnding = false;
       state = FocusSessionState(status: FocusSessionStatus.idle);
       _stopLocalTimer();
-
-      // startSession() creates the Firestore doc up front (status: 'active');
-      // discarding must clean it up, or it lingers forever as a stale active
-      // session in streak/insights queries. Fire-and-forget - don't block the
-      // UI reset on it.
-      if (sessionId != null) {
-        ref.read(sessionRepositoryProvider).deleteSession(sessionId).catchError(
-          (e) {
-            debugPrint('❌ Error deleting discarded session: $e');
-          },
-        );
-      }
 
       debugPrint('✅ Session discarded without saving');
     } catch (e) {
