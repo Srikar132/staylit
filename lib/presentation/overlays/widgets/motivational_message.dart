@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class MotivationalMessage extends StatelessWidget {
   final String message;
@@ -10,18 +11,24 @@ class MotivationalMessage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: context.palette.onCanvas.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(
+          color: context.palette.onCanvas.withValues(alpha: 0.1),
+        ),
       ),
       child: Column(
         children: [
-          const Icon(Icons.lightbulb_outline, color: Colors.amber, size: 32),
+          Icon(
+            Icons.lightbulb_outline,
+            color: context.palette.warning,
+            size: 32,
+          ),
           const SizedBox(height: 12),
           Text(
             message,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.9),
+              color: context.palette.onCanvas.withValues(alpha: 0.9),
               fontSize: 16,
               fontWeight: FontWeight.w500,
               height: 1.4,

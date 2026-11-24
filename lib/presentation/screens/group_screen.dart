@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/core/theme/app_theme.dart';
 import 'package:pace/presentation/providers/group_provider.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
 import 'package:pace/presentation/screens/group_detail_screen.dart';
 import 'package:pace/presentation/screens/create_group_screen.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 /// Main Groups screen showing user's groups and search functionality
 class GroupScreen extends ConsumerWidget {
@@ -15,12 +15,12 @@ class GroupScreen extends ConsumerWidget {
     final user = ref.watch(authStateProvider).value;
 
     if (user == null) {
-      return const Scaffold(
-        backgroundColor: AppColors.background,
+      return Scaffold(
+        backgroundColor: context.palette.canvas,
         body: Center(
           child: Text(
             'Please login to view groups',
-            style: TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(color: context.palette.onCanvas, fontSize: 16),
           ),
         ),
       );
@@ -29,21 +29,21 @@ class GroupScreen extends ConsumerWidget {
     final groupsAsync = ref.watch(userGroupsProvider(user.uid));
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.palette.canvas,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.palette.canvas,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Groups',
           style: TextStyle(
-            color: Colors.white,
+            color: context.palette.onCanvas,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
+            icon: Icon(Icons.search, color: context.palette.onCanvas),
             onPressed: () {
               showSearch(context: context, delegate: GroupSearchDelegate());
             },
@@ -65,15 +65,15 @@ class GroupScreen extends ConsumerWidget {
                       width: 3,
                       height: 20,
                       decoration: BoxDecoration(
-                        color: AppColors.accent,
+                        color: context.palette.accent,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                     const SizedBox(width: 10),
-                    const Text(
+                    Text(
                       'Your Groups',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: context.palette.onCanvas,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -106,15 +106,15 @@ class GroupScreen extends ConsumerWidget {
                             width: 3,
                             height: 20,
                             decoration: BoxDecoration(
-                              color: AppColors.accent,
+                              color: context.palette.accent,
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
                           const SizedBox(width: 10),
-                          const Text(
+                          Text(
                             'Suggested Groups',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: context.palette.onCanvas,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -126,15 +126,15 @@ class GroupScreen extends ConsumerWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF82D65D,
-                              ).withValues(alpha: 0.2),
+                              color: context.palette.accent.withValues(
+                                alpha: 0.2,
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Text(
+                            child: Text(
                               'PUBLIC',
                               style: TextStyle(
-                                color: AppColors.accent,
+                                color: context.palette.accentText,
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -149,24 +149,26 @@ class GroupScreen extends ConsumerWidget {
                             Container(
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceElevated,
+                                color: context.palette.surfaceRaised,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.1),
+                                  color: context.palette.onCanvas.withValues(
+                                    alpha: 0.1,
+                                  ),
                                 ),
                               ),
-                              child: const Column(
+                              child: Column(
                                 children: [
                                   Icon(
                                     Icons.search_off,
                                     size: 40,
-                                    color: Colors.white38,
+                                    color: context.palette.onCanvasDisabled,
                                   ),
                                   SizedBox(height: 12),
                                   Text(
                                     'No suggestions yet',
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: context.palette.onCanvas,
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -175,7 +177,7 @@ class GroupScreen extends ConsumerWidget {
                                   Text(
                                     'Create a demo public group below',
                                     style: TextStyle(
-                                      color: Colors.white54,
+                                      color: context.palette.onCanvasMuted,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -190,11 +192,11 @@ class GroupScreen extends ConsumerWidget {
                     ],
                   );
                 },
-                loading: () => const Center(
+                loading: () => Center(
                   child: Padding(
                     padding: EdgeInsets.all(20),
                     child: CircularProgressIndicator(
-                      color: AppColors.accent,
+                      color: context.palette.accent,
                       strokeWidth: 2,
                     ),
                   ),
@@ -204,20 +206,20 @@ class GroupScreen extends ConsumerWidget {
             ],
           );
         },
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.accent),
+        loading: () => Center(
+          child: CircularProgressIndicator(color: context.palette.accent),
         ),
         error: (error, stack) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              Icon(Icons.error_outline, size: 48, color: context.palette.error),
               const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Text(
                   'Error loading groups: $error',
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: context.palette.onCanvas),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -232,12 +234,12 @@ class GroupScreen extends ConsumerWidget {
             MaterialPageRoute(builder: (context) => const CreateGroupScreen()),
           );
         },
-        backgroundColor: AppColors.accent,
-        icon: const Icon(Icons.add, color: Colors.black, size: 20),
-        label: const Text(
+        backgroundColor: context.palette.accent,
+        icon: Icon(Icons.add, color: context.palette.onAccent, size: 20),
+        label: Text(
           'Create Group',
           style: TextStyle(
-            color: Colors.black,
+            color: context.palette.onAccent,
             fontWeight: FontWeight.bold,
             fontSize: 13,
           ),
@@ -255,48 +257,52 @@ class GroupScreen extends ConsumerWidget {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: AppColors.accent.withValues(alpha: 0.1),
+              color: context.palette.accent.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.group_outlined,
               size: 60,
-              color: AppColors.accent,
+              color: context.palette.accentText,
             ),
           ),
           const SizedBox(height: 32),
-          const Text(
+          Text(
             'No Groups Yet',
             style: TextStyle(
-              color: Colors.white,
+              color: context.palette.onCanvas,
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 10),
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 48),
             child: Text(
               'Create or join a group to\nstay focused together',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54, fontSize: 14),
+              style: TextStyle(
+                color: context.palette.onCanvasMuted,
+                fontSize: 14,
+              ),
             ),
           ),
           const SizedBox(height: 32),
           ElevatedButton.icon(
             onPressed: () {},
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent,
+              backgroundColor: context.palette.accent,
+              foregroundColor: context.palette.onAccent,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            icon: const Icon(Icons.add, color: Colors.black, size: 20),
-            label: const Text(
+            icon: Icon(Icons.add, color: context.palette.onAccent, size: 20),
+            label: Text(
               'Create Group',
               style: TextStyle(
-                color: Colors.black,
+                color: context.palette.onAccent,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),
@@ -317,7 +323,7 @@ class _GroupCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
-      color: AppColors.surfaceElevated,
+      color: context.palette.surfaceRaised,
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -344,14 +350,18 @@ class _GroupCard extends ConsumerWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      AppColors.groupColor(group.name),
-                      AppColors.groupColor(group.name).withValues(alpha: 0.7),
+                      context.palette.groupColor(group.name),
+                      context.palette
+                          .groupColor(group.name)
+                          .withValues(alpha: 0.7),
                     ],
                   ),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.groupColor(group.name).withValues(alpha: 0.3),
+                      color: context.palette
+                          .groupColor(group.name)
+                          .withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -360,8 +370,8 @@ class _GroupCard extends ConsumerWidget {
                 child: Center(
                   child: Text(
                     group.name.isNotEmpty ? group.name[0].toUpperCase() : 'G',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: context.palette.onCanvas,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
@@ -377,8 +387,8 @@ class _GroupCard extends ConsumerWidget {
                   children: [
                     Text(
                       group.name,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: context.palette.onCanvas,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -388,16 +398,16 @@ class _GroupCard extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.people,
-                          color: Colors.white54,
+                          color: context.palette.onCanvasMuted,
                           size: 14,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           '${group.memberIds.length} members',
-                          style: const TextStyle(
-                            color: Colors.white54,
+                          style: TextStyle(
+                            color: context.palette.onCanvasMuted,
                             fontSize: 12,
                           ),
                         ),
@@ -406,16 +416,16 @@ class _GroupCard extends ConsumerWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.access_time,
-                          color: AppColors.accent,
+                          color: context.palette.accentText,
                           size: 16,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           group.getFormattedFocusTime(),
-                          style: const TextStyle(
-                            color: AppColors.accent,
+                          style: TextStyle(
+                            color: context.palette.accentText,
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
@@ -425,7 +435,7 @@ class _GroupCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Colors.white54),
+              Icon(Icons.chevron_right, color: context.palette.onCanvasMuted),
             ],
           ),
         ),
@@ -439,16 +449,16 @@ class GroupSearchDelegate extends SearchDelegate<String> {
   @override
   ThemeData appBarTheme(BuildContext context) {
     return ThemeData(
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.background,
+      appBarTheme: AppBarTheme(
+        backgroundColor: context.palette.canvas,
         elevation: 0,
       ),
-      inputDecorationTheme: const InputDecorationTheme(
-        hintStyle: TextStyle(color: Colors.white54),
+      inputDecorationTheme: InputDecorationTheme(
+        hintStyle: TextStyle(color: context.palette.onCanvasMuted),
         border: InputBorder.none,
       ),
-      textTheme: const TextTheme(
-        titleLarge: TextStyle(color: Colors.white, fontSize: 18),
+      textTheme: TextTheme(
+        titleLarge: TextStyle(color: context.palette.onCanvas, fontSize: 18),
       ),
     );
   }
@@ -457,7 +467,7 @@ class GroupSearchDelegate extends SearchDelegate<String> {
   List<Widget> buildActions(BuildContext context) {
     return [
       IconButton(
-        icon: const Icon(Icons.clear, color: Colors.white),
+        icon: Icon(Icons.clear, color: context.palette.onCanvas),
         onPressed: () {
           query = '';
         },
@@ -468,7 +478,7 @@ class GroupSearchDelegate extends SearchDelegate<String> {
   @override
   Widget buildLeading(BuildContext context) {
     return IconButton(
-      icon: const Icon(Icons.arrow_back, color: Colors.white),
+      icon: Icon(Icons.arrow_back, color: context.palette.onCanvas),
       onPressed: () {
         close(context, '');
       },
@@ -487,19 +497,26 @@ class GroupSearchDelegate extends SearchDelegate<String> {
 
   Widget _buildSearchResults(BuildContext context) {
     return Container(
-      color: AppColors.background,
+      color: context.palette.canvas,
       child: Consumer(
         builder: (context, ref, child) {
           if (query.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.search, size: 64, color: Colors.white24),
+                  Icon(
+                    Icons.search,
+                    size: 64,
+                    color: context.palette.onCanvasDisabled,
+                  ),
                   SizedBox(height: 16),
                   Text(
                     'Search for public groups',
-                    style: TextStyle(color: Colors.white54, fontSize: 16),
+                    style: TextStyle(
+                      color: context.palette.onCanvasMuted,
+                      fontSize: 16,
+                    ),
                   ),
                 ],
               ),
@@ -511,15 +528,22 @@ class GroupSearchDelegate extends SearchDelegate<String> {
           return searchResults.when(
             data: (groups) {
               if (groups.isEmpty) {
-                return const Center(
+                return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.search_off, size: 64, color: Colors.white24),
+                      Icon(
+                        Icons.search_off,
+                        size: 64,
+                        color: context.palette.onCanvasDisabled,
+                      ),
                       SizedBox(height: 16),
                       Text(
                         'No groups found',
-                        style: TextStyle(color: Colors.white54, fontSize: 16),
+                        style: TextStyle(
+                          color: context.palette.onCanvasMuted,
+                          fontSize: 16,
+                        ),
                       ),
                     ],
                   ),
@@ -534,13 +558,13 @@ class GroupSearchDelegate extends SearchDelegate<String> {
                 },
               );
             },
-            loading: () => const Center(
-              child: CircularProgressIndicator(color: AppColors.accent),
+            loading: () => Center(
+              child: CircularProgressIndicator(color: context.palette.accent),
             ),
             error: (error, stack) => Center(
               child: Text(
                 'Error: $error',
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: context.palette.onCanvas),
               ),
             ),
           );

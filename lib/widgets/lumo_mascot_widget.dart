@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:pace/core/constants/images.dart';
 import 'package:pace/presentation/screens/lumo_voice_bot_screen.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class LumoMascotWidget extends StatefulWidget {
   final VoidCallback onTap;
@@ -81,7 +82,7 @@ class _LumoMascotWidgetState extends State<LumoMascotWidget>
             color: Theme.of(context).primaryColor,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
+                color: context.palette.scrim.withValues(alpha: 0.3),
                 blurRadius: 20,
                 spreadRadius: 2,
                 offset: const Offset(0, 8),

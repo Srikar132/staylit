@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart' hide OverlayState;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/core/theme/app_theme.dart';
 import 'package:pace/presentation/overlays/providers/overlay_provider.dart';
 import 'package:pace/presentation/overlays/widgets/actions_buttons.dart';
 import 'package:pace/presentation/overlays/widgets/focus_timer_widget.dart';
 import 'package:pace/presentation/overlays/widgets/motivational_message.dart';
 import 'package:pace/presentation/overlays/widgets/overlay_background.dart';
+import 'package:pace/core/theme/theme_context.dart';
+
 //import 'package:lottie/lottie.dart';
 
 class BlockedAppOverlay extends ConsumerStatefulWidget {
@@ -58,16 +59,16 @@ class _BlockedAppOverlayState extends ConsumerState<BlockedAppOverlay>
 
     if (overlayState.error != null) {
       return Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: context.palette.ink,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error, color: Colors.red, size: 64),
+              Icon(Icons.error, color: context.palette.error, size: 64),
               const SizedBox(height: 16),
               Text(
                 'Error:  ${overlayState.error}',
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: context.palette.onInk),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -153,17 +154,17 @@ class _BlockedAppOverlayState extends ConsumerState<BlockedAppOverlay>
             height: 120,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.red.withValues(alpha: 0.1),
-              border: Border.all(color: Colors.red, width: 3),
+              color: context.palette.error.withValues(alpha: 0.1),
+              border: Border.all(color: context.palette.error, width: 3),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.red.withValues(alpha: 0.3),
+                  color: context.palette.error.withValues(alpha: 0.3),
                   blurRadius: 20,
                   spreadRadius: 5,
                 ),
               ],
             ),
-            child: const Icon(Icons.block, size: 60, color: Colors.red),
+            child: Icon(Icons.block, size: 60, color: context.palette.error),
           ),
         );
       },
@@ -175,10 +176,10 @@ class _BlockedAppOverlayState extends ConsumerState<BlockedAppOverlay>
       children: [
         Text(
           '${state.appName} is blocked',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: context.palette.onCanvas,
           ),
           textAlign: TextAlign.center,
         ),
@@ -186,14 +187,16 @@ class _BlockedAppOverlayState extends ConsumerState<BlockedAppOverlay>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.orange.withValues(alpha: 0.2),
+            color: context.palette.warning.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+            border: Border.all(
+              color: context.palette.warning.withValues(alpha: 0.5),
+            ),
           ),
-          child: const Text(
+          child: Text(
             'Focus Mode Active',
             style: TextStyle(
-              color: Colors.orange,
+              color: context.palette.warning,
               fontWeight: FontWeight.w600,
               fontSize: 16,
             ),
@@ -211,22 +214,25 @@ class _BlockedAppOverlayState extends ConsumerState<BlockedAppOverlay>
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
+        title: Text(
           'End Focus Session?',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: context.palette.onCanvas,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        content: const Text(
+        content: Text(
           'Are you sure you want to end your focus session?  Your progress will be saved, but you\'ll lose your current momentum.',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: context.palette.onCanvasSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
+            child: Text(
               'Continue Focusing',
-              style: TextStyle(color: Colors.blue),
+              style: TextStyle(color: context.palette.info),
             ),
           ),
           ElevatedButton(
@@ -235,8 +241,8 @@ class _BlockedAppOverlayState extends ConsumerState<BlockedAppOverlay>
               notifier.endFocusSession();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: context.palette.error,
+              foregroundColor: context.palette.onError,
             ),
             child: const Text('End Session'),
           ),

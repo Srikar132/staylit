@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:pace/core/theme/app_theme.dart';
+import 'package:pace/core/theme/theme_context.dart';
+
 class EndSessionBottomSheet extends StatelessWidget {
   const EndSessionBottomSheet({super.key});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
       decoration: BoxDecoration(
@@ -22,12 +23,12 @@ class EndSessionBottomSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.border,
+              color: context.palette.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(height: 32),
-          
+
           // Title
           Text(
             'Are you sure you want to stop\nfocusing?',
@@ -38,17 +39,17 @@ class EndSessionBottomSheet extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
-          
+
           // Subtitle
           Text(
             'Take a deep breath before you decide!',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.textMuted,
+              color: context.palette.onCanvasMuted,
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
-          
+
           // Buttons
           Column(
             children: [
@@ -57,8 +58,8 @@ class EndSessionBottomSheet extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context, true),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.border,
-                    foregroundColor: Colors.white,
+                    backgroundColor: context.palette.border,
+                    foregroundColor: context.palette.onCanvas,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),

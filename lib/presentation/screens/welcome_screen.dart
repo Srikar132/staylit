@@ -3,6 +3,7 @@ import 'package:pace/core/constants/images.dart';
 import 'package:pace/models/auth_actions_bottom_model.dart';
 import 'package:pace/models/model_manager.dart';
 import 'package:pace/widgets/testimonial_card.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -19,7 +20,9 @@ class WelcomeScreen extends StatelessWidget {
           ),
 
           Positioned.fill(
-            child: Container(color: Colors.black.withValues(alpha: 0.25)),
+            child: Container(
+              color: context.palette.scrim.withValues(alpha: 0.25),
+            ),
           ),
 
           SafeArea(

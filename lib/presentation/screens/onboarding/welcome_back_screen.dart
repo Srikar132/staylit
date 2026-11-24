@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
 import 'package:pace/presentation/providers/onboarding_provider.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class WelcomeBackScreen extends ConsumerWidget {
   const WelcomeBackScreen({super.key});
@@ -29,7 +30,7 @@ class WelcomeBackScreen extends ConsumerWidget {
             child: Text(
               'Welcome back $displayName!',
               style: theme.textTheme.headlineMedium?.copyWith(
-                color: Colors.white,
+                color: context.palette.onCanvas,
               ),
               textAlign: TextAlign.center,
             ),
@@ -50,7 +51,7 @@ class WelcomeBackScreen extends ConsumerWidget {
             ),
             child: ClipOval(
               child: Image.asset(
-                'assets/images/mascot.png',
+                'assets/images/mascot.webp',
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(

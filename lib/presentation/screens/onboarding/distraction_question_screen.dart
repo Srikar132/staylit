@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pace/presentation/providers/onboarding_provider.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class DistractionQuestionScreen extends ConsumerWidget {
   const DistractionQuestionScreen({super.key});
@@ -57,7 +58,7 @@ class DistractionQuestionScreen extends ConsumerWidget {
                 ),
                 child: ClipOval(
                   child: Image.asset(
-                    'assets/images/mascot.png',
+                    'assets/images/mascot.webp',
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
@@ -201,21 +202,27 @@ class _DistractionOption extends StatelessWidget {
             Icon(
               icon,
               size: 32,
-              color: isSelected ? theme.colorScheme.primary : Colors.white70,
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : context.palette.onCanvasSecondary,
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
                 title,
                 style: theme.textTheme.titleMedium?.copyWith(
-                  color: isSelected ? Colors.white : Colors.white70,
+                  color: isSelected
+                      ? context.palette.onCanvas
+                      : context.palette.onCanvasSecondary,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
             ),
             Icon(
               isSelected ? Icons.check_circle : Icons.radio_button_off,
-              color: isSelected ? theme.colorScheme.primary : Colors.white30,
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : context.palette.onCanvasDisabled,
             ),
           ],
         ),

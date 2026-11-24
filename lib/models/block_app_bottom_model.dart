@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:pace/core/theme/app_theme.dart';
 import 'package:pace/data/models/installed_app_model.dart';
 import 'package:pace/presentation/providers/app_management_provide.dart';
 import 'package:pace/presentation/providers/blocked_content_provider.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
 import 'package:pace/presentation/providers/parental_control_provider.dart';
 import 'package:pace/widgets/parental_control_dialogs.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 // ============================================================================
 // FIXED: BlockAppsSheet with keyboard handling
@@ -202,9 +202,8 @@ class _BlockAppsSheetState extends ConsumerState<BlockAppsSheet> {
         children: [
           Text(
             'Select Apps to Block',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.headlineMedium
+                ?.copyWith(fontWeight: FontWeight.bold),
           ),
           IconButton(
             icon: Container(
@@ -228,12 +227,15 @@ class _BlockAppsSheetState extends ConsumerState<BlockAppsSheet> {
       child: TextField(
         controller: _searchController,
         onChanged: _onSearchChanged,
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(color: context.palette.onCanvas),
         decoration: InputDecoration(
           hintText: 'Search apps',
-          prefixIcon: const Icon(Icons.search, color: AppColors.textDisabled),
+          prefixIcon: Icon(
+            Icons.search,
+            color: context.palette.onCanvasDisabled,
+          ),
           filled: true,
-          fillColor: AppColors.surfaceElevated,
+          fillColor: context.palette.surfaceRaised,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
@@ -312,9 +314,8 @@ class _CategoryHeader extends ConsumerWidget {
               Expanded(
                 child: Text(
                   category,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
               if (blockedCount > 0)
@@ -325,13 +326,13 @@ class _CategoryHeader extends ConsumerWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.accent.withValues(alpha: 0.2),
+                    color: context.palette.accent.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '$blockedCount',
-                    style: const TextStyle(
-                      color: AppColors.accent,
+                    style: TextStyle(
+                      color: context.palette.accentText,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
@@ -341,8 +342,8 @@ class _CategoryHeader extends ConsumerWidget {
                 scale: 0.8,
                 child: Switch(
                   value: areAllBlocked,
-                  activeThumbColor: AppColors.accent,
-                  inactiveTrackColor: AppColors.border,
+                  activeThumbColor: context.palette.accent,
+                  inactiveTrackColor: context.palette.border,
                   onChanged: (bool value) async {
                     if (user == null) return;
 
@@ -382,9 +383,9 @@ class _CategoryHeader extends ConsumerWidget {
                           if (verified != true) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                   content: Text('❌ Incorrect PIN or cancelled'),
-                                  backgroundColor: Colors.red,
+                                  backgroundColor: context.palette.error,
                                   duration: Duration(seconds: 2),
                                 ),
                               );
@@ -426,9 +427,9 @@ class _CategoryHeader extends ConsumerWidget {
               AnimatedRotation(
                 duration: const Duration(milliseconds: 200),
                 turns: isExpanded ? 0.5 : 0,
-                child: const Icon(
+                child: Icon(
                   Icons.keyboard_arrow_down,
-                  color: Colors.white,
+                  color: context.palette.onCanvas,
                 ),
               ),
             ],
@@ -503,9 +504,9 @@ class _AppListTile extends ConsumerWidget {
                     if (verified != true) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content: Text('❌ Incorrect PIN or cancelled'),
-                            backgroundColor: Colors.red,
+                            backgroundColor: context.palette.error,
                             duration: Duration(seconds: 2),
                           ),
                         );
@@ -544,7 +545,7 @@ class _AppListTile extends ConsumerWidget {
                       app.appName,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
-                        color: Colors.white,
+                        color: context.palette.onCanvas,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -555,8 +556,8 @@ class _AppListTile extends ConsumerWidget {
                     scale: 0.8,
                     child: Switch(
                       value: isBlocked,
-                      activeThumbColor: AppColors.accent,
-                      inactiveTrackColor: AppColors.border,
+                      activeThumbColor: context.palette.accent,
+                      inactiveTrackColor: context.palette.border,
                       onChanged: (bool value) async {
                         if (user == null) return;
 
@@ -598,11 +599,11 @@ class _AppListTile extends ConsumerWidget {
                               if (verified != true) {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
                                       content: Text(
                                         '❌ Incorrect PIN or cancelled',
                                       ),
-                                      backgroundColor: Colors.red,
+                                      backgroundColor: context.palette.error,
                                       duration: Duration(seconds: 2),
                                     ),
                                   );
@@ -656,7 +657,7 @@ class _AppIcon extends ConsumerWidget {
       width: 48,
       height: 48,
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: context.palette.surfaceRaised,
         borderRadius: BorderRadius.circular(12),
       ),
       child: ClipRRect(
@@ -664,10 +665,14 @@ class _AppIcon extends ConsumerWidget {
         child: iconAsync.when(
           loading: () => const SizedBox.shrink(),
           error: (err, stack) =>
-              const Icon(Icons.android, color: Colors.white, size: 24),
+              Icon(Icons.android, color: context.palette.onCanvas, size: 24),
           data: (iconBytes) {
             if (iconBytes == null) {
-              return const Icon(Icons.android, color: Colors.white, size: 24);
+              return Icon(
+                Icons.android,
+                color: context.palette.onCanvas,
+                size: 24,
+              );
             }
             return Image.memory(
               iconBytes,
@@ -675,7 +680,11 @@ class _AppIcon extends ConsumerWidget {
               gaplessPlayback: true,
               filterQuality: FilterQuality.medium,
               errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.android, color: Colors.white, size: 24);
+                return Icon(
+                  Icons.android,
+                  color: context.palette.onCanvas,
+                  size: 24,
+                );
               },
             );
           },

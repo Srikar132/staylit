@@ -4,6 +4,7 @@ import 'package:pace/data/models/app_limit_model.dart';
 import 'package:pace/presentation/providers/app_limits_provider.dart';
 import 'package:pace/presentation/screens/app_selector_screen.dart';
 import 'package:pace/services/app_limit_native_service.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class AddAppLimitScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -135,20 +136,24 @@ class _AddAppLimitScreenState extends ConsumerState<AddAppLimitScreen> {
                   color: _appName != null
                       ? Colors.primaries[_appName!.hashCode %
                             Colors.primaries.length]
-                      : Colors.grey[300],
+                      : context.palette.surfaceTrack,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
                   child: _appName != null
                       ? Text(
                           _appName![0].toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: context.palette.onCanvas,
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
                           ),
                         )
-                      : const Icon(Icons.apps, color: Colors.white, size: 32),
+                      : Icon(
+                          Icons.apps,
+                          color: context.palette.onCanvas,
+                          size: 32,
+                        ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -163,9 +168,8 @@ class _AddAppLimitScreenState extends ConsumerState<AddAppLimitScreen> {
                     if (_packageName != null)
                       Text(
                         _packageName!,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: context.palette.onCanvasMuted),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -173,7 +177,7 @@ class _AddAppLimitScreenState extends ConsumerState<AddAppLimitScreen> {
                 ),
               ),
               if (!_isEditMode)
-                const Icon(Icons.chevron_right, color: Colors.grey),
+                Icon(Icons.chevron_right, color: context.palette.onCanvasMuted),
             ],
           ),
         ),
@@ -187,16 +191,14 @@ class _AddAppLimitScreenState extends ConsumerState<AddAppLimitScreen> {
       children: [
         Text(
           'Daily Limit',
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
           'Set maximum usage time per day',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: context.palette.onCanvasMuted),
         ),
         const SizedBox(height: 16),
         Card(
@@ -277,18 +279,18 @@ class _AddAppLimitScreenState extends ConsumerState<AddAppLimitScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.blue[50],
+            color: context.palette.info,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
             children: [
-              const Icon(Icons.info_outline, color: Colors.blue, size: 20),
+              Icon(Icons.info_outline, color: context.palette.info, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Total: $_totalDailyMinutes minutes per day',
-                  style: const TextStyle(
-                    color: Colors.blue,
+                  style: TextStyle(
+                    color: context.palette.info,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -308,15 +310,14 @@ class _AddAppLimitScreenState extends ConsumerState<AddAppLimitScreen> {
           children: [
             Text(
               'Weekly Limit',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const Spacer(),
             Text(
               'Optional',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[600],
+                color: context.palette.onCanvasMuted,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -325,9 +326,8 @@ class _AddAppLimitScreenState extends ConsumerState<AddAppLimitScreen> {
         const SizedBox(height: 8),
         Text(
           'Set maximum usage time per week',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: context.palette.onCanvasMuted),
         ),
         const SizedBox(height: 16),
         Card(
@@ -409,18 +409,18 @@ class _AddAppLimitScreenState extends ConsumerState<AddAppLimitScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue[50],
+              color: context.palette.info,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                Icon(Icons.info_outline, color: context.palette.info, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Total: $_totalWeeklyMinutes minutes per week',
-                    style: const TextStyle(
-                      color: Colors.blue,
+                    style: TextStyle(
+                      color: context.palette.info,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -439,16 +439,14 @@ class _AddAppLimitScreenState extends ConsumerState<AddAppLimitScreen> {
       children: [
         Text(
           'Action When Limit Exceeded',
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
           'Choose what happens when the limit is reached',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: context.palette.onCanvasMuted),
         ),
         const SizedBox(height: 16),
         RadioGroup<String>(
@@ -464,7 +462,7 @@ class _AddAppLimitScreenState extends ConsumerState<AddAppLimitScreen> {
                 title: 'Block App',
                 description: 'Hard block - app cannot be opened',
                 icon: Icons.block,
-                color: Colors.red,
+                color: context.palette.error,
                 onChanged: (value) {
                   setState(() => _actionOnExceed = value!);
                 },
@@ -476,7 +474,7 @@ class _AddAppLimitScreenState extends ConsumerState<AddAppLimitScreen> {
                 title: 'Show Warning',
                 description: 'Show warning overlay that can be dismissed',
                 icon: Icons.warning,
-                color: Colors.orange,
+                color: context.palette.warning,
                 onChanged: (value) {
                   setState(() => _actionOnExceed = value!);
                 },
@@ -488,7 +486,7 @@ class _AddAppLimitScreenState extends ConsumerState<AddAppLimitScreen> {
                 title: 'Notify Only',
                 description: 'Send notification but allow app to open',
                 icon: Icons.notifications,
-                color: Colors.blue,
+                color: context.palette.info,
                 onChanged: (value) {
                   setState(() => _actionOnExceed = value!);
                 },
@@ -516,7 +514,9 @@ class _AddAppLimitScreenState extends ConsumerState<AddAppLimitScreen> {
         ),
         secondary: Icon(
           _isActive ? Icons.check_circle : Icons.cancel,
-          color: _isActive ? Colors.green : Colors.grey,
+          color: _isActive
+              ? context.palette.success
+              : context.palette.onCanvasMuted,
         ),
       ),
     );
@@ -538,9 +538,8 @@ class _AddAppLimitScreenState extends ConsumerState<AddAppLimitScreen> {
 
   Future<void> _saveLimit() async {
     if (_packageName == null || _appName == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please select an app')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Please select an app')));
       return;
     }
 
@@ -579,9 +578,8 @@ class _AddAppLimitScreenState extends ConsumerState<AddAppLimitScreen> {
     } catch (e) {
       setState(() => _isSaving = false);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error saving limit: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error saving limit: $e')));
       }
     }
   }
@@ -645,9 +643,8 @@ class _ActionOption extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       description,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: context.palette.onCanvasMuted),
                     ),
                   ],
                 ),

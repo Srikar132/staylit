@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:pace/core/theme/app_theme.dart';
 import 'package:pace/models/usage_stats_models.dart';
+
 import 'dart:typed_data';
+
+import 'package:pace/core/theme/theme_context.dart';
 
 /// Widget for displaying individual app usage in a list tile
 class UsageAppListTile extends StatelessWidget {
@@ -17,28 +19,28 @@ class UsageAppListTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        tileColor: AppColors.surface,
+        tileColor: context.palette.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        leading: _buildAppIcon(),
+        leading: _buildAppIcon(context),
         title: Row(
           children: [
             Expanded(
               child: Text(
                 app.appName,
                 style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
+                  color: context.palette.onCanvas,
                   fontWeight: FontWeight.w600,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            _buildCategoryDot(),
+            _buildCategoryDot(context),
           ],
         ),
         subtitle: Text(
           app.category.displayName,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: AppColors.textMuted,
+            color: context.palette.onCanvasMuted,
           ),
         ),
         trailing: Column(
@@ -48,7 +50,7 @@ class UsageAppListTile extends StatelessWidget {
             Text(
               app.formattedUsageTime,
               style: theme.textTheme.titleMedium?.copyWith(
-                color: Colors.white,
+                color: context.palette.onCanvas,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -57,7 +59,7 @@ class UsageAppListTile extends StatelessWidget {
               Text(
                 '${app.sessions} session${app.sessions == 1 ? '' : 's'}',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.textMuted,
+                  color: context.palette.onCanvasMuted,
                 ),
               ),
             ],
@@ -71,12 +73,12 @@ class UsageAppListTile extends StatelessWidget {
     );
   }
 
-  Widget _buildAppIcon() {
+  Widget _buildAppIcon(BuildContext context) {
     return Container(
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: context.palette.surfaceRaised,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
@@ -89,30 +91,30 @@ class UsageAppListTile extends StatelessWidget {
                   height: 32,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
-                    return _buildFallbackIcon();
+                    return _buildFallbackIcon(context);
                   },
                 ),
               )
-            : _buildFallbackIcon(),
+            : _buildFallbackIcon(context),
       ),
     );
   }
 
-  Widget _buildFallbackIcon() {
-    return Icon(Icons.apps, color: AppColors.success, size: 24);
+  Widget _buildFallbackIcon(BuildContext context) {
+    return Icon(Icons.apps, color: context.palette.success, size: 24);
   }
 
-  Widget _buildCategoryDot() {
+  Widget _buildCategoryDot(BuildContext context) {
     Color dotColor;
     switch (app.category) {
       case AppCategory.distracting:
-        dotColor = AppColors.warning; // Orange
+        dotColor = context.palette.warning; // Orange
         break;
       case AppCategory.productive:
-        dotColor = AppColors.success; // Green
+        dotColor = context.palette.success; // Green
         break;
       case AppCategory.others:
-        dotColor = AppColors.textMuted; // Grey
+        dotColor = context.palette.onCanvasMuted; // Grey
         break;
     }
 
@@ -126,7 +128,7 @@ class UsageAppListTile extends StatelessWidget {
   void _showAppDetailsModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -158,12 +160,12 @@ class AppDetailsModal extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated,
+                  color: context.palette.surfaceRaised,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   Icons.apps,
-                  color: AppColors.success,
+                  color: context.palette.success,
                   size: 28,
                 ),
               ),
@@ -182,7 +184,7 @@ class AppDetailsModal extends StatelessWidget {
                     Text(
                       app.category.displayName,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textMuted,
+                        color: context.palette.onCanvasMuted,
                       ),
                     ),
                   ],
@@ -195,6 +197,7 @@ class AppDetailsModal extends StatelessWidget {
 
           // Usage stats
           _buildStatRow(
+            context,
             'Total Usage',
             app.formattedUsageTime,
             Icons.access_time,
@@ -203,11 +206,18 @@ class AppDetailsModal extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          _buildStatRow('Sessions', '${app.sessions}', Icons.launch, theme),
+          _buildStatRow(
+            context,
+            'Sessions',
+            '${app.sessions}',
+            Icons.launch,
+            theme,
+          ),
 
           const SizedBox(height: 16),
 
           _buildStatRow(
+            context,
             'Last Used',
             _formatLastUsed(app.lastUsedDateTime),
             Icons.schedule,
@@ -256,6 +266,7 @@ class AppDetailsModal extends StatelessWidget {
   }
 
   Widget _buildStatRow(
+    BuildContext context,
     String label,
     String value,
     IconData icon,
@@ -263,19 +274,19 @@ class AppDetailsModal extends StatelessWidget {
   ) {
     return Row(
       children: [
-        Icon(icon, color: AppColors.success, size: 20),
+        Icon(icon, color: context.palette.success, size: 20),
         const SizedBox(width: 12),
         Text(
           label,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.textMuted,
+            color: context.palette.onCanvasMuted,
           ),
         ),
         const Spacer(),
         Text(
           value,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: Colors.white,
+            color: context.palette.onCanvas,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -316,9 +327,9 @@ class WeeklyUsageChart extends StatelessWidget {
       height: 220,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.surfaceElevated, width: 1),
+        border: Border.all(color: context.palette.surfaceRaised, width: 1),
       ),
       child: Column(
         children: [
@@ -335,7 +346,7 @@ class WeeklyUsageChart extends StatelessWidget {
               Text(
                 '${(maxUsage / 60).toStringAsFixed(1)}h peak',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.textMuted,
+                  color: context.palette.onCanvasMuted,
                 ),
               ),
             ],
@@ -349,7 +360,7 @@ class WeeklyUsageChart extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: data.map((dayData) {
-                return _buildChartBar(dayData, maxUsage, theme);
+                return _buildChartBar(context, dayData, maxUsage, theme);
               }).toList(),
             ),
           ),
@@ -359,6 +370,7 @@ class WeeklyUsageChart extends StatelessWidget {
   }
 
   Widget _buildChartBar(
+    BuildContext context,
     DailyUsageChartData dayData,
     int maxUsage,
     ThemeData theme,
@@ -381,7 +393,7 @@ class WeeklyUsageChart extends StatelessWidget {
           width: 24,
           height: 120,
           decoration: BoxDecoration(
-            color: AppColors.surfaceElevated,
+            color: context.palette.surfaceRaised,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Stack(
@@ -393,7 +405,7 @@ class WeeklyUsageChart extends StatelessWidget {
                   width: 24,
                   height: barHeight,
                   decoration: BoxDecoration(
-                    color: AppColors.textDisabled,
+                    color: context.palette.onCanvasDisabled,
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
@@ -404,7 +416,7 @@ class WeeklyUsageChart extends StatelessWidget {
                   width: 24,
                   height: productiveHeight,
                   decoration: BoxDecoration(
-                    color: AppColors.success,
+                    color: context.palette.success,
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
@@ -417,7 +429,7 @@ class WeeklyUsageChart extends StatelessWidget {
                     width: 24,
                     height: distractingHeight,
                     decoration: BoxDecoration(
-                      color: AppColors.warning,
+                      color: context.palette.warning,
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
@@ -432,7 +444,7 @@ class WeeklyUsageChart extends StatelessWidget {
         Text(
           dayData.day,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: AppColors.textMuted,
+            color: context.palette.onCanvasMuted,
             fontSize: 11,
           ),
         ),
@@ -485,7 +497,7 @@ class _UsageStatsLoadingShimmerState extends State<UsageStatsLoadingShimmer>
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: context.palette.surface,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -496,8 +508,8 @@ class _UsageStatsLoadingShimmerState extends State<UsageStatsLoadingShimmer>
                     height: 40,
                     decoration: BoxDecoration(
                       color: Color.lerp(
-                        AppColors.surfaceElevated,
-                        AppColors.border,
+                        context.palette.surfaceRaised,
+                        context.palette.border,
                         _animation.value,
                       ),
                       borderRadius: BorderRadius.circular(12),
@@ -516,8 +528,8 @@ class _UsageStatsLoadingShimmerState extends State<UsageStatsLoadingShimmer>
                           height: 16,
                           decoration: BoxDecoration(
                             color: Color.lerp(
-                              AppColors.surfaceElevated,
-                              AppColors.border,
+                              context.palette.surfaceRaised,
+                              context.palette.border,
                               _animation.value,
                             ),
                             borderRadius: BorderRadius.circular(8),
@@ -529,8 +541,8 @@ class _UsageStatsLoadingShimmerState extends State<UsageStatsLoadingShimmer>
                           height: 12,
                           decoration: BoxDecoration(
                             color: Color.lerp(
-                              AppColors.surfaceElevated,
-                              AppColors.border,
+                              context.palette.surfaceRaised,
+                              context.palette.border,
                               _animation.value,
                             ),
                             borderRadius: BorderRadius.circular(6),
@@ -546,8 +558,8 @@ class _UsageStatsLoadingShimmerState extends State<UsageStatsLoadingShimmer>
                     height: 16,
                     decoration: BoxDecoration(
                       color: Color.lerp(
-                        AppColors.surfaceElevated,
-                        AppColors.border,
+                        context.palette.surfaceRaised,
+                        context.palette.border,
                         _animation.value,
                       ),
                       borderRadius: BorderRadius.circular(8),

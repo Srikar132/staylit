@@ -1,9 +1,12 @@
 import 'dart:math' show pi, sin, cos;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_theme.dart';
+
 import '../../models/voice_state.dart';
 import '../providers/voice_session_provider.dart';
+
+import 'package:pace/core/theme/theme_context.dart';
 
 class LumoVoiceBotScreen extends ConsumerStatefulWidget {
   const LumoVoiceBotScreen({super.key});
@@ -74,17 +77,17 @@ class _LumoVoiceBotScreenState extends ConsumerState<LumoVoiceBotScreen>
   Color _getDotColor(VoiceSessionState state) {
     switch (state) {
       case VoiceSessionState.idle:
-        return AppColors.accentMuted; // ready
+        return context.palette.onCanvasMuted; // ready
       case VoiceSessionState.listening:
-        return AppColors.success; // listening
+        return context.palette.success; // listening
       case VoiceSessionState.thinking:
-        return AppColors.warning; // processing
+        return context.palette.warning; // processing
       case VoiceSessionState.speaking:
-        return AppColors.accent; // bot speaking
+        return context.palette.accent; // bot speaking
       case VoiceSessionState.error:
-        return AppColors.error;
+        return context.palette.error;
       default:
-        return AppColors.accent;
+        return context.palette.accent;
     }
   }
 
@@ -94,7 +97,7 @@ class _LumoVoiceBotScreenState extends ConsumerState<LumoVoiceBotScreen>
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: context.palette.ink,
       body: GestureDetector(
         onTap: _handleTap,
         behavior: HitTestBehavior.opaque,
@@ -113,9 +116,9 @@ class _LumoVoiceBotScreenState extends ConsumerState<LumoVoiceBotScreen>
                 left: 16,
                 child: IconButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close,
-                    color: Colors.white38,
+                    color: context.palette.onCanvasDisabled,
                     size: 28,
                   ),
                 ),
@@ -178,7 +181,7 @@ class _LumoVoiceBotScreenState extends ConsumerState<LumoVoiceBotScreen>
                 ),
                 child: ClipOval(
                   child: Image.asset(
-                    'assets/images/luma_logo.png',
+                    'assets/images/luma_logo.webp',
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
@@ -213,37 +216,37 @@ class _LumoVoiceBotScreenState extends ConsumerState<LumoVoiceBotScreen>
       case VoiceSessionState.listening:
         text = 'Listening';
         subText = 'Tap to stop';
-        textColor = AppColors.success;
+        textColor = context.palette.success;
         showDots = true;
         break;
       case VoiceSessionState.thinking:
         text = 'Processing';
         subText = 'Tap to stop';
-        textColor = AppColors.warning;
+        textColor = context.palette.warning;
         showDots = true;
         break;
       case VoiceSessionState.speaking:
         text = 'Lumo';
         subText = 'Tap to stop';
-        textColor = AppColors.accent;
+        textColor = context.palette.accent;
         showDots = true;
         break;
       case VoiceSessionState.idle:
         text = 'Tap to speak';
         subText = '';
-        textColor = AppColors.accentMuted;
+        textColor = context.palette.onCanvasMuted;
         showDots = false;
         break;
       case VoiceSessionState.error:
         text = 'Tap to retry';
         subText = '';
-        textColor = AppColors.error;
+        textColor = context.palette.error;
         showDots = false;
         break;
       default:
         text = 'Tap to speak';
         subText = '';
-        textColor = AppColors.accentMuted;
+        textColor = context.palette.onCanvasMuted;
         showDots = false;
     }
 
@@ -274,7 +277,7 @@ class _LumoVoiceBotScreenState extends ConsumerState<LumoVoiceBotScreen>
             child: Text(
               subText,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
+                color: context.palette.onCanvas.withValues(alpha: 0.5),
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
               ),

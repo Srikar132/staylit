@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/core/theme/app_theme.dart';
 import 'package:pace/models/usage_stats_models.dart';
 import 'package:pace/presentation/providers/usage_stats_provider.dart';
 import 'package:pace/presentation/widgets/usage_stats_widgets.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class UsageStatsScreen extends ConsumerStatefulWidget {
   const UsageStatsScreen({super.key});
@@ -62,8 +62,8 @@ class _UsageStatsScreenState extends ConsumerState<UsageStatsScreen>
             Tab(text: 'Weekly'),
           ],
           indicatorColor: theme.colorScheme.primary,
-          labelColor: Colors.white,
-          unselectedLabelColor: AppColors.textMuted,
+          labelColor: context.palette.onCanvas,
+          unselectedLabelColor: context.palette.onCanvasMuted,
           labelStyle: theme.textTheme.titleMedium,
           unselectedLabelStyle: theme.textTheme.titleMedium,
         ),
@@ -141,7 +141,7 @@ class _UsageStatsScreenState extends ConsumerState<UsageStatsScreen>
         decoration: BoxDecoration(
           color: isSelected
               ? theme.colorScheme.primary.withValues(alpha: 0.2)
-              : AppColors.surfaceElevated,
+              : context.palette.surfaceRaised,
           borderRadius: BorderRadius.circular(20),
           border: isSelected
               ? Border.all(color: theme.colorScheme.primary, width: 1)
@@ -152,7 +152,7 @@ class _UsageStatsScreenState extends ConsumerState<UsageStatsScreen>
           style: theme.textTheme.labelMedium?.copyWith(
             color: isSelected
                 ? theme.colorScheme.primary
-                : AppColors.textMuted,
+                : context.palette.onCanvasMuted,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
           ),
         ),
@@ -167,8 +167,8 @@ class _UsageStatsScreenState extends ConsumerState<UsageStatsScreen>
 
         return todayUsage.when(
           data: (data) => _buildDailyContent(data),
-          loading: () => const Center(
-            child: CircularProgressIndicator(color: AppColors.success),
+          loading: () => Center(
+            child: CircularProgressIndicator(color: context.palette.success),
           ),
           error: (error, _) => Center(
             child: Column(
@@ -213,8 +213,8 @@ class _UsageStatsScreenState extends ConsumerState<UsageStatsScreen>
 
         return weeklyUsage.when(
           data: (data) => _buildWeeklyContent(data, chartData),
-          loading: () => const Center(
-            child: CircularProgressIndicator(color: AppColors.success),
+          loading: () => Center(
+            child: CircularProgressIndicator(color: context.palette.success),
           ),
           error: (error, _) => Center(
             child: Column(
@@ -287,7 +287,7 @@ class _UsageStatsScreenState extends ConsumerState<UsageStatsScreen>
                         Text(
                           'Today - ${_formatDate(DateTime.now())}',
                           style: theme.textTheme.bodyLarge?.copyWith(
-                            color: AppColors.textMuted,
+                            color: context.palette.onCanvasMuted,
                           ),
                         ),
                       ],
@@ -358,7 +358,7 @@ class _UsageStatsScreenState extends ConsumerState<UsageStatsScreen>
                         Text(
                           '${_formatWeekRange()} • + 4% vs last week',
                           style: theme.textTheme.bodyLarge?.copyWith(
-                            color: AppColors.textMuted,
+                            color: context.palette.onCanvasMuted,
                           ),
                         ),
                       ],
@@ -370,11 +370,11 @@ class _UsageStatsScreenState extends ConsumerState<UsageStatsScreen>
                   // Weekly chart
                   chartData.when(
                     data: (chartList) => WeeklyUsageChart(data: chartList),
-                    loading: () => const SizedBox(
+                    loading: () => SizedBox(
                       height: 200,
                       child: Center(
                         child: CircularProgressIndicator(
-                          color: AppColors.success,
+                          color: context.palette.success,
                         ),
                       ),
                     ),
@@ -440,19 +440,19 @@ class _UsageStatsScreenState extends ConsumerState<UsageStatsScreen>
         _buildCategoryItem(
           _formatTime(distractingTime),
           'Distracting',
-          AppColors.warning, // Orange
+          context.palette.warning, // Orange
           theme,
         ),
         _buildCategoryItem(
           _formatTime(productiveTime),
           'Productive',
-          AppColors.success, // Green
+          context.palette.success, // Green
           theme,
         ),
         _buildCategoryItem(
           _formatTime(othersTime),
           'Others',
-          AppColors.textMuted, // Grey
+          context.palette.onCanvasMuted, // Grey
           theme,
         ),
       ],
@@ -500,7 +500,7 @@ class _UsageStatsScreenState extends ConsumerState<UsageStatsScreen>
         Text(
           label,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.textMuted,
+            color: context.palette.onCanvasMuted,
           ),
         ),
       ],
@@ -510,7 +510,7 @@ class _UsageStatsScreenState extends ConsumerState<UsageStatsScreen>
   Widget _buildSearchBar(ThemeData theme) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: context.palette.surfaceRaised,
         borderRadius: BorderRadius.circular(12),
       ),
       child: TextField(
@@ -518,9 +518,12 @@ class _UsageStatsScreenState extends ConsumerState<UsageStatsScreen>
         decoration: InputDecoration(
           hintText: 'Search apps',
           hintStyle: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.textDisabled,
+            color: context.palette.onCanvasDisabled,
           ),
-          prefixIcon: const Icon(Icons.search, color: AppColors.textDisabled),
+          prefixIcon: Icon(
+            Icons.search,
+            color: context.palette.onCanvasDisabled,
+          ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
@@ -591,7 +594,7 @@ class _UsageStatsScreenState extends ConsumerState<UsageStatsScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         title: Text(
           'Usage Stats Help',
           style: Theme.of(context).textTheme.titleLarge,

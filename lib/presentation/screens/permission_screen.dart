@@ -6,6 +6,7 @@ import 'package:pace/presentation/providers/permission_provider.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
 import 'package:pace/widgets/permission_instruction_dialog.dart';
 import 'package:pace/models/model_manager.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class PermissionScreen extends ConsumerStatefulWidget {
   const PermissionScreen({super.key});
@@ -299,8 +300,7 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
         'granted': permissionState.overlayPermission,
         'onTap': () => _showPermissionInstructionDialog(
           title: 'Display Over Other Apps Permission',
-          description:
-              'This permission allows Pace to display blocking screens over other apps when you try to open distracting apps.',
+          description: 'This permission allows Pace to display blocking screens over other apps when you try to open distracting apps.',
           steps: const [
             'Tap "Open Settings" below',
             'Find "Pace" in the app list',
@@ -317,8 +317,7 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
         'granted': permissionState.displayPopupPermission,
         'onTap': () => _showPermissionInstructionDialog(
           title: 'Display Popup Windows Permission',
-          description:
-              'This permission allows Pace to show popup reminders and motivational messages to help you stay focused.',
+          description: 'This permission allows Pace to show popup reminders and motivational messages to help you stay focused.',
           steps: const [
             'Tap "Open Settings" below',
             'Find "Pace" in the Special App Access list',
@@ -363,7 +362,7 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
                   widthFactor: 0.8,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.palette.onCanvas,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -385,7 +384,7 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
                     ),
                     child: ClipOval(
                       child: Image.asset(
-                        'assets/images/mascot.png',
+                        'assets/images/mascot.webp',
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
@@ -506,8 +505,8 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
               //         ),
               //         decoration: BoxDecoration(
               //           color: permissionState.allGranted
-              //               ? Colors.green.withValues(alpha: 0.2)
-              //               : Colors.orange.withValues(alpha: 0.2),
+              //               ? context.palette.success.withValues(alpha: 0.2)
+              //               : context.palette.warning.withValues(alpha: 0.2),
               //           borderRadius: BorderRadius.circular(6),
               //         ),
               //         child: Text(
@@ -515,8 +514,8 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
               //           style: theme.textTheme.bodySmall?.copyWith(
               //             fontWeight: FontWeight.bold,
               //             color: permissionState.allGranted
-              //                 ? Colors.green
-              //                 : Colors.orange,
+              //                 ? context.palette.success
+              //                 : context.palette.warning,
               //           ),
               //         ),
               //       ),
@@ -567,9 +566,9 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
                               color: theme.colorScheme.primary,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.question_mark,
-                              color: Colors.black,
+                              color: context.palette.onAccent,
                               size: 14,
                             ),
                           ),
@@ -631,13 +630,13 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
   //           width: 16,
   //           height: 16,
   //           decoration: BoxDecoration(
-  //             color: granted ? Colors.green : Colors.red,
+  //             color: granted ? context.palette.success : context.palette.error,
   //             borderRadius: BorderRadius.circular(8),
   //           ),
   //           child: Icon(
   //             granted ? Icons.check : Icons.close,
   //             size: 12,
-  //             color: Colors.white,
+  //             color: context.palette.onCanvas,
   //           ),
   //         ),
   //         const SizedBox(width: 8),
@@ -646,7 +645,7 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
   //             name,
   //             style: theme.textTheme.bodySmall?.copyWith(
   //               fontWeight: FontWeight.w500,
-  //               color: granted ? Colors.green.shade700 : Colors.red.shade700,
+  //               color: granted ? context.palette.success : context.palette.error,
   //             ),
   //           ),
   //         ),
@@ -655,7 +654,7 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
   //           style: theme.textTheme.bodySmall?.copyWith(
   //             fontWeight: FontWeight.bold,
   //             fontSize: 10,
-  //             color: granted ? Colors.green.shade700 : Colors.red.shade700,
+  //             color: granted ? context.palette.success : context.palette.error,
   //           ),
   //         ),
   //       ],
@@ -731,7 +730,7 @@ class _PermissionTileState extends State<_PermissionTile> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.palette.onCanvas,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: GestureDetector(
@@ -750,7 +749,7 @@ class _PermissionTileState extends State<_PermissionTile> {
                       child: Text(
                         'Allow',
                         style: theme.textTheme.titleSmall?.copyWith(
-                          color: Colors.black,
+                          color: context.palette.ink,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -775,20 +774,17 @@ void _showPermissionInfoDialog(BuildContext context) {
           children: [
             _PermissionInfo(
               title: 'Usage Stats Permission',
-              description:
-                  'Helps us understand which apps distract you most, so we can block them during focus sessions.',
+              description: 'Helps us understand which apps distract you most, so we can block them during focus sessions.',
             ),
             const SizedBox(height: 12),
             _PermissionInfo(
               title: 'Display Over Other Apps',
-              description:
-                  'Allows us to show a blocking screen when you try to open distracting apps.',
+              description: 'Allows us to show a blocking screen when you try to open distracting apps.',
             ),
             const SizedBox(height: 12),
             _PermissionInfo(
               title: 'Notification Permission',
-              description:
-                  'Sends you focus reminders and session completion notifications.',
+              description: 'Sends you focus reminders and session completion notifications.',
             ),
             const SizedBox(height: 12),
             _PermissionInfo(
@@ -799,14 +795,12 @@ void _showPermissionInfoDialog(BuildContext context) {
             const SizedBox(height: 12),
             _PermissionInfo(
               title: 'Background Permission',
-              description:
-                  'Keeps the app running in the background for continuous monitoring and blocking. This exempts the app from battery optimization.',
+              description: 'Keeps the app running in the background for continuous monitoring and blocking. This exempts the app from battery optimization.',
             ),
             const SizedBox(height: 12),
             _PermissionInfo(
               title: 'Display Popup Permission',
-              description:
-                  'Shows focus reminders and motivational popups to keep you on track.',
+              description: 'Shows focus reminders and motivational popups to keep you on track.',
             ),
           ],
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pace/presentation/providers/onboarding_provider.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class StudyTimeScreen extends ConsumerWidget {
   const StudyTimeScreen({super.key});
@@ -76,7 +77,7 @@ class StudyTimeScreen extends ConsumerWidget {
                     ),
                     child: ClipOval(
                       child: Image.asset(
-                        'assets/images/mascot.png',
+                        'assets/images/mascot.webp',
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
@@ -232,7 +233,9 @@ class _StudyTimeOption extends StatelessWidget {
                   Text(
                     title,
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: isSelected ? Colors.white : Colors.white70,
+                      color: isSelected
+                          ? context.palette.onCanvas
+                          : context.palette.onCanvasSecondary,
                       fontWeight: isSelected
                           ? FontWeight.w600
                           : FontWeight.normal,
@@ -242,7 +245,7 @@ class _StudyTimeOption extends StatelessWidget {
                   Text(
                     time,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.white54,
+                      color: context.palette.onCanvasMuted,
                     ),
                   ),
                 ],
@@ -250,7 +253,9 @@ class _StudyTimeOption extends StatelessWidget {
             ),
             Icon(
               isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: isSelected ? theme.colorScheme.primary : Colors.white30,
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : context.palette.onCanvasDisabled,
             ),
           ],
         ),

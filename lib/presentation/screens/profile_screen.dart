@@ -1,14 +1,17 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:pace/core/theme/app_theme.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
 import 'package:pace/presentation/providers/parental_control_provider.dart';
 import 'package:pace/presentation/providers/profile_provider.dart';
+import 'package:pace/presentation/screens/debug/design_gallery_screen.dart';
+import 'package:pace/presentation/widgets/appearance_sheet.dart';
 import 'package:pace/data/models/achievement_model.dart';
 import 'package:pace/models/parental_control.dart';
 import 'package:pace/widgets/parental_control_dialogs.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -32,7 +35,7 @@ class ProfileScreen extends ConsumerWidget {
         final achievementsAsync = ref.watch(achievementsProvider(user.uid));
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.palette.canvas,
           body: SafeArea(
             child: SingleChildScrollView(
               child: Column(
@@ -64,6 +67,12 @@ class ProfileScreen extends ConsumerWidget {
                               const Center(child: CircularProgressIndicator()),
                           error: (_, _) => const Text('Error loading settings'),
                         ),
+
+                        const SizedBox(height: 24),
+
+                        // Appearance (System / Light / Dark)
+                        const AppearanceTile(),
+                        if (kDebugMode) const DesignGalleryTile(),
 
                         const SizedBox(height: 24),
 
@@ -111,11 +120,11 @@ class ProfileScreen extends ConsumerWidget {
 
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [AppColors.accent, AppColors.accentMuted],
+          colors: [context.palette.accent, context.palette.onCanvasMuted],
         ),
       ),
       child: Column(
@@ -126,7 +135,7 @@ class ProfileScreen extends ConsumerWidget {
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  icon: Icon(Icons.arrow_back, color: context.palette.onCanvas),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
@@ -139,9 +148,9 @@ class ProfileScreen extends ConsumerWidget {
             height: 120,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.accentMuted,
+              color: context.palette.onCanvasMuted,
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.3),
+                color: context.palette.onCanvas.withValues(alpha: 0.3),
                 width: 3,
               ),
             ),
@@ -154,10 +163,10 @@ class ProfileScreen extends ConsumerWidget {
                         return Center(
                           child: Text(
                             (user.displayName ?? user.email)[0].toUpperCase(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 48,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: context.palette.onCanvas,
                             ),
                           ),
                         );
@@ -167,10 +176,10 @@ class ProfileScreen extends ConsumerWidget {
                 : Center(
                     child: Text(
                       (user.displayName ?? user.email)[0].toUpperCase(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: context.palette.onCanvas,
                       ),
                     ),
                   ),
@@ -182,13 +191,13 @@ class ProfileScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: context.palette.onCanvas.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.add, color: Colors.white, size: 18),
+                Icon(Icons.add, color: context.palette.onCanvas, size: 18),
                 SizedBox(width: 4),
               ],
             ),
@@ -202,14 +211,18 @@ class ProfileScreen extends ConsumerWidget {
             children: [
               Text(
                 user.displayName ?? user.email.split('@')[0],
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: context.palette.onCanvas,
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.edit, color: Colors.white70, size: 18),
+              Icon(
+                Icons.edit,
+                color: context.palette.onCanvasSecondary,
+                size: 18,
+              ),
             ],
           ),
 
@@ -220,7 +233,7 @@ class ProfileScreen extends ConsumerWidget {
             'Focusing since $focusingSince',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.8),
+              color: context.palette.onCanvas.withValues(alpha: 0.8),
             ),
           ),
 
@@ -234,7 +247,7 @@ class ProfileScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -245,12 +258,12 @@ class ProfileScreen extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    const Text(
+                    Text(
                       'Pace',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: context.palette.onCanvas,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -260,37 +273,40 @@ class ProfileScreen extends ConsumerWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.premium,
+                        color: context.palette.premium,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Text(
+                      child: Text(
                         'PRO',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: context.palette.onAccent,
                         ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Unlock Strict mode and\nGo ad-free',
-                  style: TextStyle(fontSize: 13, color: Colors.white70),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: context.palette.onCanvasSecondary,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () {
                     // TODO: Navigate to upgrade screen
                   },
-                  child: const Text(
+                  child: Text(
                     'Upgrade to Pro',
                     style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.accent,
+                      color: context.palette.accentText,
                       decoration: TextDecoration.underline,
-                      decorationColor: AppColors.accent,
+                      decorationColor: context.palette.accent,
                     ),
                   ),
                 ),
@@ -302,7 +318,7 @@ class ProfileScreen extends ConsumerWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppColors.accent,
+              color: context.palette.accent,
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Center(
@@ -325,18 +341,18 @@ class ProfileScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Parental Control',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: context.palette.onCanvas,
           ),
         ),
         const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.palette.surface,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -351,24 +367,24 @@ class ProfileScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: parentalControl.isEnabled
-                        ? AppColors.accent.withValues(alpha: 0.2)
-                        : AppColors.surfaceElevated,
+                        ? context.palette.accent.withValues(alpha: 0.2)
+                        : context.palette.surfaceRaised,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.lock,
                     color: parentalControl.isEnabled
-                        ? AppColors.accent
-                        : Colors.white54,
+                        ? context.palette.accentText
+                        : context.palette.onCanvasMuted,
                     size: 24,
                   ),
                 ),
-                title: const Text(
+                title: Text(
                   'Parental Mode',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: context.palette.onCanvas,
                   ),
                 ),
                 subtitle: Text(
@@ -378,13 +394,13 @@ class ProfileScreen extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 13,
                     color: parentalControl.isEnabled
-                        ? AppColors.accent
-                        : Colors.white54,
+                        ? context.palette.accentText
+                        : context.palette.onCanvasMuted,
                   ),
                 ),
                 trailing: Switch(
                   value: parentalControl.isEnabled,
-                  activeThumbColor: AppColors.accent,
+                  activeThumbColor: context.palette.accent,
                   onChanged: (value) async {
                     if (value) {
                       // Enabling parental mode
@@ -404,9 +420,9 @@ class ProfileScreen extends ConsumerWidget {
                                   );
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
+                                      SnackBar(
                                         content: Text('Parental mode enabled'),
-                                        backgroundColor: AppColors.accent,
+                                        backgroundColor: context.palette.accent,
                                       ),
                                     );
                                   }
@@ -415,7 +431,7 @@ class ProfileScreen extends ConsumerWidget {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text('Error: $e'),
-                                        backgroundColor: Colors.red,
+                                        backgroundColor: context.palette.error,
                                       ),
                                     );
                                   }
@@ -436,8 +452,7 @@ class ProfileScreen extends ConsumerWidget {
                           barrierDismissible: false,
                           builder: (context) => VerifyPasswordDialog(
                             title: 'Disable Parental Mode',
-                            description:
-                                'Enter your parental control password to continue',
+                            description: 'Enter your parental control password to continue',
                             onVerify: (password) async {
                               final isValid = await service.verifyPassword(
                                 userId: userId,
@@ -448,18 +463,18 @@ class ProfileScreen extends ConsumerWidget {
                                 await service.disableParentalMode(userId);
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
                                       content: Text('Parental mode disabled'),
-                                      backgroundColor: Colors.orange,
+                                      backgroundColor: context.palette.warning,
                                     ),
                                   );
                                 }
                               } else {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
                                       content: Text('Incorrect password'),
-                                      backgroundColor: Colors.red,
+                                      backgroundColor: context.palette.error,
                                     ),
                                   );
                                 }
@@ -474,7 +489,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
 
-              const Divider(color: AppColors.surfaceElevated, height: 1),
+              Divider(color: context.palette.surfaceRaised, height: 1),
 
               // Change Password
               ListTile(
@@ -485,35 +500,42 @@ class ProfileScreen extends ConsumerWidget {
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceElevated,
+                    color: context.palette.surfaceRaised,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.key, color: Colors.white54, size: 24),
+                  child: Icon(
+                    Icons.key,
+                    color: context.palette.onCanvasMuted,
+                    size: 24,
+                  ),
                 ),
-                title: const Text(
+                title: Text(
                   'Change Password',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: context.palette.onCanvas,
                   ),
                 ),
-                subtitle: const Text(
+                subtitle: Text(
                   'Update parental control password',
-                  style: TextStyle(fontSize: 13, color: Colors.white54),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: context.palette.onCanvasMuted,
+                  ),
                 ),
-                trailing: const Icon(
+                trailing: Icon(
                   Icons.chevron_right,
-                  color: Colors.white54,
+                  color: context.palette.onCanvasMuted,
                 ),
                 onTap: () async {
                   final hasPassword = await service.hasPassword(userId);
                   if (!hasPassword) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text('Please enable parental mode first'),
-                          backgroundColor: Colors.orange,
+                          backgroundColor: context.palette.warning,
                         ),
                       );
                     }
@@ -552,11 +574,11 @@ class ProfileScreen extends ConsumerWidget {
                               );
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
+                                  SnackBar(
                                     content: Text(
                                       'Password changed successfully',
                                     ),
-                                    backgroundColor: AppColors.accent,
+                                    backgroundColor: context.palette.accent,
                                   ),
                                 );
                               }
@@ -565,7 +587,7 @@ class ProfileScreen extends ConsumerWidget {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text('Error: $e'),
-                                    backgroundColor: Colors.red,
+                                    backgroundColor: context.palette.error,
                                   ),
                                 );
                               }
@@ -578,7 +600,7 @@ class ProfileScreen extends ConsumerWidget {
                 },
               ),
 
-              const Divider(color: AppColors.surfaceElevated, height: 1),
+              Divider(color: context.palette.surfaceRaised, height: 1),
             ],
           ),
         ),
@@ -593,12 +615,12 @@ class ProfileScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Overview',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: context.palette.onCanvas,
           ),
         ),
         const SizedBox(height: 16),
@@ -607,8 +629,9 @@ class ProfileScreen extends ConsumerWidget {
             return Column(
               children: [
                 _buildStatCard(
+                  context,
                   icon: Icons.access_time,
-                  iconColor: AppColors.accent,
+                  iconColor: context.palette.accentText,
                   title: 'Total Time Saved',
                   value: stats.totalTimeSaved > 0
                       ? stats.getFormattedTimeSaved()
@@ -618,7 +641,7 @@ class ProfileScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: context.palette.surface,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -626,17 +649,17 @@ class ProfileScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.accent.withValues(alpha: 0.2),
+                          color: context.palette.accent.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.center_focus_strong,
-                          color: AppColors.accent,
+                          color: context.palette.accentText,
                           size: 24,
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -644,7 +667,7 @@ class ProfileScreen extends ConsumerWidget {
                               'Total Time Focused',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.white70,
+                                color: context.palette.onCanvasSecondary,
                               ),
                             ),
                             SizedBox(height: 4),
@@ -652,7 +675,7 @@ class ProfileScreen extends ConsumerWidget {
                               'Come back tomorrow to see your progress! ✨',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.accent,
+                                color: context.palette.accentText,
                               ),
                             ),
                           ],
@@ -671,7 +694,8 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatCard({
+  Widget _buildStatCard(
+    BuildContext context, {
     required IconData icon,
     required Color iconColor,
     required String title,
@@ -680,7 +704,7 @@ class ProfileScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -697,15 +721,18 @@ class ProfileScreen extends ConsumerWidget {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(fontSize: 14, color: Colors.white70),
+              style: TextStyle(
+                fontSize: 14,
+                color: context.palette.onCanvasSecondary,
+              ),
             ),
           ),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: context.palette.onCanvas,
             ),
           ),
         ],
@@ -723,21 +750,24 @@ class ProfileScreen extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Your Achievements',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: context.palette.onCanvas,
               ),
             ),
             TextButton(
               onPressed: () {
                 // TODO: Show all achievements
               },
-              child: const Text(
+              child: Text(
                 'View all',
-                style: TextStyle(color: AppColors.accent, fontSize: 14),
+                style: TextStyle(
+                  color: context.palette.accentText,
+                  fontSize: 14,
+                ),
               ),
             ),
           ],
@@ -756,7 +786,7 @@ class ProfileScreen extends ConsumerWidget {
                     padding: EdgeInsets.only(
                       right: index < achievements.length - 1 ? 12 : 0,
                     ),
-                    child: _buildAchievementCard(achievement),
+                    child: _buildAchievementCard(context, achievement),
                   );
                 },
               ),
@@ -769,14 +799,17 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAchievementCard(AchievementModel achievement) {
+  Widget _buildAchievementCard(
+    BuildContext context,
+    AchievementModel achievement,
+  ) {
     final isLocked = !achievement.isUnlocked;
 
     return Container(
       width: 110,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -787,13 +820,17 @@ class ProfileScreen extends ConsumerWidget {
             height: 60,
             decoration: BoxDecoration(
               color: isLocked
-                  ? AppColors.surfaceElevated
-                  : AppColors.accent.withValues(alpha: 0.2),
+                  ? context.palette.surfaceRaised
+                  : context.palette.accent.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Center(
               child: isLocked
-                  ? const Icon(Icons.lock, color: Colors.white38, size: 28)
+                  ? Icon(
+                      Icons.lock,
+                      color: context.palette.onCanvasDisabled,
+                      size: 28,
+                    )
                   : Text(
                       achievement.icon,
                       style: const TextStyle(fontSize: 32),
@@ -806,7 +843,9 @@ class ProfileScreen extends ConsumerWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: isLocked ? Colors.white38 : Colors.white,
+              color: isLocked
+                  ? context.palette.onCanvasDisabled
+                  : context.palette.onCanvas,
             ),
             textAlign: TextAlign.center,
           ),
@@ -815,7 +854,9 @@ class ProfileScreen extends ConsumerWidget {
             achievement.description,
             style: TextStyle(
               fontSize: 10,
-              color: isLocked ? Colors.white24 : Colors.white54,
+              color: isLocked
+                  ? context.palette.onCanvasDisabled
+                  : context.palette.onCanvasMuted,
             ),
             textAlign: TextAlign.center,
             maxLines: 2,
@@ -834,28 +875,28 @@ class ProfileScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Invite your friends',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: context.palette.onCanvas,
           ),
         ),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.palette.surface,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             children: [
-              const Text(
+              Text(
                 'Help your friends kill\nphone addiction',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.white,
+                  color: context.palette.onCanvas,
                   height: 1.4,
                 ),
                 textAlign: TextAlign.center,
@@ -864,9 +905,9 @@ class ProfileScreen extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildInviteProgressIndicator(1, true),
-                  _buildInviteProgressIndicator(5, false),
-                  _buildInviteProgressIndicator(10, false),
+                  _buildInviteProgressIndicator(context, 1, true),
+                  _buildInviteProgressIndicator(context, 5, false),
+                  _buildInviteProgressIndicator(context, 10, false),
                 ],
               ),
               const SizedBox(height: 16),
@@ -890,8 +931,8 @@ class ProfileScreen extends ConsumerWidget {
                   icon: const Icon(Icons.share),
                   label: const Text('Invite friends'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    foregroundColor: Colors.black,
+                    backgroundColor: context.palette.accent,
+                    foregroundColor: context.palette.onAccent,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(100),
@@ -906,7 +947,11 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildInviteProgressIndicator(int count, bool isActive) {
+  Widget _buildInviteProgressIndicator(
+    BuildContext context,
+    int count,
+    bool isActive,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Column(
@@ -916,15 +961,15 @@ class ProfileScreen extends ConsumerWidget {
             height: 40,
             decoration: BoxDecoration(
               color: isActive
-                  ? AppColors.accent
-                  : AppColors.surfaceElevated,
+                  ? context.palette.accent
+                  : context.palette.surfaceRaised,
               shape: BoxShape.circle,
             ),
             child: Center(
               child: Text(
                 isActive ? '✓' : '',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: context.palette.onCanvas,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -935,7 +980,9 @@ class ProfileScreen extends ConsumerWidget {
             '$count friend${count > 1 ? 's' : ''}',
             style: TextStyle(
               fontSize: 10,
-              color: isActive ? Colors.white : Colors.white38,
+              color: isActive
+                  ? context.palette.onCanvas
+                  : context.palette.onCanvasDisabled,
             ),
           ),
         ],
@@ -951,14 +998,14 @@ class ProfileScreen extends ConsumerWidget {
           final confirmed = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
-              backgroundColor: AppColors.surfaceElevated,
-              title: const Text(
+              backgroundColor: context.palette.surfaceRaised,
+              title: Text(
                 'Sign out?',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: context.palette.onCanvas),
               ),
-              content: const Text(
+              content: Text(
                 'You can sign back in anytime.',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: context.palette.onCanvasSecondary),
               ),
               actions: [
                 TextButton(
@@ -967,9 +1014,9 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text(
+                  child: Text(
                     'Sign out',
-                    style: TextStyle(color: AppColors.error),
+                    style: TextStyle(color: context.palette.error),
                   ),
                 ),
               ],
@@ -980,13 +1027,10 @@ class ProfileScreen extends ConsumerWidget {
             await ref.read(authNotifierProvider.notifier).signOut();
           }
         },
-        icon: const Icon(Icons.logout, color: AppColors.error),
-        label: const Text(
-          'Sign out',
-          style: TextStyle(color: AppColors.error),
-        ),
+        icon: Icon(Icons.logout, color: context.palette.error),
+        label: Text('Sign out', style: TextStyle(color: context.palette.error)),
         style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.error),
+          side: BorderSide(color: context.palette.error),
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(100),
@@ -1000,19 +1044,19 @@ class ProfileScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Weekly Reports',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: context.palette.onCanvas,
           ),
         ),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.palette.surface,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -1020,12 +1064,12 @@ class ProfileScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.2),
+                  color: context.palette.accent.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.description,
-                  color: AppColors.accent,
+                  color: context.palette.accentText,
                   size: 24,
                 ),
               ),
@@ -1036,22 +1080,25 @@ class ProfileScreen extends ConsumerWidget {
                   children: [
                     Text(
                       'Dec ${DateTime.now().day - 7}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: Colors.white70,
+                        color: context.palette.onCanvasSecondary,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       'View your weekly progress report',
-                      style: TextStyle(fontSize: 12, color: Colors.white54),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.palette.onCanvasMuted,
+                      ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.arrow_forward_ios,
-                color: Colors.white38,
+                color: context.palette.onCanvasDisabled,
                 size: 16,
               ),
             ],

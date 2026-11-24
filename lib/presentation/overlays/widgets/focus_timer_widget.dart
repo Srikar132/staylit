@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_theme.dart';
+
+import 'package:pace/core/theme/theme_context.dart';
 
 class FocusTimerWidget extends StatelessWidget {
   final int elapsedMinutes;
@@ -18,13 +19,13 @@ class FocusTimerWidget extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(compact ? 12 : 16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.accent, AppColors.accentMuted],
+        gradient: LinearGradient(
+          colors: [context.palette.accent, context.palette.onCanvasMuted],
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.accent.withValues(alpha: 0.3),
+            color: context.palette.accent.withValues(alpha: 0.3),
             blurRadius: 15,
             spreadRadius: 2,
           ),
@@ -35,7 +36,7 @@ class FocusTimerWidget extends StatelessWidget {
         children: [
           Icon(
             _getTimerIcon(sessionType),
-            color: Colors.white,
+            color: context.palette.onCanvas,
             size: compact ? 20 : 24,
           ),
           const SizedBox(width: 8),
@@ -46,7 +47,7 @@ class FocusTimerWidget extends StatelessWidget {
               Text(
                 'Focus Time',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
+                  color: context.palette.onCanvas.withValues(alpha: 0.9),
                   fontSize: compact ? 12 : 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -54,7 +55,7 @@ class FocusTimerWidget extends StatelessWidget {
               Text(
                 _formatTime(elapsedMinutes),
                 style: TextStyle(
-                  color: Colors.white,
+                  color: context.palette.onCanvas,
                   fontSize: compact ? 18 : 22,
                   fontWeight: FontWeight.bold,
                 ),

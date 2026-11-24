@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/core/theme/app_theme.dart';
 import 'package:pace/data/models/installed_app_model.dart';
 import 'package:pace/models/block_app_bottom_model.dart';
 import 'package:pace/models/model_manager.dart';
@@ -9,6 +8,7 @@ import 'package:pace/presentation/providers/blocked_content_provider.dart';
 import 'package:pace/widgets/bottom_sheet_darg_handler.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
 import 'package:pace/presentation/providers/settings_provider.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 // ============================================================================
 // OPTIMIZED: Extracted BlockedAppsSection to prevent unnecessary rebuilds
@@ -41,19 +41,19 @@ class _BlockedAppsSection extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: context.palette.onCanvas.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.1),
+            color: context.palette.onCanvas.withValues(alpha: 0.1),
             width: 1,
           ),
         ),
         child: Row(
           children: [
-            const Text(
+            Text(
               'Blocked Apps',
               style: TextStyle(
-                color: Colors.white,
+                color: context.palette.onCanvas,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -63,7 +63,7 @@ class _BlockedAppsSection extends ConsumerWidget {
             const SizedBox(width: 8),
             Icon(
               Icons.chevron_right,
-              color: Colors.white.withValues(alpha: 0.5),
+              color: context.palette.onCanvas.withValues(alpha: 0.5),
               size: 20,
             ),
           ],
@@ -95,7 +95,9 @@ class _BlockedAppsPreview extends ConsumerWidget {
         if (blockedAppsList.isEmpty) {
           return Text(
             'None',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+            style: TextStyle(
+              color: context.palette.onCanvas.withValues(alpha: 0.5),
+            ),
           );
         }
 
@@ -107,7 +109,7 @@ class _BlockedAppsPreview extends ConsumerWidget {
             Text(
               '${blockedSet.length} app${blockedSet.length != 1 ? 's' : ''}',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
+                color: context.palette.onCanvas.withValues(alpha: 0.7),
                 fontSize: 14,
               ),
             ),
@@ -182,7 +184,7 @@ class _AppIconCircle extends ConsumerWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(color: backgroundColor, width: 2),
-        color: AppColors.surfaceElevated,
+        color: context.palette.surfaceRaised,
       ),
       child: ClipOval(
         child: iconAsync.when(
@@ -195,11 +197,15 @@ class _AppIconCircle extends ConsumerWidget {
                 filterQuality: FilterQuality.medium,
               );
             }
-            return const Icon(Icons.android, size: 12, color: Colors.white);
+            return Icon(
+              Icons.android,
+              size: 12,
+              color: context.palette.onCanvas,
+            );
           },
           loading: () => const SizedBox(),
           error: (_, _) =>
-              const Icon(Icons.android, size: 12, color: Colors.white),
+              Icon(Icons.android, size: 12, color: context.palette.onCanvas),
         ),
       ),
     );
@@ -383,10 +389,10 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
                     const SizedBox(height: 12),
                     _buildBreaksSection(),
                     const SizedBox(height: 24),
-                    const Text(
+                    Text(
                       'Block settings',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: context.palette.onCanvas,
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                       ),
@@ -422,8 +428,8 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
                     widget.onSave();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
+                    backgroundColor: context.palette.onCanvas,
+                    foregroundColor: context.palette.onAccent,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),
                     ),
@@ -442,17 +448,19 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
     );
   }
 
-  // OPTIMIZED: Cached color values
-  static final _containerBgColor = Colors.white.withValues(alpha: 0.05);
-  static final _borderColor = Colors.white.withValues(alpha: 0.1);
-  static final _textSecondaryColor = Colors.white.withValues(alpha: 0.7);
-  static final _iconColor = Colors.white.withValues(alpha: 0.5);
+  // Derived from the active theme, so they follow light/dark mode.
+  Color get _containerBgColor =>
+      context.palette.onCanvas.withValues(alpha: 0.05);
+  Color get _borderColor => context.palette.onCanvas.withValues(alpha: 0.1);
+  Color get _textSecondaryColor =>
+      context.palette.onCanvas.withValues(alpha: 0.7);
+  Color get _iconColor => context.palette.onCanvas.withValues(alpha: 0.5);
 
   Widget _buildModeSelector() {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: context.palette.onCanvas.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -484,7 +492,9 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
             mode,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isSelected ? Colors.black : Colors.white,
+              color: isSelected
+                  ? context.palette.onAccent
+                  : context.palette.onCanvas,
               fontSize: 14,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
             ),
@@ -507,10 +517,10 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Total duration',
               style: TextStyle(
-                color: Colors.white,
+                color: context.palette.onCanvas,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -544,10 +554,10 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Breaks',
               style: TextStyle(
-                color: Colors.white,
+                color: context.palette.onCanvas,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -585,8 +595,8 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: context.palette.onCanvas,
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
@@ -596,10 +606,14 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
             child: Switch(
               value: value,
               onChanged: onChanged,
-              activeThumbColor: Colors.white,
-              activeTrackColor: Colors.white.withValues(alpha: 0.3),
-              inactiveThumbColor: Colors.white.withValues(alpha: 0.5),
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
+              activeThumbColor: context.palette.onCanvas,
+              activeTrackColor: context.palette.onCanvas.withValues(alpha: 0.3),
+              inactiveThumbColor: context.palette.onCanvas.withValues(
+                alpha: 0.5,
+              ),
+              inactiveTrackColor: context.palette.onCanvas.withValues(
+                alpha: 0.1,
+              ),
             ),
           ),
         ],
@@ -622,10 +636,10 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
             children: [
               Row(
                 children: [
-                  const Text(
+                  Text(
                     'Strict mode',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: context.palette.onCanvas,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -637,13 +651,13 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.premium,
+                      color: context.palette.premium,
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Text(
+                    child: Text(
                       'PRO',
                       style: TextStyle(
-                        color: Colors.black,
+                        color: context.palette.onAccent,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
@@ -659,10 +673,16 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
                     setState(() => _strictMode = value);
                     _updateSettings(strict: value);
                   },
-                  activeThumbColor: Colors.white,
-                  activeTrackColor: Colors.white.withValues(alpha: 0.3),
-                  inactiveThumbColor: Colors.white.withValues(alpha: 0.5),
-                  inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
+                  activeThumbColor: context.palette.onCanvas,
+                  activeTrackColor: context.palette.onCanvas.withValues(
+                    alpha: 0.3,
+                  ),
+                  inactiveThumbColor: context.palette.onCanvas.withValues(
+                    alpha: 0.5,
+                  ),
+                  inactiveTrackColor: context.palette.onCanvas.withValues(
+                    alpha: 0.1,
+                  ),
                 ),
               ),
             ],
@@ -673,7 +693,7 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
             child: Text(
               'You cannot end your session early',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
+                color: context.palette.onCanvas.withValues(alpha: 0.5),
                 fontSize: 13,
               ),
             ),

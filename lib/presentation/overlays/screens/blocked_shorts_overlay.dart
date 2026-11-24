@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/core/theme/app_theme.dart';
 import 'package:pace/presentation/overlays/providers/overlay_provider.dart';
 import 'package:pace/presentation/overlays/widgets/focus_timer_widget.dart';
 import 'package:pace/presentation/overlays/widgets/overlay_background.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class BlockedShortsOverlay extends ConsumerStatefulWidget {
   const BlockedShortsOverlay({super.key});
@@ -71,9 +71,11 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
     final overlayNotifier = ref.read(overlayDataProvider.notifier);
 
     if (overlayState.isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      return Scaffold(
+        backgroundColor: context.palette.ink,
+        body: Center(
+          child: CircularProgressIndicator(color: context.palette.onInk),
+        ),
       );
     }
 
@@ -145,7 +147,7 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
                         title:  'Digital Wellness Tip',
                         message: educationalMessage,
                         icon: Icons.psychology,
-                        color: Colors.orange,
+                        color: context.palette.warning,
                       ),
                     ),*/
                     const SizedBox(height: 24),
@@ -192,9 +194,8 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: _getPlatformColor(
-                    platform,
-                  ).withValues(alpha: 0.3 - (_waveController.value * 0.3)),
+                  color: _getPlatformColor(platform)
+                      .withValues(alpha: 0.3 - (_waveController.value * 0.3)),
                   width: 2,
                 ),
               ),
@@ -212,9 +213,8 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: _getPlatformColor(
-                    platform,
-                  ).withValues(alpha: 0.5 - (_waveController.value * 0.5)),
+                  color: _getPlatformColor(platform)
+                      .withValues(alpha: 0.5 - (_waveController.value * 0.5)),
                   width: 3,
                 ),
               ),
@@ -240,7 +240,7 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
           child: Icon(
             _getPlatformIcon(platform),
             size: 40,
-            color: Colors.white,
+            color: context.palette.onCanvas,
           ),
         ),
       ],
@@ -252,10 +252,10 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
       children: [
         Text(
           '$contentType Blocked! ',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: context.palette.onCanvas,
           ),
           textAlign: TextAlign.center,
         ),
@@ -263,14 +263,16 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.red.withValues(alpha: 0.2),
+            color: context.palette.error.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
+            border: Border.all(
+              color: context.palette.error.withValues(alpha: 0.5),
+            ),
           ),
-          child: const Text(
+          child: Text(
             'Addictive Content Detected',
             style: TextStyle(
-              color: Colors.red,
+              color: context.palette.error,
               fontWeight: FontWeight.w600,
               fontSize: 14,
             ),
@@ -287,20 +289,20 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
         _buildQuickActionButton(
           icon: Icons.close,
           label: 'Continue',
-          color: Colors.green,
+          color: context.palette.success,
           onPressed: () =>
               notifier.closeOverlay(), // Close activity and return to YouTube
         ),
         _buildQuickActionButton(
           icon: Icons.arrow_back,
           label: 'Back',
-          color: Colors.blue,
+          color: context.palette.info,
           onPressed: () => notifier.goBack(),
         ),
         _buildQuickActionButton(
           icon: Icons.info_outline,
           label: 'Learn',
-          color: Colors.purple,
+          color: context.palette.chartAlt,
           onPressed: () => notifier.showEducationalContent('blocked_shorts'),
         ),
       ],
@@ -332,8 +334,8 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
   LinearGradient _getPlatformGradient(String platform) {
     // Same dark-green theme regardless of platform — the app's look, not the
     // blocked app's branding.
-    return const LinearGradient(
-      colors: [AppColors.background, AppColors.surface],
+    return LinearGradient(
+      colors: [context.palette.canvas, context.palette.surface],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     );
@@ -342,17 +344,17 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
   Color _getPlatformColor(String platform) {
     switch (platform.toLowerCase()) {
       case 'youtube':
-        return Colors.red;
+        return context.palette.error;
       case 'instagram':
-        return Colors.purple;
+        return context.palette.chartAlt;
       case 'tiktok':
-        return Colors.pink;
+        return context.palette.badge;
       case 'facebook':
-        return Colors.blue;
+        return context.palette.info;
       case 'snapchat':
-        return Colors.yellow;
+        return context.palette.warning;
       default:
-        return Colors.orange;
+        return context.palette.warning;
     }
   }
 

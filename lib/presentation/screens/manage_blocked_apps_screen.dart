@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pace/core/theme/app_theme.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 /// Placeholder screen for managing blocked apps
 /// This screen will be fully implemented later with app selection functionality
@@ -9,17 +9,17 @@ class ManageBlockedAppsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.palette.canvas,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: context.palette.onCanvas),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           'Manage Blocked Apps',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: context.palette.onCanvas),
         ),
       ),
       body: Center(
@@ -31,30 +31,30 @@ class ManageBlockedAppsScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated,
+                  color: context.palette.surfaceRaised,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.apps,
                   size: 64,
-                  color: AppColors.accent,
+                  color: context.palette.accentText,
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'Coming Soon',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: context.palette.onCanvas,
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'App blocking feature is under development.\nYou\'ll be able to select and block specific apps here.',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.white70,
+                  color: context.palette.onCanvasSecondary,
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
@@ -63,8 +63,8 @@ class ManageBlockedAppsScreen extends StatelessWidget {
               ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  foregroundColor: Colors.black,
+                  backgroundColor: context.palette.accent,
+                  foregroundColor: context.palette.onAccent,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
                     vertical: 14,

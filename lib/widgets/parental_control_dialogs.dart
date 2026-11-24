@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pace/core/theme/app_theme.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 /// Dialog for creating a new parental control password
 class CreatePasswordDialog extends StatefulWidget {
@@ -58,25 +58,28 @@ class _CreatePasswordDialogState extends State<CreatePasswordDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'New Password',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: context.palette.onCanvas,
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Create a new parental control password',
-              style: TextStyle(fontSize: 14, color: Colors.white70),
+              style: TextStyle(
+                fontSize: 14,
+                color: context.palette.onCanvasSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -84,31 +87,31 @@ class _CreatePasswordDialogState extends State<CreatePasswordDialog> {
             // Create Password Field
             Container(
               decoration: BoxDecoration(
-                color: AppColors.surfaceElevated,
+                color: context.palette.surfaceRaised,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: TextField(
                 controller: _passwordController,
                 obscureText: !_passwordVisible,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: context.palette.onCanvas),
                 decoration: InputDecoration(
                   hintText: 'Create Password',
-                  hintStyle: const TextStyle(color: Colors.white38),
+                  hintStyle: TextStyle(color: context.palette.onCanvasDisabled),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
                   ),
-                  prefixIcon: const Icon(
+                  prefixIcon: Icon(
                     Icons.lock_outline,
-                    color: Colors.white54,
+                    color: context.palette.onCanvasMuted,
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _passwordVisible
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: Colors.white54,
+                      color: context.palette.onCanvasMuted,
                     ),
                     onPressed: () {
                       setState(() {
@@ -131,31 +134,31 @@ class _CreatePasswordDialogState extends State<CreatePasswordDialog> {
             // Confirm Password Field
             Container(
               decoration: BoxDecoration(
-                color: AppColors.surfaceElevated,
+                color: context.palette.surfaceRaised,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: TextField(
                 controller: _confirmPasswordController,
                 obscureText: !_confirmPasswordVisible,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: context.palette.onCanvas),
                 decoration: InputDecoration(
                   hintText: 'Confirm Password',
-                  hintStyle: const TextStyle(color: Colors.white38),
+                  hintStyle: TextStyle(color: context.palette.onCanvasDisabled),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
                   ),
-                  prefixIcon: const Icon(
+                  prefixIcon: Icon(
                     Icons.lock_outline,
-                    color: Colors.white54,
+                    color: context.palette.onCanvasMuted,
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _confirmPasswordVisible
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: Colors.white54,
+                      color: context.palette.onCanvasMuted,
                     ),
                     onPressed: () {
                       setState(() {
@@ -179,7 +182,7 @@ class _CreatePasswordDialogState extends State<CreatePasswordDialog> {
               const SizedBox(height: 12),
               Text(
                 _errorMessage!,
-                style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                style: TextStyle(color: context.palette.error, fontSize: 13),
               ),
             ],
 
@@ -193,14 +196,17 @@ class _CreatePasswordDialogState extends State<CreatePasswordDialog> {
                     onPressed: () => Navigator.of(context).pop(),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: AppColors.surfaceElevated,
+                      backgroundColor: context.palette.surfaceRaised,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Cancel',
-                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                      style: TextStyle(
+                        color: context.palette.onCanvasSecondary,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 ),
@@ -210,15 +216,15 @@ class _CreatePasswordDialogState extends State<CreatePasswordDialog> {
                     onPressed: _handleSetup,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: Colors.white,
+                      backgroundColor: context.palette.onCanvas,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Setup',
                       style: TextStyle(
-                        color: Colors.black,
+                        color: context.palette.onAccent,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -296,27 +302,34 @@ class _VerifyPasswordDialogState extends State<VerifyPasswordDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.lock_open, color: Colors.white54, size: 48),
+            Icon(
+              Icons.lock_open,
+              color: context.palette.onCanvasMuted,
+              size: 48,
+            ),
             const SizedBox(height: 16),
             Text(
               widget.title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: context.palette.onCanvas,
               ),
             ),
             const SizedBox(height: 12),
             Text(
               widget.description,
-              style: const TextStyle(fontSize: 14, color: Colors.white70),
+              style: TextStyle(
+                fontSize: 14,
+                color: context.palette.onCanvasSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -324,32 +337,32 @@ class _VerifyPasswordDialogState extends State<VerifyPasswordDialog> {
             // Password Field
             Container(
               decoration: BoxDecoration(
-                color: AppColors.surfaceElevated,
+                color: context.palette.surfaceRaised,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: TextField(
                 controller: _passwordController,
                 obscureText: !_passwordVisible,
                 autofocus: true,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: context.palette.onCanvas),
                 decoration: InputDecoration(
                   hintText: 'Enter Password',
-                  hintStyle: const TextStyle(color: Colors.white38),
+                  hintStyle: TextStyle(color: context.palette.onCanvasDisabled),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
                   ),
-                  prefixIcon: const Icon(
+                  prefixIcon: Icon(
                     Icons.lock_outline,
-                    color: Colors.white54,
+                    color: context.palette.onCanvasMuted,
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _passwordVisible
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: Colors.white54,
+                      color: context.palette.onCanvasMuted,
                     ),
                     onPressed: () {
                       setState(() {
@@ -373,7 +386,7 @@ class _VerifyPasswordDialogState extends State<VerifyPasswordDialog> {
               const SizedBox(height: 12),
               Text(
                 _errorMessage!,
-                style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                style: TextStyle(color: context.palette.error, fontSize: 13),
               ),
             ],
 
@@ -387,14 +400,17 @@ class _VerifyPasswordDialogState extends State<VerifyPasswordDialog> {
                     onPressed: () => Navigator.of(context).pop(),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: AppColors.surfaceElevated,
+                      backgroundColor: context.palette.surfaceRaised,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Cancel',
-                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                      style: TextStyle(
+                        color: context.palette.onCanvasSecondary,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 ),
@@ -404,15 +420,15 @@ class _VerifyPasswordDialogState extends State<VerifyPasswordDialog> {
                     onPressed: _handleVerify,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: Colors.white,
+                      backgroundColor: context.palette.onCanvas,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Verify',
                       style: TextStyle(
-                        color: Colors.black,
+                        color: context.palette.onAccent,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),

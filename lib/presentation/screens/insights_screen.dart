@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+
 import 'dart:math' as math;
+
+import 'package:pace/core/theme/theme_context.dart';
 
 class InsightsScreen extends StatelessWidget {
   const InsightsScreen({super.key});
@@ -70,8 +73,8 @@ class InsightsScreen extends StatelessWidget {
                     title: 'Focus Sessions',
                     value: _focusSessions.toString(),
                     icon: Icons.access_time,
-                    color: Colors.cyan,
-                    borderColor: Colors.cyan.withValues(alpha: 0.3),
+                    color: context.palette.info,
+                    borderColor: context.palette.info.withValues(alpha: 0.3),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -80,8 +83,8 @@ class InsightsScreen extends StatelessWidget {
                     title: 'Blocks Today',
                     value: _blocksToday.toString(),
                     icon: Icons.block,
-                    color: Colors.orange,
-                    borderColor: Colors.orange.withValues(alpha: 0.3),
+                    color: context.palette.warning,
+                    borderColor: context.palette.warning.withValues(alpha: 0.3),
                   ),
                 ),
               ],
@@ -123,7 +126,7 @@ class InsightsScreen extends StatelessWidget {
                 Expanded(
                   child: _FocusRecapCard(
                     title: 'Before',
-                    color: Colors.red,
+                    color: context.palette.error,
                     metrics: const [
                       {'label': 'App Switches', 'value': '14', 'change': ''},
                       {'label': 'Avg. Duration', 'value': '6m', 'change': ''},
@@ -135,7 +138,7 @@ class InsightsScreen extends StatelessWidget {
                 Expanded(
                   child: _FocusRecapCard(
                     title: 'After',
-                    color: Colors.green,
+                    color: context.palette.success,
                     metrics: const [
                       {
                         'label': 'App Switches',
@@ -163,23 +166,23 @@ class InsightsScreen extends StatelessWidget {
             const SizedBox(height: 12),
 
             // Suggestions
-            const _SuggestionTile(
+            _SuggestionTile(
               icon: Icons.nightlight_round,
-              iconColor: Colors.green,
+              iconColor: context.palette.success,
               title: 'Wind-down at 11:00 PM',
               description: 'Dim screen + avoid feeds 45 mins before bed.',
             ),
             const SizedBox(height: 12),
-            const _SuggestionTile(
+            _SuggestionTile(
               icon: Icons.timer_outlined,
-              iconColor: Colors.green,
+              iconColor: context.palette.success,
               title: '15-min Feed Limit',
               description: 'One short window; then auto-enter Focus Mode.',
             ),
             const SizedBox(height: 12),
-            const _SuggestionTile(
+            _SuggestionTile(
               icon: Icons.directions_walk,
-              iconColor: Colors.green,
+              iconColor: context.palette.success,
               title: 'Micro-breaks',
               description: 'Stand up every 45 mins; reset attention.',
             ),
@@ -193,8 +196,8 @@ class InsightsScreen extends StatelessWidget {
                   child: _ActionButton(
                     label: 'Start Focus Mode',
                     icon: Icons.spa_outlined,
-                    backgroundColor: Colors.white,
-                    textColor: Colors.black,
+                    backgroundColor: context.palette.onCanvas,
+                    textColor: context.palette.onAccent,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -202,8 +205,8 @@ class InsightsScreen extends StatelessWidget {
                   child: _ActionButton(
                     label: 'Set Bedtime',
                     icon: Icons.access_time,
-                    backgroundColor: Colors.grey.shade900,
-                    textColor: Colors.white,
+                    backgroundColor: context.palette.surface,
+                    textColor: context.palette.onCanvas,
                   ),
                 ),
               ],
@@ -294,9 +297,8 @@ class _Header extends StatelessWidget {
         Text(
           'Awareness first',
           style: TextStyle(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.5),
+            color: Theme.of(context).colorScheme.onSurface
+                .withValues(alpha: 0.5),
             fontSize: 14,
           ),
         ),
@@ -323,7 +325,7 @@ class _HeroCard extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.green.shade400, Colors.green.shade600],
+          colors: [context.palette.success, context.palette.success],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -335,12 +337,12 @@ class _HeroCard extends StatelessWidget {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.25),
+              color: context.palette.onCanvas.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.phone_android,
-              color: Colors.white,
+              color: context.palette.onCanvas,
               size: 32,
             ),
           ),
@@ -351,8 +353,8 @@ class _HeroCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: context.palette.onCanvas,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -360,8 +362,8 @@ class _HeroCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   value,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: context.palette.onCanvas,
                     fontSize: 36,
                     fontWeight: FontWeight.bold,
                   ),
@@ -370,7 +372,7 @@ class _HeroCard extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: context.palette.onCanvas.withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -513,13 +515,13 @@ class _SectionTitle extends StatelessWidget {
 //                   vertical: 6,
 //                 ),
 //                 decoration: BoxDecoration(
-//                   color: Colors.green.withValues(alpha: 0.15),
+//                   color: context.palette.success.withValues(alpha: 0.15),
 //                   borderRadius: BorderRadius.circular(12),
 //                 ),
 //                 child: const Text(
 //                   'Week',
 //                   style: TextStyle(
-//                     color: Colors.green,
+//                     color: context.palette.success,
 //                     fontSize: 12,
 //                     fontWeight: FontWeight.w600,
 //                   ),
@@ -536,7 +538,7 @@ class _SectionTitle extends StatelessWidget {
 //                 data: data,
 //                 avgLine: avgHours,
 //                 goalLine: goalHours,
-//                 primaryColor: Colors.green,
+//                 primaryColor: context.palette.success,
 //               ),
 //             ),
 //           ),
@@ -581,16 +583,16 @@ class _AdvancedInsightsSection extends StatelessWidget {
     return 'Low';
   }
 
-  Color _getRiskColor(int score) {
-    if (score >= 70) return Colors.redAccent;
-    if (score >= 40) return Colors.orangeAccent;
-    return Colors.greenAccent;
+  Color _getRiskColor(BuildContext context, int score) {
+    if (score >= 70) return context.palette.error;
+    if (score >= 40) return context.palette.warning;
+    return context.palette.success;
   }
 
   @override
   Widget build(BuildContext context) {
-    final doomColor = _getRiskColor(doomScrollScore);
-    final sleepColor = _getRiskColor(sleepImpactScore);
+    final doomColor = _getRiskColor(context, doomScrollScore);
+    final sleepColor = _getRiskColor(context, sleepImpactScore);
     final doomLevel = _getRiskLevel(doomScrollScore);
     final sleepLevel = _getRiskLevel(sleepImpactScore);
 
@@ -726,7 +728,7 @@ class _EnhancedCircularCard extends StatelessWidget {
 //       ..style = PaintingStyle.fill;
 
 //     final dashedPaint = Paint()
-//       ..color = Colors.grey.withValues(alpha: 0.3)
+//       ..color = context.palette.onCanvasMuted.withValues(alpha: 0.3)
 //       ..strokeWidth = 1.5
 //       ..style = PaintingStyle.stroke;
 
@@ -793,14 +795,14 @@ class _EnhancedCircularCard extends StatelessWidget {
 
 //     textPainter.text = TextSpan(
 //       text: 'avg ${avgLine}h',
-//       style: const TextStyle(color: Colors.grey, fontSize: 10),
+//       style: const TextStyle(color: context.palette.onCanvasMuted, fontSize: 10),
 //     );
 //     textPainter.layout();
 //     textPainter.paint(canvas, Offset(size.width - 60, avgY - 20));
 
 //     textPainter.text = TextSpan(
 //       text: 'goal ${goalLine}h',
-//       style: const TextStyle(color: Colors.grey, fontSize: 10),
+//       style: const TextStyle(color: context.palette.onCanvasMuted, fontSize: 10),
 //     );
 //     textPainter.layout();
 //     textPainter.paint(canvas, Offset(size.width - 60, goalY + 8));
@@ -900,7 +902,7 @@ class _BalanceScoreCard extends StatelessWidget {
         color: cs.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.purple.withValues(alpha: 0.3),
+          color: context.palette.chartAlt.withValues(alpha: 0.3),
           width: 1.5,
         ),
       ),
@@ -923,16 +925,16 @@ class _BalanceScoreCard extends StatelessWidget {
                 child: CustomPaint(
                   painter: _CircularProgressPainter(
                     progress: score / 100,
-                    color: Colors.purple,
+                    color: context.palette.chartAlt,
                     backgroundColor: cs.outline.withValues(alpha: 0.1),
                   ),
                   child: Center(
                     child: Text(
                       score.toString(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
-                        color: Colors.purple,
+                        color: context.palette.chartAlt,
                       ),
                     ),
                   ),
@@ -956,13 +958,13 @@ class _BalanceScoreCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.purple.withValues(alpha: 0.15),
+                      color: context.palette.chartAlt.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Overall Health',
                       style: TextStyle(
-                        color: Colors.purple,
+                        color: context.palette.chartAlt,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1051,8 +1053,8 @@ class _FocusRecapCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 11,
                             color: metric['change']!.startsWith('↓')
-                                ? Colors.green
-                                : Colors.blue,
+                                ? context.palette.success
+                                : context.palette.info,
                           ),
                         ),
                     ],

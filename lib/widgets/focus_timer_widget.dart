@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/core/theme/app_theme.dart';
 import 'package:pace/presentation/providers/blocked_content_provider.dart';
 import 'package:pace/presentation/providers/app_management_provide.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
 import 'package:pace/data/models/installed_app_model.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class FocusTimerWidget extends ConsumerStatefulWidget {
   final String initialTimerMode;
@@ -68,13 +68,13 @@ class _FocusTimerWidgetState extends ConsumerState<FocusTimerWidget> {
 
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
+              color: context.palette.scrim.withValues(alpha: 0.3),
               blurRadius: 30,
               spreadRadius: 5,
               offset: const Offset(0, 10),
             ),
             BoxShadow(
-              color: Colors.cyan.withValues(alpha: 0.005),
+              color: context.palette.info.withValues(alpha: 0.005),
               blurRadius: 20,
               spreadRadius: -5,
               offset: const Offset(0, 0),
@@ -88,9 +88,11 @@ class _FocusTimerWidgetState extends ConsumerState<FocusTimerWidget> {
               child: CircularProgressIndicator(
                 value: _totalSeconds > 0 ? _currentSeconds / _totalSeconds : 0,
                 strokeWidth: 4,
-                backgroundColor: Colors.white.withValues(alpha: 0.05),
+                backgroundColor: context.palette.onCanvas.withValues(
+                  alpha: 0.05,
+                ),
                 valueColor: AlwaysStoppedAnimation<Color>(
-                  Colors.white.withValues(alpha: 0.3),
+                  context.palette.onCanvas.withValues(alpha: 0.3),
                 ),
               ),
             ),
@@ -105,7 +107,7 @@ class _FocusTimerWidgetState extends ConsumerState<FocusTimerWidget> {
                   Text(
                     _formatTime(_currentSeconds),
                     style: TextStyle(
-                      color: Colors.white,
+                      color: context.palette.onCanvas,
                       fontSize: timerSize * 0.2,
                       fontWeight: FontWeight.w300,
                       letterSpacing: 2,
@@ -127,10 +129,10 @@ class _FocusTimerWidgetState extends ConsumerState<FocusTimerWidget> {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
+                      color: context.palette.onCanvas.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3),
+                        color: context.palette.onCanvas.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -139,14 +141,18 @@ class _FocusTimerWidgetState extends ConsumerState<FocusTimerWidget> {
                       children: [
                         Icon(
                           Icons.edit_outlined,
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: context.palette.onCanvas.withValues(
+                            alpha: 0.9,
+                          ),
                           size: 12,
                         ),
                         const SizedBox(width: 6),
                         Text(
                           'Edit',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.9),
+                            color: context.palette.onCanvas.withValues(
+                              alpha: 0.9,
+                            ),
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -193,17 +199,17 @@ class _BlockedAppsIndicator extends ConsumerWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: context.palette.onCanvas.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: context.palette.onCanvas.withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
                 child: Text(
                   'No apps blocked',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
+                    color: context.palette.onCanvas.withValues(alpha: 0.5),
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
@@ -218,19 +224,21 @@ class _BlockedAppsIndicator extends ConsumerWidget {
           loading: () => Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
+              color: context.palette.onCanvas.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: context.palette.onCanvas.withValues(alpha: 0.2),
                 width: 1,
               ),
             ),
-            child: const SizedBox(
+            child: SizedBox(
               width: 16,
               height: 16,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  context.palette.onCanvas,
+                ),
               ),
             ),
           ),
@@ -265,10 +273,10 @@ class _BlockedAppsPreview extends ConsumerWidget {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
+            color: context.palette.onCanvas.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: context.palette.onCanvas.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -282,7 +290,7 @@ class _BlockedAppsPreview extends ConsumerWidget {
               Text(
                 '${blockedPackages.length} app${blockedPackages.length != 1 ? 's' : ''} blocked',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.8),
+                  color: context.palette.onCanvas.withValues(alpha: 0.8),
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                 ),
@@ -294,36 +302,36 @@ class _BlockedAppsPreview extends ConsumerWidget {
       loading: () => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.1),
+          color: context.palette.onCanvas.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.2),
+            color: context.palette.onCanvas.withValues(alpha: 0.2),
             width: 1,
           ),
         ),
-        child: const SizedBox(
+        child: SizedBox(
           width: 16,
           height: 16,
           child: CircularProgressIndicator(
             strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            valueColor: AlwaysStoppedAnimation<Color>(context.palette.onCanvas),
           ),
         ),
       ),
       error: (_, _) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.1),
+          color: context.palette.onCanvas.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.2),
+            color: context.palette.onCanvas.withValues(alpha: 0.2),
             width: 1,
           ),
         ),
         child: Text(
           'Error loading apps',
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.5),
+            color: context.palette.onCanvas.withValues(alpha: 0.5),
             fontSize: 11,
             fontWeight: FontWeight.w500,
           ),
@@ -381,8 +389,8 @@ class _AppIconCircle extends ConsumerWidget {
       height: iconSize,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 1),
-        color: AppColors.surfaceElevated,
+        border: Border.all(color: context.palette.onCanvas, width: 1),
+        color: context.palette.surfaceRaised,
       ),
       child: ClipOval(
         child: iconAsync.when(
@@ -395,11 +403,15 @@ class _AppIconCircle extends ConsumerWidget {
                 filterQuality: FilterQuality.medium,
               );
             }
-            return const Icon(Icons.android, size: 8, color: Colors.white);
+            return Icon(
+              Icons.android,
+              size: 8,
+              color: context.palette.onCanvas,
+            );
           },
           loading: () => const SizedBox(),
           error: (_, _) =>
-              const Icon(Icons.android, size: 8, color: Colors.white),
+              Icon(Icons.android, size: 8, color: context.palette.onCanvas),
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 /// Custom bottom sheet widget for showing permission instructions
 class PermissionInstructionDialog extends StatelessWidget {
@@ -82,7 +83,7 @@ class PermissionInstructionDialog extends StatelessWidget {
                       child: Text(
                         '${index + 1}',
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: Colors.black,
+                          color: context.palette.ink,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

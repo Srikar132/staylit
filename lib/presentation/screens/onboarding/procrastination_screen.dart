@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pace/core/router/app_router.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
 import 'package:pace/presentation/providers/onboarding_provider.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class ProcrastinationScreen extends ConsumerWidget {
   const ProcrastinationScreen({super.key});
@@ -43,7 +44,7 @@ class ProcrastinationScreen extends ConsumerWidget {
                 ),
                 child: ClipOval(
                   child: Image.asset(
-                    'assets/images/mascot.png',
+                    'assets/images/mascot.webp',
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
@@ -207,14 +208,18 @@ class _ProcrastinationOption extends StatelessWidget {
               child: Text(
                 text,
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  color: isSelected ? Colors.white : Colors.white70,
+                  color: isSelected
+                      ? context.palette.onCanvas
+                      : context.palette.onCanvasSecondary,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
             ),
             Icon(
               isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: isSelected ? theme.colorScheme.primary : Colors.white30,
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : context.palette.onCanvasDisabled,
             ),
           ],
         ),

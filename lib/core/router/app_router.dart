@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pace/presentation/providers/app_bootstrap_provider.dart';
@@ -6,6 +6,7 @@ import 'package:pace/presentation/providers/auth_provider.dart';
 import 'package:pace/presentation/providers/focus_session_provider.dart';
 import 'package:pace/presentation/providers/permission_provider.dart';
 import 'package:pace/presentation/screens/active_focus_screen.dart';
+import 'package:pace/presentation/screens/debug/design_gallery_screen.dart';
 import 'package:pace/presentation/screens/home_screen.dart';
 import 'package:pace/presentation/screens/manage_blocked_apps_screen.dart';
 import 'package:pace/presentation/screens/onboarding/onboarding_screen.dart';
@@ -151,6 +152,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: profileRoute,
         builder: (context, state) => const ProfileScreen(),
       ),
+      // Debug builds only: lists every theme token and component.
+      if (kDebugMode)
+        GoRoute(
+          path: designGalleryRoute,
+          builder: (context, state) => const DesignGalleryScreen(),
+        ),
     ],
   );
 });

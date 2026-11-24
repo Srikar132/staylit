@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/core/theme/app_theme.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
 import 'package:pace/presentation/providers/onboarding_provider.dart';
 import 'package:pace/presentation/screens/onboarding/welcome_back_screen.dart';
 import 'package:pace/presentation/screens/onboarding/distraction_question_screen.dart';
 import 'package:pace/presentation/screens/onboarding/study_time_screen.dart';
 import 'package:pace/presentation/screens/onboarding/procrastination_screen.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class OnboardingScreen extends ConsumerWidget {
   const OnboardingScreen({super.key});
@@ -33,9 +33,7 @@ class OnboardingScreen extends ConsumerWidget {
       body: Stack(
         children: [
           // Background
-          Positioned.fill(
-            child: Container(color: AppColors.background),
-          ),
+          Positioned.fill(child: Container(color: context.palette.canvas)),
 
           // Progress bar
           SafeArea(
@@ -43,7 +41,9 @@ class OnboardingScreen extends ConsumerWidget {
               children: [
                 LinearProgressIndicator(
                   value: (onboardingState.currentPage + 1) / screens.length,
-                  backgroundColor: Colors.white.withValues(alpha: 0.1),
+                  backgroundColor: context.palette.onCanvas.withValues(
+                    alpha: 0.1,
+                  ),
                   valueColor: AlwaysStoppedAnimation<Color>(
                     Theme.of(context).colorScheme.primary,
                   ),

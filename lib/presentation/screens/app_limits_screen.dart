@@ -5,6 +5,7 @@ import 'package:pace/presentation/providers/app_limits_provider.dart';
 import 'package:pace/presentation/screens/add_app_limit_screen.dart';
 import 'package:pace/services/app_limit_native_service.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class AppLimitsScreen extends ConsumerStatefulWidget {
   const AppLimitsScreen({super.key});
@@ -77,7 +78,7 @@ class _AppLimitsScreenState extends ConsumerState<AppLimitsScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              Icon(Icons.error_outline, size: 48, color: context.palette.error),
               const SizedBox(height: 16),
               Text('Error: $error'),
               const SizedBox(height: 16),
@@ -107,7 +108,11 @@ class _AppLimitsScreenState extends ConsumerState<AppLimitsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.timer_outlined, size: 80, color: Colors.grey[400]),
+            Icon(
+              Icons.timer_outlined,
+              size: 80,
+              color: context.palette.onCanvasDisabled,
+            ),
             const SizedBox(height: 16),
             Text(
               'No app limits set',
@@ -116,9 +121,8 @@ class _AppLimitsScreenState extends ConsumerState<AppLimitsScreen> {
             const SizedBox(height: 8),
             Text(
               'Tap the + button to add your first limit',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: context.palette.onCanvasMuted),
             ),
           ],
         ),
@@ -207,9 +211,8 @@ class _AppLimitsScreenState extends ConsumerState<AppLimitsScreen> {
       _loadUsageStats();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error toggling limit: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error toggling limit: $e')));
       }
     }
   }
@@ -231,7 +234,7 @@ class _AppLimitsScreenState extends ConsumerState<AppLimitsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: context.palette.error),
             child: const Text('Delete'),
           ),
         ],
@@ -251,14 +254,12 @@ class _AppLimitsScreenState extends ConsumerState<AppLimitsScreen> {
       _loadUsageStats();
 
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('App limit deleted')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('App limit deleted')));
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error deleting limit: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error deleting limit: $e')));
     }
   }
 
@@ -322,9 +323,8 @@ class _AppLimitsScreenState extends ConsumerState<AppLimitsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error syncing limits: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error syncing limits: $e')));
       }
     }
   }
@@ -358,9 +358,9 @@ class _AppLimitCard extends StatelessWidget {
     final isNearLimit = percentage >= 75;
 
     Color getProgressColor() {
-      if (isExceeded) return Colors.red;
-      if (isNearLimit) return Colors.orange;
-      return Colors.green;
+      if (isExceeded) return context.palette.error;
+      if (isNearLimit) return context.palette.warning;
+      return context.palette.success;
     }
 
     return Card(
@@ -389,8 +389,8 @@ class _AppLimitCard extends StatelessWidget {
                     child: Center(
                       child: Text(
                         limit.appName[0].toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: context.palette.onCanvas,
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
@@ -407,7 +407,9 @@ class _AppLimitCard extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: limit.isActive ? null : Colors.grey,
+                                color: limit.isActive
+                                    ? null
+                                    : context.palette.onCanvasMuted,
                               ),
                         ),
                         const SizedBox(height: 4),
@@ -430,11 +432,11 @@ class _AppLimitCard extends StatelessWidget {
                       }
                     },
                     itemBuilder: (context) => [
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete, color: Colors.red),
+                            Icon(Icons.delete, color: context.palette.error),
                             SizedBox(width: 8),
                             Text('Delete'),
                           ],
@@ -451,7 +453,7 @@ class _AppLimitCard extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: percentage / 100,
                   minHeight: 8,
-                  backgroundColor: Colors.grey[200],
+                  backgroundColor: context.palette.surfaceTrack,
                   valueColor: AlwaysStoppedAnimation<Color>(getProgressColor()),
                 ),
               ),
@@ -467,13 +469,13 @@ class _AppLimitCard extends StatelessWidget {
                     children: [
                       _ActionChip(
                         label: limit.actionOnExceed.toUpperCase(),
-                        color: _getActionColor(limit.actionOnExceed),
+                        color: _getActionColor(context, limit.actionOnExceed),
                       ),
                       if (limit.weeklyLimit > 0) ...[
                         const SizedBox(width: 8),
                         _ActionChip(
                           label: 'WEEKLY: ${limit.weeklyLimit}m',
-                          color: Colors.blue,
+                          color: context.palette.info,
                         ),
                       ],
                     ],
@@ -487,16 +489,16 @@ class _AppLimitCard extends StatelessWidget {
     );
   }
 
-  Color _getActionColor(String action) {
+  Color _getActionColor(BuildContext context, String action) {
     switch (action) {
       case 'block':
-        return Colors.red;
+        return context.palette.error;
       case 'warn':
-        return Colors.orange;
+        return context.palette.warning;
       case 'notify':
-        return Colors.blue;
+        return context.palette.info;
       default:
-        return Colors.grey;
+        return context.palette.onCanvasMuted;
     }
   }
 }

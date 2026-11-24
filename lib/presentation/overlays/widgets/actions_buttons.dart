@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class ActionButtons extends StatelessWidget {
   final VoidCallback onGoHome;
@@ -24,13 +25,15 @@ class ActionButtons extends StatelessWidget {
                 icon: const Icon(Icons.home),
                 label: const Text('Go Home'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.withValues(alpha: 0.2),
-                  foregroundColor: Colors.green,
+                  backgroundColor: context.palette.success.withValues(
+                    alpha: 0.2,
+                  ),
+                  foregroundColor: context.palette.success,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
-                      color: Colors.green.withValues(alpha: 0.5),
+                      color: context.palette.success.withValues(alpha: 0.5),
                     ),
                   ),
                 ),
@@ -44,13 +47,15 @@ class ActionButtons extends StatelessWidget {
                   icon: const Icon(Icons.school),
                   label: const Text('Learn'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue.withValues(alpha: 0.2),
-                    foregroundColor: Colors.blue,
+                    backgroundColor: context.palette.info.withValues(
+                      alpha: 0.2,
+                    ),
+                    foregroundColor: context.palette.info,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: BorderSide(
-                        color: Colors.blue.withValues(alpha: 0.5),
+                        color: context.palette.info.withValues(alpha: 0.5),
                       ),
                     ),
                   ),
@@ -67,8 +72,10 @@ class ActionButtons extends StatelessWidget {
             icon: const Icon(Icons.stop_circle_outlined),
             label: const Text('End Focus Session'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red,
-              side: BorderSide(color: Colors.red.withValues(alpha: 0.5)),
+              foregroundColor: context.palette.error,
+              side: BorderSide(
+                color: context.palette.error.withValues(alpha: 0.5),
+              ),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),

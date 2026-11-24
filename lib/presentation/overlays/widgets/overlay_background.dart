@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_theme.dart';
+
+import 'package:pace/core/theme/theme_context.dart';
 
 class OverlayBackground extends StatelessWidget {
   final Widget child;
@@ -10,7 +11,7 @@ class OverlayBackground extends StatelessWidget {
     super.key,
     required this.child,
     this.gradient,
-    this. backgroundColor,
+    this.backgroundColor,
   });
 
   @override
@@ -19,11 +20,13 @@ class OverlayBackground extends StatelessWidget {
       width: double.infinity,
       height: double.infinity,
       decoration: BoxDecoration(
-        gradient: gradient ?? const LinearGradient(
-          colors: [AppColors.background, AppColors.surface],
-          begin: Alignment. topCenter,
-          end: Alignment. bottomCenter,
-        ),
+        gradient:
+            gradient ??
+            LinearGradient(
+              colors: [context.palette.canvas, context.palette.surface],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
         color: backgroundColor,
       ),
       child: child,

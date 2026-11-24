@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/core/theme/app_theme.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 /// Pure loading/error gate. All routing decisions (auth, onboarding,
 /// permissions, active-session) live in `appRouterProvider`'s `redirect`
@@ -35,11 +35,11 @@ class _ErrorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppColors.accentMuted, AppColors.accent],
+            colors: [context.palette.onCanvasMuted, context.palette.accent],
           ),
         ),
         padding: const EdgeInsets.all(24.0),
@@ -52,23 +52,23 @@ class _ErrorScreen extends StatelessWidget {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.2),
+                  color: context.palette.error.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.error_outline,
                   size: 50,
-                  color: Colors.white,
+                  color: context.palette.onCanvas,
                 ),
               ),
 
               const SizedBox(height: 24),
 
               // Error Title
-              const Text(
+              Text(
                 'Something went wrong',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: context.palette.onCanvas,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -81,7 +81,7 @@ class _ErrorScreen extends StatelessWidget {
               Text(
                 error,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.8),
+                  color: context.palette.onCanvas.withValues(alpha: 0.8),
                   fontSize: 16,
                 ),
                 textAlign: TextAlign.center,
@@ -95,8 +95,8 @@ class _ErrorScreen extends StatelessWidget {
                 icon: const Icon(Icons.refresh),
                 label: const Text('Try Again'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppColors.accentMuted,
+                  backgroundColor: context.palette.onCanvas,
+                  foregroundColor: context.palette.onCanvasMuted,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
                     vertical: 16,
@@ -150,12 +150,12 @@ class _LoadingScreenState extends State<_LoadingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.palette.canvas,
       body: Center(
         child: ScaleTransition(
           scale: _scaleAnimation,
           child: const Image(
-            image: AssetImage('assets/icons/icon_foreground.png'),
+            image: AssetImage('assets/images/splash_icon.webp'),
             width: 96,
             height: 96,
           ),

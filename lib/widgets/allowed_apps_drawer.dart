@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pace/data/models/installed_app_model.dart';
 import 'package:pace/presentation/providers/app_management_provide.dart';
-import 'package:pace/core/theme/app_theme.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class AllowedAppsDrawer extends ConsumerWidget {
   final String userId;
@@ -28,7 +28,7 @@ class AllowedAppsDrawer extends ConsumerWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.border,
+              color: context.palette.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -40,7 +40,7 @@ class AllowedAppsDrawer extends ConsumerWidget {
                 Icon(
                   Icons.apps_rounded,
                   size: 28,
-                  color: AppColors.accent,
+                  color: context.palette.accentText,
                 ),
                 const SizedBox(width: 12),
                 Text('Allowed Apps', style: theme.textTheme.headlineMedium),
@@ -49,7 +49,7 @@ class AllowedAppsDrawer extends ConsumerWidget {
                   icon: const Icon(Icons.close_rounded),
                   onPressed: () => Navigator.pop(context),
                   style: IconButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
+                    foregroundColor: context.palette.onCanvasSecondary,
                   ),
                 ),
               ],
@@ -68,27 +68,27 @@ class AllowedAppsDrawer extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceElevated,
+                            color: context.palette.surfaceRaised,
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.block_rounded,
                             size: 48,
-                            color: AppColors.textMuted,
+                            color: context.palette.onCanvasMuted,
                           ),
                         ),
                         const SizedBox(height: 24),
                         Text(
                           'All apps are blocked',
                           style: theme.textTheme.titleLarge?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.palette.onCanvasSecondary,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'No apps available during focus session',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textMuted,
+                            color: context.palette.onCanvasMuted,
                           ),
                         ),
                       ],
@@ -112,7 +112,7 @@ class AllowedAppsDrawer extends ConsumerWidget {
                 );
               },
               loading: () => Center(
-                child: CircularProgressIndicator(color: AppColors.accent),
+                child: CircularProgressIndicator(color: context.palette.accent),
               ),
               error: (error, stack) => Center(
                 child: Padding(
@@ -123,27 +123,27 @@ class AllowedAppsDrawer extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceElevated,
+                          color: context.palette.surfaceRaised,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.error_outline_rounded,
                           size: 48,
-                          color: AppColors.error,
+                          color: context.palette.error,
                         ),
                       ),
                       const SizedBox(height: 24),
                       Text(
                         'Error loading apps',
                         style: theme.textTheme.titleLarge?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.palette.onCanvasSecondary,
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         error.toString(),
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.textMuted,
+                          color: context.palette.onCanvasMuted,
                         ),
                         textAlign: TextAlign.center,
                         maxLines: 3,
@@ -171,7 +171,7 @@ class _AppIconTile extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Cannot launch ${app.appName}'),
-          backgroundColor: AppColors.error,
+          backgroundColor: context.palette.error,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -194,7 +194,7 @@ class _AppIconTile extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Opening ${app.appName}...'),
-            backgroundColor: AppColors.success,
+            backgroundColor: context.palette.success,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 1),
             shape: RoundedRectangleBorder(
@@ -208,7 +208,7 @@ class _AppIconTile extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to launch ${app.appName}'),
-            backgroundColor: AppColors.error,
+            backgroundColor: context.palette.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -227,8 +227,8 @@ class _AppIconTile extends ConsumerWidget {
     return InkWell(
       onTap: () => _launchApp(context, ref),
       borderRadius: BorderRadius.circular(16),
-      splashColor: AppColors.accent.withValues(alpha: 0.1),
-      highlightColor: AppColors.accent.withValues(alpha: 0.05),
+      splashColor: context.palette.accent.withValues(alpha: 0.1),
+      highlightColor: context.palette.accent.withValues(alpha: 0.05),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -237,9 +237,9 @@ class _AppIconTile extends ConsumerWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: AppColors.surfaceElevated,
+              color: context.palette.surfaceRaised,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border, width: 1),
+              border: Border.all(color: context.palette.border, width: 1),
             ),
             child: iconAsync.when(
               data: (iconBytes) {
@@ -250,12 +250,12 @@ class _AppIconTile extends ConsumerWidget {
                       iconBytes,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        return _buildDefaultIcon();
+                        return _buildDefaultIcon(context);
                       },
                     ),
                   );
                 }
-                return _buildDefaultIcon();
+                return _buildDefaultIcon(context);
               },
               loading: () => Center(
                 child: SizedBox(
@@ -263,11 +263,11 @@ class _AppIconTile extends ConsumerWidget {
                   height: 24,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: AppColors.accent.withValues(alpha: 0.5),
+                    color: context.palette.accent.withValues(alpha: 0.5),
                   ),
                 ),
               ),
-              error: (error, stack) => _buildDefaultIcon(),
+              error: (error, stack) => _buildDefaultIcon(context),
             ),
           ),
           const SizedBox(height: 8),
@@ -278,7 +278,7 @@ class _AppIconTile extends ConsumerWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
+              color: context.palette.onCanvasSecondary,
               height: 1.2,
             ),
           ),
@@ -287,9 +287,13 @@ class _AppIconTile extends ConsumerWidget {
     );
   }
 
-  Widget _buildDefaultIcon() {
+  Widget _buildDefaultIcon(BuildContext context) {
     return Center(
-      child: Icon(Icons.android_rounded, size: 32, color: AppColors.textMuted),
+      child: Icon(
+        Icons.android_rounded,
+        size: 32,
+        color: context.palette.onCanvasMuted,
+      ),
     );
   }
 }

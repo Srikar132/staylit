@@ -5,18 +5,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pace/core/router/app_router.dart';
-import 'package:pace/core/theme/app_theme.dart';
 import 'package:pace/presentation/providers/focus_session_provider.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/presentation/providers/background_image_provider.dart';
-import 'package:pace/core/constants/images.dart';
-import 'package:pace/widgets/background_image_selector.dart';
 import 'package:pace/widgets/lumo_mascot_widget.dart';
 import 'package:pace/widgets/allowed_apps_drawer.dart';
 import 'package:pace/models/model_manager.dart';
 import 'package:pace/models/end_session_bottom_sheet.dart';
 import 'package:pace/models/audio_bottom_model.dart';
 import 'package:pace/services/audio_service.dart';
+import 'package:pace/core/theme/theme_context.dart';
 
 class ActiveFocusScreen extends ConsumerStatefulWidget {
   const ActiveFocusScreen({super.key});
@@ -87,14 +84,6 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
     }
   }
 
-  void _showBackgroundSelector() {
-    BottomSheetManager.show(
-      context: context,
-      height: MediaQuery.of(context).size.height * 0.8,
-      child: const BackgroundImageSelector(),
-    );
-  }
-
   void _showAllowedAppsDrawer() {
     final user = ref.read(currentUserProvider).value;
     if (user != null) {
@@ -136,7 +125,7 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
-          backgroundColor: Colors.red,
+          backgroundColor: context.palette.error,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -242,80 +231,53 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
       onPopInvokedWithResult: (bool result, dynamic dya) {
         _playSessionStartFeedback();
       },
-      child: Stack(
-        children: [
-          // Background Image Layer
-          Positioned.fill(
-            child: Consumer(
-              builder: (context, ref, child) {
-                final currentBackground = ref.watch(
-                  currentBackgroundImageProvider,
-                );
-                return Image.asset(
-                  currentBackground,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Image.asset(kHomeBackgroundImage, fit: BoxFit.cover);
-                  },
-                );
-              },
-            ),
-          ),
+      child: Material(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            // Full height: identical to before (the Spacer absorbs the extra room).
+            // Short window (split-screen pane, floating window): the content
+            // scrolls instead of overflowing the bottom.
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      children: [
+                        // Header with notification banner
+                        _buildHeader(sessionState),
 
-          // Main Content Layer
-          Positioned.fill(
-            child: Material(
-              color: Colors.transparent,
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  // Full height: identical to before (the Spacer absorbs the extra room).
-                  // Short window (split-screen pane, floating window): the content
-                  // scrolls instead of overflowing the bottom.
-                  child: LayoutBuilder(
-                    builder: (context, constraints) => SingleChildScrollView(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight,
-                        ),
-                        child: IntrinsicHeight(
-                          child: Column(
-                            children: [
-                              // Header with notification banner
-                              _buildHeader(sessionState),
+                        const SizedBox(height: 60),
 
-                              const SizedBox(height: 60),
+                        // Main Timer Circle
+                        _buildTimerCircle(sessionState),
 
-                              // Main Timer Circle
-                              _buildTimerCircle(sessionState),
+                        const Spacer(),
 
-                              const Spacer(),
+                        // Lumo Mascot
+                        LumoMascotWidget(onTap: () {}),
 
-                              // Lumo Mascot
-                              LumoMascotWidget(onTap: () {}),
+                        const SizedBox(height: 50),
 
-                              const SizedBox(height: 50),
+                        // Control Buttons
+                        _buildControlButtons(sessionState),
 
-                              // Control Buttons
-                              _buildControlButtons(sessionState),
+                        const SizedBox(height: 20),
 
-                              const SizedBox(height: 20),
+                        // Bottom Navigation Icons
+                        _buildBottomNavigation(user),
 
-                              // Bottom Navigation Icons
-                              _buildBottomNavigation(user),
-
-                              const SizedBox(height: 5),
-                            ],
-                          ),
-                        ),
-                      ),
+                        const SizedBox(height: 5),
+                      ],
                     ),
                   ),
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -327,10 +289,10 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.3),
+            color: context.palette.ink.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(30),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: context.palette.onCanvas.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -340,12 +302,12 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: context.palette.onCanvas.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.notifications_off,
-                  color: Colors.white,
+                  color: context.palette.onCanvas,
                   size: 18,
                 ),
               ),
@@ -353,7 +315,7 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
               Text(
                 'Be the first to focus!',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
+                  color: context.palette.onCanvas.withValues(alpha: 0.9),
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
                 ),
@@ -361,7 +323,7 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
               const SizedBox(width: 8),
               Icon(
                 Icons.chevron_right,
-                color: Colors.white.withValues(alpha: 0.7),
+                color: context.palette.onCanvas.withValues(alpha: 0.7),
                 size: 20,
               ),
             ],
@@ -382,8 +344,8 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: index == 0
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.3),
+                    ? context.palette.onCanvas
+                    : context.palette.onCanvas.withValues(alpha: 0.3),
               ),
             ),
           ),
@@ -441,8 +403,13 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
                         painter: CircularProgressPainter(
                           progress: progress,
                           strokeWidth: 4,
-                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          backgroundColor: context.palette.onCanvas.withValues(
+                            alpha: 0.2,
+                          ),
                           progressColor: progressColor,
+                          highlightColor: context.palette.onCanvas.withValues(
+                            alpha: 0.3,
+                          ),
                           isPulsing: true,
                           isPaused: isPaused,
                           animationValue: _pulseAnimation.value,
@@ -454,8 +421,13 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
                     painter: CircularProgressPainter(
                       progress: progress,
                       strokeWidth: 4,
-                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                      backgroundColor: context.palette.onCanvas.withValues(
+                        alpha: 0.2,
+                      ),
                       progressColor: progressColor,
+                      highlightColor: context.palette.onCanvas.withValues(
+                        alpha: 0.3,
+                      ),
                       isPulsing: false,
                       isPaused: isPaused,
                     ),
@@ -470,14 +442,14 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  Colors.white.withValues(alpha: 0.1),
-                  Colors.white.withValues(alpha: 0.05),
+                  context.palette.onCanvas.withValues(alpha: 0.1),
+                  context.palette.onCanvas.withValues(alpha: 0.05),
                   Colors.transparent,
                 ],
                 stops: [0.0, 0.7, 1.0],
               ),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.3),
+                color: context.palette.onCanvas.withValues(alpha: 0.3),
                 width: 2,
               ),
             ),
@@ -497,7 +469,7 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
                   Text(
                     sessionType.toUpperCase(),
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: context.palette.onCanvas.withValues(alpha: 0.9),
                       fontSize: 13,
                       letterSpacing: 1.5,
                       fontWeight: FontWeight.w600,
@@ -512,7 +484,7 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
               Text(
                 timerLabel,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
+                  color: context.palette.onCanvas.withValues(alpha: 0.7),
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                 ),
@@ -523,8 +495,8 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
               // Main Timer Display
               Text(
                 displayTime,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: context.palette.onCanvas,
                   fontSize: 56,
                   fontWeight: FontWeight.w200,
                   letterSpacing: 1,
@@ -555,12 +527,12 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
                 ),
                 decoration: BoxDecoration(
                   color: isPaused
-                      ? Colors.orange.withValues(alpha: 0.2)
+                      ? context.palette.warning.withValues(alpha: 0.2)
                       : progressColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isPaused
-                        ? Colors.orange.withValues(alpha: 0.4)
+                        ? context.palette.warning.withValues(alpha: 0.4)
                         : progressColor.withValues(alpha: 0.4),
                     width: 1,
                   ),
@@ -568,7 +540,7 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
                 child: Text(
                   isPaused ? 'PAUSED' : _getStatusText(sessionType),
                   style: TextStyle(
-                    color: isPaused ? Colors.orange : progressColor,
+                    color: isPaused ? context.palette.warning : progressColor,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 1,
@@ -585,13 +557,13 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
   Color _getProgressColor(String sessionType) {
     switch (sessionType.toLowerCase()) {
       case 'timer':
-        return AppColors.success;
+        return context.palette.success;
       case 'stopwatch':
-        return AppColors.info;
+        return context.palette.info;
       case 'pomodoro':
-        return AppColors.warning;
+        return context.palette.warning;
       default:
-        return AppColors.success;
+        return context.palette.success;
     }
   }
 
@@ -646,10 +618,10 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
           child: Container(
             height: 56,
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.3),
+              color: context.palette.ink.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(30),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: context.palette.onCanvas.withValues(alpha: 0.2),
                 width: 1,
               ),
             ),
@@ -663,8 +635,8 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
                     'Stop focusing',
                     style: TextStyle(
                       color: canControl
-                          ? Colors.white.withValues(alpha: 0.9)
-                          : Colors.white.withValues(alpha: 0.5),
+                          ? context.palette.onCanvas.withValues(alpha: 0.9)
+                          : context.palette.onCanvas.withValues(alpha: 0.5),
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -682,10 +654,10 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
           child: Container(
             height: 56,
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.3),
+              color: context.palette.ink.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(30),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: context.palette.onCanvas.withValues(alpha: 0.2),
                 width: 1,
               ),
             ),
@@ -701,8 +673,8 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
                     isPaused ? 'Resume' : 'Pause',
                     style: TextStyle(
                       color: canControl
-                          ? Colors.white.withValues(alpha: 0.9)
-                          : Colors.white.withValues(alpha: 0.5),
+                          ? context.palette.onCanvas.withValues(alpha: 0.9)
+                          : context.palette.onCanvas.withValues(alpha: 0.5),
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -727,12 +699,6 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
             'Music',
             true,
             onTap: _showAudioBottomSheet,
-          ),
-          _buildNavIcon(
-            Icons.auto_awesome,
-            'Theme',
-            true,
-            onTap: _showBackgroundSelector,
           ),
           _buildNavIcon(
             Icons.apps,
@@ -760,8 +726,8 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
           child: Icon(
             icon,
             color: isActive
-                ? Colors.white
-                : Colors.white.withValues(alpha: 0.6),
+                ? context.palette.onCanvas
+                : context.palette.onCanvas.withValues(alpha: 0.6),
             size: 26,
           ),
         ),
@@ -770,8 +736,8 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen>
           label,
           style: TextStyle(
             color: isActive
-                ? Colors.white
-                : Colors.white.withValues(alpha: 0.6),
+                ? context.palette.onCanvas
+                : context.palette.onCanvas.withValues(alpha: 0.6),
             fontSize: 11,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
           ),
@@ -802,6 +768,7 @@ class CircularProgressPainter extends CustomPainter {
   final double strokeWidth;
   final Color backgroundColor;
   final Color progressColor;
+  final Color highlightColor;
   final bool isPulsing;
   final bool isPaused;
   final double? animationValue;
@@ -811,6 +778,7 @@ class CircularProgressPainter extends CustomPainter {
     required this.strokeWidth,
     required this.backgroundColor,
     required this.progressColor,
+    required this.highlightColor,
     this.isPulsing = false,
     this.isPaused = false,
     this.animationValue,
@@ -878,7 +846,7 @@ class CircularProgressPainter extends CustomPainter {
 
     if (progress > 0.1 || isPulsing) {
       final highlightPaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.3)
+        ..color = highlightColor
         ..strokeWidth = 1
         ..style = PaintingStyle.stroke;
 
@@ -892,6 +860,8 @@ class CircularProgressPainter extends CustomPainter {
         oldDelegate.isPaused != isPaused ||
         oldDelegate.isPulsing != isPulsing ||
         oldDelegate.progressColor != progressColor ||
+        oldDelegate.backgroundColor != backgroundColor ||
+        oldDelegate.highlightColor != highlightColor ||
         oldDelegate.animationValue != animationValue;
   }
 }

@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pace/core/constants/images.dart';
-import 'package:pace/core/router/app_router.dart' show profileRoute , activeSessionRoute;
+import 'package:pace/core/router/app_router.dart'
+    show profileRoute, activeSessionRoute;
 import 'package:pace/models/focus_time_bottom_model.dart';
 import 'package:pace/models/model_manager.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
 import 'package:pace/presentation/providers/focus_session_provider.dart';
 import 'package:pace/presentation/providers/blocked_content_provider.dart';
 import 'package:pace/presentation/providers/settings_provider.dart';
-import 'package:pace/presentation/providers/background_image_provider.dart';
 import 'package:pace/presentation/providers/usage_stats_provider.dart';
 import 'package:pace/widgets/focus_timer_widget.dart';
 import 'package:pace/widgets/lumo_mascot_widget.dart';
-import 'package:pace/widgets/background_image_selector.dart';
+
 import 'dart:math';
+
+import 'package:pace/core/theme/theme_context.dart';
 
 class FocusScreen extends ConsumerStatefulWidget {
   const FocusScreen({super.key});
@@ -59,15 +60,6 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
           await _startFocusSession();
         },
       ),
-    );
-  }
-
-  // Show background image selector modal
-  void _showBackgroundSelector() {
-    BottomSheetManager.show(
-      context: context,
-      height: MediaQuery.of(context).size.height * 0.8,
-      child: const BackgroundImageSelector(),
     );
   }
 
@@ -129,7 +121,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to start focus session: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: context.palette.error,
           ),
         );
       }
@@ -146,88 +138,50 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
           return const Center(child: Text('Please login first'));
         }
 
-        return Stack(
-          children: [
-            // 1. Background Image Layer - Now using dynamic background
-            Positioned.fill(
-              child: Consumer(
-                builder: (context, ref, child) {
-                  final currentBackground = ref.watch(
-                    currentBackgroundImageProvider,
-                  );
-                  return Image.asset(
-                    currentBackground,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      // Fallback to default if image fails to load
-                      return Image.asset(
-                        kHomeBackgroundImage,
-                        fit: BoxFit.cover,
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Custom Header
+                _buildHeader(context, user),
 
-            // 2. Transparent InkWell & Column Layer
-            Positioned.fill(
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {},
-                  onLongPress: _showBackgroundSelector,
-                  splashColor: Colors.white.withAlpha(30),
-                  highlightColor: Colors.white.withAlpha(10),
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Custom Header
-                          _buildHeader(context, user),
+                const SizedBox(height: 100),
 
-                          const SizedBox(height: 100),
+                // Focus Timer Widget - now handles its own settings
+                FocusTimerWidget(onTap: _showFocusModeModal),
 
-                          // Focus Timer Widget - now handles its own settings
-                          FocusTimerWidget(onTap: _showFocusModeModal),
+                const Spacer(),
 
-                          const Spacer(),
+                // Quotation Card
+                if (_currentQuoteIndex > -1) _buildQuoteCard(),
 
-                          // Quotation Card
-                          if (_currentQuoteIndex > -1) _buildQuoteCard(),
+                const SizedBox(height: 10),
 
-                          const SizedBox(height: 10),
+                // Lumo Mascot - Tap to change quote
+                LumoMascotWidget(onTap: _changeQuote),
 
-                          // Lumo Mascot - Tap to change quote
-                          LumoMascotWidget(onTap: _changeQuote),
+                const SizedBox(height: 50),
 
-                          const SizedBox(height: 50),
-
-                          // Start Focus Mode Button
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: _showFocusModeModal,
-                              style: ElevatedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(100),
-                                ),
-                              ),
-                              child: const Text('Start focus mode'),
-                            ),
-                          ),
-
-                          const SizedBox(height: 5),
-                        ],
+                // Start Focus Mode Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _showFocusModeModal,
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100),
                       ),
                     ),
+                    child: const Text('Start focus mode'),
                   ),
                 ),
-              ),
+
+                const SizedBox(height: 5),
+              ],
             ),
-          ],
+          ),
         );
       },
       loading: () =>
@@ -264,7 +218,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
           children: [
             Icon(
               Icons.format_quote,
-              color: Colors.white.withValues(alpha: 0.6),
+              color: context.palette.onCanvas.withValues(alpha: 0.6),
               size: 24,
             ),
             const SizedBox(width: 12),
@@ -272,7 +226,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
               child: Text(
                 _quotes[_currentQuoteIndex],
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
+                  color: context.palette.onCanvas.withValues(alpha: 0.9),
                   fontSize: 14,
                   fontStyle: FontStyle.italic,
                   height: 1.4,
@@ -283,7 +237,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
             const SizedBox(width: 12),
             Icon(
               Icons.format_quote,
-              color: Colors.white.withValues(alpha: 0.6),
+              color: context.palette.onCanvas.withValues(alpha: 0.6),
               size: 24,
             ),
           ],
@@ -304,21 +258,21 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.3),
+                color: context.palette.onCanvas.withValues(alpha: 0.3),
                 width: 1.5,
               ),
             ),
             child: CircleAvatar(
               radius: 16,
-              backgroundColor: Colors.white.withValues(alpha: 0.2),
+              backgroundColor: context.palette.onCanvas.withValues(alpha: 0.2),
               backgroundImage: user.photoURL != null
                   ? NetworkImage(user.photoURL!)
                   : null,
               child: user.photoURL == null
                   ? Text(
                       user.firstName[0].toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: context.palette.onCanvas,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
@@ -340,18 +294,24 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
                 return _buildStatCard(
                   label: 'Usage',
                   value: usageStats.formattedTotalTimeExcludingSelf,
-                  backgroundColor: Colors.white.withValues(alpha: 0.15),
+                  backgroundColor: context.palette.onCanvas.withValues(
+                    alpha: 0.15,
+                  ),
                 );
               },
               loading: () => _buildStatCard(
                 label: 'Usage',
                 value: '...',
-                backgroundColor: Colors.white.withValues(alpha: 0.15),
+                backgroundColor: context.palette.onCanvas.withValues(
+                  alpha: 0.15,
+                ),
               ),
               error: (_, _) => _buildStatCard(
                 label: 'Usage',
                 value: '0m',
-                backgroundColor: Colors.white.withValues(alpha: 0.15),
+                backgroundColor: context.palette.onCanvas.withValues(
+                  alpha: 0.15,
+                ),
               ),
             );
           },
@@ -374,16 +334,16 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
+                Icon(
                   Icons.local_fire_department,
-                  color: Colors.white,
+                  color: context.palette.onCanvas,
                   size: 16,
                 ),
                 const SizedBox(height: 1),
                 Text(
                   '${user.currentStreak}',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: context.palette.onCanvas,
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
                   ),
@@ -407,7 +367,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
         color: backgroundColor,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
+          color: context.palette.onCanvas.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -418,7 +378,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
+              color: context.palette.onCanvas.withValues(alpha: 0.7),
               fontSize: 9,
               fontWeight: FontWeight.w500,
             ),
@@ -426,8 +386,8 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
           const SizedBox(height: 1),
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: context.palette.onCanvas,
               fontSize: 13,
               fontWeight: FontWeight.bold,
             ),
