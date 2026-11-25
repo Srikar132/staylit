@@ -10,7 +10,6 @@ class UserModel {
 
   // User status
   final bool hasCompletedOnboarding;
-  final bool hasGrantedPermissions;
 
   // Onboarding data
   final String? procrastinationLevel;
@@ -35,7 +34,6 @@ class UserModel {
     required this.createdAt,
     required this.lastLoginAt,
     this.hasCompletedOnboarding = false,
-    this.hasGrantedPermissions = false,
     this.procrastinationLevel,
     this.distractions,
     this.preferredStudyTime,
@@ -56,7 +54,6 @@ class UserModel {
       'createdAt': Timestamp.fromDate(createdAt),
       'lastLoginAt': Timestamp.fromDate(lastLoginAt),
       'hasCompletedOnboarding': hasCompletedOnboarding,
-      'hasGrantedPermissions': hasGrantedPermissions,
       'procrastinationLevel': procrastinationLevel,
       'distractions': distractions,
       'preferredStudyTime': preferredStudyTime,
@@ -83,7 +80,6 @@ class UserModel {
       lastLoginAt:
           (data['lastLoginAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       hasCompletedOnboarding: data['hasCompletedOnboarding'] ?? false,
-      hasGrantedPermissions: data['hasGrantedPermissions'] ?? false,
       procrastinationLevel: data['procrastinationLevel'],
       distractions: data['distractions'] != null
           ? List<String>.from(data['distractions'])
@@ -108,7 +104,6 @@ class UserModel {
     DateTime? createdAt,
     DateTime? lastLoginAt,
     bool? hasCompletedOnboarding,
-    bool? hasGrantedPermissions,
     String? procrastinationLevel,
     List<String>? distractions,
     String? preferredStudyTime,
@@ -127,8 +122,6 @@ class UserModel {
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       hasCompletedOnboarding:
           hasCompletedOnboarding ?? this.hasCompletedOnboarding,
-      hasGrantedPermissions:
-          hasGrantedPermissions ?? this.hasGrantedPermissions,
       procrastinationLevel: procrastinationLevel ?? this.procrastinationLevel,
       distractions: distractions ?? this.distractions,
       preferredStudyTime: preferredStudyTime ?? this.preferredStudyTime,
@@ -144,8 +137,6 @@ class UserModel {
   String get firstName => displayName?.split(' ').first ?? 'User';
 
   bool get isOnboardingComplete => hasCompletedOnboarding;
-  bool get isPermissionsGranted => hasGrantedPermissions;
-  bool get isSetupComplete => hasCompletedOnboarding && hasGrantedPermissions;
 
   /// [totalFocusTime] as "2h 5m" or "45m".
   String get formattedTotalFocusTime {

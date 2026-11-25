@@ -65,7 +65,6 @@ class AuthRepository {
           createdAt: DateTime.now(),
           lastLoginAt: DateTime.now(),
           hasCompletedOnboarding: false,
-          hasGrantedPermissions: false,
         );
 
         // Save to Firestore

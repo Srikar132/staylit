@@ -31,17 +31,6 @@ class UserRepository {
     }
   }
 
-  // Update permission status
-  Future<void> updatePermissionStatus(String uid, bool granted) async {
-    try {
-      await _firestore.collection('users').doc(uid).update({
-        'hasGrantedPermissions': granted,
-      });
-    } catch (e) {
-      debugPrint('Error updating permission status: $e');
-      rethrow;
-    }
-  }
 
   // Update onboarding answers
   Future<void> updateOnboardingAnswers({

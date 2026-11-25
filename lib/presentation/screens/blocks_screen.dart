@@ -1492,7 +1492,8 @@ class _WebsiteBlockingSection extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () async {
-              final url = urlController.text.trim();
+              // Native and Firestore both store the bare host.
+              final url = normalizeBlockedHost(urlController.text);
               final name = nameController.text.trim();
               if (url.isNotEmpty && name.isNotEmpty) {
                 // Check permissions first

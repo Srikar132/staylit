@@ -105,6 +105,8 @@ class FocusSessionModel {
       'sessionType': sessionType,
       'status': status,
       'date': date,
+      // Zone the local `date` key was computed in (issue #27).
+      'tzOffsetMinutes': startTime.timeZoneOffset.inMinutes,
       'completionRate': completionRate,
       if (endReason != null) 'endReason': endReason,
       if (notes != null) 'notes': notes,

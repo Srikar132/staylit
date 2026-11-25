@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:staylit/data/models/daily_stat.dart';
 import 'package:staylit/data/models/focus_session_model.dart';
 import 'package:staylit/services/native_service.dart';
 import 'package:staylit/presentation/providers/auth_provider.dart';
@@ -102,6 +103,10 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
 
   // KEY FIX: Single source of truth for manual ending
   bool _isManuallyEnding = false;
+
+  // Counted for the current session; written when it ends (issue #22).
+  int _pauseCount = 0;
+  int _interruptionCount = 0;
 
   // Id of the last session whose terminal state was written, so it is never
   // written (and counted in the totals) twice.
@@ -246,6 +251,7 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
 
   void _handleInterruptionDetected(Map<String, dynamic>? data) {
     if (data == null) return;
+    _interruptionCount++;
     debugPrint('⚠️ Interruption detected: ${data['appName']}');
   }
 
@@ -281,7 +287,7 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
 
   String _getTodayDateString() {
     final now = DateTime.now();
-    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    return DailyStat.dayKey(now);
   }
 
   // ============================================================================
@@ -297,6 +303,9 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
     bool notificationsBlocked = false,
   }) async {
     state = state.copyWith(status: FocusSessionStatus.starting);
+    _pauseCount = 0;
+    _interruptionCount = 0;
+    var nativeStarted = false;
 
     try {
       final user = ref.read(currentUserProvider).value;
@@ -317,6 +326,7 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
       );
 
       if (!success) throw Exception('Failed to start native session');
+      nativeStarted = true;
 
       final sessionModel = FocusSessionModel(
         sessionId: nativeSessionId,
@@ -328,13 +338,22 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
         date: todayDate,
       );
 
-      final firestoreId = await ref
-          .read(sessionRepositoryProvider)
-          .createSession(sessionModel);
+      // Do not await the server: Firestore completes a write only once the
+      // server acknowledges it, which never happens offline (issue #12). The
+      // offline cache queues the write; a failure is only logged.
+      unawaited(
+        ref
+            .read(sessionRepositoryProvider)
+            .createSession(sessionModel)
+            .then<void>((_) {})
+            .catchError((Object e) {
+              debugPrint('Error saving session start: $e');
+            }),
+      );
 
       state = state.copyWith(
         status: FocusSessionStatus.active,
-        sessionId: firestoreId,
+        sessionId: nativeSessionId,
         plannedDuration: plannedDuration,
         sessionType: sessionType,
         elapsedSeconds: 0,
@@ -345,6 +364,10 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
       _startLocalTimer();
     } catch (e) {
       debugPrint('❌ Error starting session: $e');
+      if (nativeStarted) {
+        // Never leave enforcement running without a UI session.
+        await NativeService.endFocusSession();
+      }
       state = state.copyWith(
         status: FocusSessionStatus.error,
         error: e.toString(),
@@ -357,6 +380,7 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
 
     final success = await NativeService.pauseFocusSession();
     if (success) {
+      _pauseCount++;
       state = state.copyWith(status: FocusSessionStatus.paused, isPaused: true);
       _stopLocalTimer();
     }
@@ -531,6 +555,8 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
           actualMinutes: actualMinutes,
           completionRate: completionRate,
           date: _getTodayDateString(),
+          pauseCount: _pauseCount,
+          interruptionCount: _interruptionCount,
           notes: notes,
           tag: tag,
         );

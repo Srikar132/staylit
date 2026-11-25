@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:staylit/data/models/daily_stat.dart';
 import 'package:staylit/data/models/focus_session_model.dart';
 
 /// What to write when a session ends, computed without touching Firestore so
@@ -27,6 +28,8 @@ class SessionFinishPlan {
     required String endReason,
     required int actualMinutes,
     required double completionRate,
+    int pauseCount = 0,
+    int interruptionCount = 0,
     String? notes,
     String? tag,
   }) {
@@ -44,6 +47,8 @@ class SessionFinishPlan {
         'endReason': endReason,
         'actualDuration': minutes,
         'completionRate': rate,
+        'pauseCount': pauseCount < 0 ? 0 : pauseCount,
+        'interruptionCount': interruptionCount < 0 ? 0 : interruptionCount,
         'notes': ?notes,
         'tag': ?tag,
       },
@@ -98,6 +103,8 @@ class FocusSessionRepository {
     required int actualMinutes,
     required double completionRate,
     required String date,
+    int pauseCount = 0,
+    int interruptionCount = 0,
     String? notes,
     String? tag,
   }) {
@@ -106,6 +113,8 @@ class FocusSessionRepository {
       endReason: endReason,
       actualMinutes: actualMinutes,
       completionRate: completionRate,
+      pauseCount: pauseCount,
+      interruptionCount: interruptionCount,
       notes: notes,
       tag: tag,
     );
@@ -134,6 +143,7 @@ class FocusSessionRepository {
             .doc(date),
         {
           'date': date,
+          'tzOffsetMinutes': DateTime.now().timeZoneOffset.inMinutes,
           'totalFocusTime': FieldValue.increment(plan.minutes),
           'totalSessions': FieldValue.increment(1),
           'completedSessions': FieldValue.increment(
@@ -154,9 +164,7 @@ class FocusSessionRepository {
 
   // Get today's sessions (cached by Firebase!). Discarded sessions are hidden.
   Stream<List<FocusSessionModel>> streamTodaySessions(String userId) {
-    final today = DateTime.now();
-    final dateString =
-        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final dateString = DailyStat.dayKey(DateTime.now());
 
     return _firestore
         .collection('focusSessions')

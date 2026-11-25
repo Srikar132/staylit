@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:staylit/data/models/daily_stat.dart';
 import 'package:staylit/models/usage_stats_models.dart';
 import 'package:staylit/services/native_service.dart';
 
@@ -115,12 +116,12 @@ final usageStatsProvider =
 /// Today usage stats provider (simple future provider)
 final todayUsageStatsProvider = FutureProvider<UsageStatsResponse>((ref) async {
   final rawData = await NativeService.getTodayUsageStats();
-  
+
   // Debug: Print the raw data structure
   debugPrint('📊 Raw Today Usage Data: $rawData');
   debugPrint('📱 Apps count: ${(rawData['apps'] as List?)?.length ?? 0}');
   debugPrint('📈 Summary: ${rawData['summary']}');
-  
+
   return UsageStatsResponse.fromMap(rawData);
 });
 
@@ -129,12 +130,12 @@ final weeklyUsageStatsProvider = FutureProvider<UsageStatsResponse>((
   ref,
 ) async {
   final rawData = await NativeService.getAppUsageStats(days: 7);
-  
+
   // Debug: Print the raw data structure
   debugPrint('📊 Raw Weekly Usage Data: $rawData');
   debugPrint('📱 Apps count: ${(rawData['apps'] as List?)?.length ?? 0}');
   debugPrint('📈 Summary: ${rawData['summary']}');
-  
+
   return UsageStatsResponse.fromMap(rawData);
 });
 
@@ -164,8 +165,7 @@ List<DailyUsageChartData> _processWeeklyData(UsageStatsResponse usageStats) {
 
   for (int i = 6; i >= 0; i--) {
     final date = now.subtract(Duration(days: i));
-    final dayKey =
-        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final dayKey = DailyStat.dayKey(date);
     final dayLabel = _getDayLabel(date);
 
     int distractingMinutes = 0;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:staylit/data/models/blocked_content_model.dart';
@@ -30,19 +32,29 @@ class BlockedContentRepository {
   // Get blocked content as stream for real-time updates
   Stream<BlockedContentModel> getBlockedContentStream(String userId) {
     return _getBlockedContentDoc(userId)
-        .snapshots(includeMetadataChanges: false) // Changed to false for better real-time updates
-        .map(
-          (doc) {
-            debugPrint('🔄 Firestore stream update for user $userId: doc exists = ${doc.exists}');
-            if (doc.exists) {
-              final model = BlockedContentModel.fromFirestore(doc);
-              debugPrint('📋 Short form blocks in stream: ${model.shortFormBlocks}');
-              return model;
-            } else {
-              return BlockedContentModel();
-            }
-          },
-        );
+        .snapshots(
+          includeMetadataChanges: false,
+        ) // Changed to false for better real-time updates
+        .map((doc) {
+          debugPrint(
+            '🔄 Firestore stream update for user $userId: doc exists = ${doc.exists}',
+          );
+          if (doc.exists) {
+            unawaited(
+              migrateLegacyWebsites(
+                userId,
+                doc.data() as Map<String, dynamic>?,
+              ),
+            );
+            final model = BlockedContentModel.fromFirestore(doc);
+            debugPrint(
+              '📋 Short form blocks in stream: ${model.shortFormBlocks}',
+            );
+            return model;
+          } else {
+            return BlockedContentModel();
+          }
+        });
   }
 
   // Set or update blocked content
@@ -51,9 +63,8 @@ class BlockedContentRepository {
     BlockedContentModel blockedContent,
   ) async {
     try {
-      await _getBlockedContentDoc(
-        userId,
-      ).set(blockedContent.toFirestore(), SetOptions(merge: true));
+      await _getBlockedContentDoc(userId)
+          .set(blockedContent.toFirestore(), SetOptions(merge: true));
     } catch (e) {
       debugPrint('Error setting blocked content: $e');
       rethrow;
@@ -79,7 +90,10 @@ class BlockedContentRepository {
   // === PERMANENTLY BLOCKED APPS ===
 
   // Add permanently blocked app
-  Future<void> addPermanentlyBlockedApp(String userId, String packageName) async {
+  Future<void> addPermanentlyBlockedApp(
+    String userId,
+    String packageName,
+  ) async {
     try {
       // CHANGE: Use .set with merge: true instead of .update
       await _getBlockedContentDoc(userId).set({
@@ -125,25 +139,22 @@ class BlockedContentRepository {
   }
 
   // === BLOCKED WEBSITES ===
+  //
+  // Stored as a map keyed by normalized host, so each site is added, removed
+  // or toggled with a single field-path write (no read-modify-write races).
 
-  // === BLOCKED WEBSITES ===
   Future<void> addBlockedWebsite(String userId, BlockedWebsite website) async {
+    final host = normalizeBlockedHost(website.url);
+    if (host.isEmpty) return;
     try {
-      final currentData = await getBlockedContent(userId);
-      final currentWebsites = currentData?.blockedWebsites ?? [];
-
-      final existingIndex = currentWebsites.indexWhere((w) => w.url == website.url);
-      List<BlockedWebsite> updatedWebsites;
-      if (existingIndex != -1) {
-        updatedWebsites = List.from(currentWebsites);
-        updatedWebsites[existingIndex] = website;
-      } else {
-        updatedWebsites = [...currentWebsites, website];
-      }
-
-      // CHANGE: Use .set with merge: true
       await _getBlockedContentDoc(userId).set({
-        'blockedWebsites': updatedWebsites.map((w) => w.toMap()).toList(),
+        'blockedWebsites': {
+          host: BlockedWebsite(
+            url: host,
+            name: website.name,
+            isActive: website.isActive,
+          ).toMap(),
+        },
         'lastUpdated': Timestamp.fromDate(DateTime.now()),
       }, SetOptions(merge: true));
     } catch (e) {
@@ -154,16 +165,11 @@ class BlockedContentRepository {
 
   // Remove blocked website
   Future<void> removeBlockedWebsite(String userId, String url) async {
+    final host = normalizeBlockedHost(url);
+    if (host.isEmpty) return;
     try {
-      final currentData = await getBlockedContent(userId);
-      final currentWebsites = currentData?.blockedWebsites ?? [];
-
-      final updatedWebsites = currentWebsites
-          .where((w) => w.url != url)
-          .toList();
-
       await _getBlockedContentDoc(userId).update({
-        'blockedWebsites': updatedWebsites.map((w) => w.toMap()).toList(),
+        FieldPath(['blockedWebsites', host]): FieldValue.delete(),
         'lastUpdated': Timestamp.fromDate(DateTime.now()),
       });
     } catch (e) {
@@ -172,16 +178,17 @@ class BlockedContentRepository {
     }
   }
 
-  // Set multiple blocked websites
+  // Replace the whole website list
   Future<void> setBlockedWebsites(
     String userId,
     List<BlockedWebsite> websites,
   ) async {
     try {
-      await _getBlockedContentDoc(userId).update({
-        'blockedWebsites': websites.map((w) => w.toMap()).toList(),
+      await _getBlockedContentDoc(userId).set({
+        'blockedWebsites': BlockedContentModel(blockedWebsites: websites)
+            .toFirestore()['blockedWebsites'],
         'lastUpdated': Timestamp.fromDate(DateTime.now()),
-      });
+      }, SetOptions(mergeFields: ['blockedWebsites', 'lastUpdated']));
     } catch (e) {
       debugPrint('Error setting blocked websites: $e');
       rethrow;
@@ -194,23 +201,11 @@ class BlockedContentRepository {
     String url,
     bool isActive,
   ) async {
+    final host = normalizeBlockedHost(url);
+    if (host.isEmpty) return;
     try {
-      final currentData = await getBlockedContent(userId);
-      final currentWebsites = currentData?.blockedWebsites ?? [];
-
-      final updatedWebsites = currentWebsites.map((website) {
-        if (website.url == url) {
-          return BlockedWebsite(
-            url: website.url,
-            name: website.name,
-            isActive: isActive,
-          );
-        }
-        return website;
-      }).toList();
-
       await _getBlockedContentDoc(userId).update({
-        'blockedWebsites': updatedWebsites.map((w) => w.toMap()).toList(),
+        FieldPath(['blockedWebsites', host, 'isActive']): isActive,
         'lastUpdated': Timestamp.fromDate(DateTime.now()),
       });
     } catch (e) {
@@ -219,18 +214,31 @@ class BlockedContentRepository {
     }
   }
 
+  /// One-time rewrite of a legacy array-shaped `blockedWebsites` field into the
+  /// map shape. Safe to call on every snapshot; no-op once migrated.
+  Future<void> migrateLegacyWebsites(
+    String userId,
+    Map<String, dynamic>? data,
+  ) async {
+    if (data == null || data['blockedWebsites'] is! List) return;
+    final websites = BlockedContentModel.fromMap(data).blockedWebsites;
+    try {
+      await setBlockedWebsites(userId, websites);
+    } catch (e) {
+      debugPrint('Legacy website migration failed: $e');
+    }
+  }
 
-// === SHORT FORM BLOCKS ===
+  // === SHORT FORM BLOCKS ===
   Future<void> setShortFormBlock(String userId, ShortFormBlock block) async {
     try {
       final key = '${block.platform}_${block.feature}';
 
       // CHANGE: Use .set with merge: true
       await _getBlockedContentDoc(userId).set({
-        'shortFormBlocks.$key': block.toMap(),
+        'shortFormBlocks': {key: block.toMap()},
         'lastUpdated': Timestamp.fromDate(DateTime.now()),
       }, SetOptions(merge: true));
-
     } catch (e) {
       debugPrint('Error setting short form block: $e');
       rethrow;
@@ -286,50 +294,22 @@ class BlockedContentRepository {
     try {
       final key = '${platform}_$feature';
 
-      // Get the document reference
-      final docRef = _getBlockedContentDoc(userId);
-      
-      // Create the field path for nested update
-      final fieldPath = 'shortFormBlocks.$key';
-      
-      // Use update with FieldPath to ensure proper Firestore change detection
-      await docRef.update({
-        fieldPath: {
-          'platform': platform,
-          'feature': feature,
-          'isBlocked': isBlocked,
+      // set(merge) creates the document when missing and merges one entry.
+      await _getBlockedContentDoc(userId).set({
+        'shortFormBlocks': {
+          key: {
+            'platform': platform,
+            'feature': feature,
+            'isBlocked': isBlocked,
+          },
         },
         'lastUpdated': Timestamp.fromDate(DateTime.now()),
-      });
+      }, SetOptions(merge: true));
 
       debugPrint('Successfully updated short form block: $key to $isBlocked');
     } catch (e) {
       debugPrint('Error toggling short form block status: $e');
-      
-      // If document doesn't exist, create it with the block
-      if (e.toString().contains('not found') || e.toString().contains('No document')) {
-        try {
-          debugPrint('Document not found, creating new one...');
-          final block = ShortFormBlock(
-            platform: platform,
-            feature: feature,
-            isBlocked: isBlocked,
-          );
-          
-          final blockKey = '${platform}_$feature';
-          await _getBlockedContentDoc(userId).set({
-            'shortFormBlocks': {blockKey: block.toMap()},
-            'lastUpdated': Timestamp.fromDate(DateTime.now()),
-          });
-          
-          debugPrint('Successfully created new blocked content document');
-        } catch (createError) {
-          debugPrint('Error creating document: $createError');
-          rethrow;
-        }
-      } else {
-        rethrow;
-      }
+      rethrow;
     }
   }
 

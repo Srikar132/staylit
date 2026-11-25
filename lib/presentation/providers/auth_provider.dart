@@ -142,19 +142,6 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  // Update permissions (Firebase streams automatically update UI)
-  Future<void> updatePermissionStatus(String userId, bool granted) async {
-    try {
-      await _userRepository.updatePermissionStatus(userId, granted);
-      // Firebase streams automatically update UI
-    } catch (e) {
-      state = state.copyWith(
-        error: 'Failed to update permissions: ${e.toString()}',
-      );
-      rethrow;
-    }
-  }
-
   void clearError() {
     state = state.copyWith(clearError: true);
   }
