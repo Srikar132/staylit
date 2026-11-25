@@ -5,7 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:staylit/core/constants/audios.dart';
 import 'package:staylit/presentation/providers/audio_providers.dart';
 import 'package:staylit/services/audio_service.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
 import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/widgets/design/icon_circle_button.dart';
+import 'package:staylit/widgets/bottom_sheet_darg_handler.dart';
 
 class AudioBottomSheet extends ConsumerStatefulWidget {
   const AudioBottomSheet({super.key});
@@ -38,140 +41,76 @@ class _AudioBottomSheetState extends ConsumerState<AudioBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
     final screenHeight = MediaQuery.of(context).size.height;
+    final audioService = ref.read(audioServiceProvider);
 
     return Container(
-      height: screenHeight * 0.88,
+      height: screenHeight * 0.85,
       decoration: BoxDecoration(
-        color: context.palette.canvas,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        color: palette.canvas,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadius.card),
+        ),
       ),
       child: Column(
         children: [
-          _buildDragHandle(),
-          _buildHeader(theme),
-          Expanded(child: _buildAudioGrid(theme)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDragHandle() {
-    return Container(
-      margin: const EdgeInsets.only(top: 16, bottom: 8),
-      width: 48,
-      height: 5,
-      decoration: BoxDecoration(
-        color: context.palette.border,
-        borderRadius: BorderRadius.circular(3),
-      ),
-    );
-  }
-
-  Widget _buildHeader(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(28, 16, 28, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: context.palette.accent.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: context.palette.accent.withValues(alpha: 0.3),
-                    width: 1.5,
+          const BottomSheetDragHandle(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xl,
+              AppSpacing.sm,
+              AppSpacing.xl,
+              AppSpacing.lg,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Focus sounds', style: textTheme.displaySmall),
+                      Text(
+                        'Tap a card to play it while you focus',
+                        style: textTheme.bodyMedium,
+                      ),
+                    ],
                   ),
                 ),
-                child: Icon(
-                  Icons.music_note_rounded,
-                  color: context.palette.accentText,
-                  size: 28,
+                IconCircleButton(
+                  icon: Icons.close_rounded,
+                  semanticLabel: 'Close',
+                  size: 40,
+                  onPressed: () => Navigator.pop(context),
                 ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.sm,
+                AppSpacing.xl,
+                AppSpacing.xxxl,
               ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Focus Sounds',
-                    style: theme.textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: context.palette.onCanvas,
-                      fontSize: 26,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Enhance your concentration',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: context.palette.onCanvasMuted,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: AppSpacing.lg,
+                crossAxisSpacing: AppSpacing.lg,
+                childAspectRatio: 0.9,
               ),
-            ],
+              itemCount: AudioConstants.audioList.length,
+              itemBuilder: (context, index) {
+                final audio = AudioConstants.audioList[index];
+                final isSelected =
+                    selectedAudio?.songAssetUrl == audio.songAssetUrl;
+                return _buildAudioCard(audio, isSelected, audioService);
+              },
+            ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildAudioGrid(ThemeData theme) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.palette.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 4),
-              child: Text(
-                'SELECT YOUR SOUND',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: context.palette.accent,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 0.82,
-                ),
-                itemCount: AudioConstants.audioList.length,
-                itemBuilder: (context, index) {
-                  final audio = AudioConstants.audioList[index];
-                  final isSelected =
-                      selectedAudio?.songAssetUrl == audio.songAssetUrl;
-                  final audioService = ref.read(audioServiceProvider);
-                  return _buildAudioCard(
-                    audio,
-                    isSelected,
-                    theme,
-                    audioService,
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -179,234 +118,130 @@ class _AudioBottomSheetState extends ConsumerState<AudioBottomSheet> {
   Widget _buildAudioCard(
     Audio audio,
     bool isSelected,
-    ThemeData theme,
     AudioService audioService,
   ) {
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
     final isMusic = audio.songAssetUrl.endsWith('.mp3');
     final audioType = isMusic ? AudioType.song : AudioType.sound;
-    final isCurrentlyPlaying = audioService.isPlaying(audioType) && isSelected;
+    final isPlaying = audioService.isPlaying(audioType) && isSelected;
 
-    return GestureDetector(
-      onTap: () => _handleAudioTap(
-        audio,
-        isSelected,
-        isCurrentlyPlaying,
-        audioType,
-        isMusic,
-      ),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOutCubic,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isSelected ? context.palette.accent : context.palette.border,
-            width: isSelected ? 2.5 : 1.5,
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label:
+          '${audio.name}, ${isMusic ? 'music' : 'sound'}'
+          '${isPlaying ? ', playing' : ''}',
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: () =>
+            _handleAudioTap(audio, isSelected, isPlaying, audioType, isMusic),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            border: Border.all(
+              color: isSelected ? palette.accent : Colors.transparent,
+              width: 2.5,
+            ),
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: context.palette.accent.withValues(alpha: 0.25),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.card - 2),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(
+                  audio.image,
+                  fit: BoxFit.cover,
+                  cacheWidth: 400,
+                  errorBuilder: (context, error, stackTrace) => ColoredBox(
+                    color: palette.surface,
+                    child: Icon(
+                      isMusic
+                          ? Icons.music_note_rounded
+                          : Icons.graphic_eq_rounded,
+                      color: palette.onCanvasMuted,
+                      size: 40,
+                    ),
                   ),
-                ]
-              : [
-                  BoxShadow(
-                    color: context.palette.scrim.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
+                ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        palette.ink.withValues(alpha: 0.05),
+                        palette.ink.withValues(alpha: 0.8),
+                      ],
+                    ),
                   ),
-                ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(22),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Full background image
-              Image.asset(
-                audio.image,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          context.palette.accent.withValues(alpha: 0.3),
-                          context.palette.onCanvasMuted.withValues(alpha: 0.2),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: palette.ink.withValues(alpha: 0.55),
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                          ),
+                          child: Text(
+                            isMusic ? 'Music' : 'Sound',
+                            style: textTheme.labelSmall?.copyWith(
+                              color: palette.onInk,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              audio.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.titleMedium?.copyWith(
+                                color: palette.onInk,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? palette.accent
+                                  : palette.onInk,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isPlaying
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
+                              color: isSelected
+                                  ? palette.onAccent
+                                  : palette.ink,
+                              size: 24,
+                            ),
+                          ),
                         ],
                       ),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        isMusic
-                            ? Icons.music_note_rounded
-                            : Icons.volume_up_rounded,
-                        color: context.palette.accentText.withValues(
-                          alpha: 0.6,
-                        ),
-                        size: 48,
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              // Dark gradient overlay
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      context.palette.ink.withValues(alpha: 0.3),
-                      context.palette.ink.withValues(alpha: 0.75),
                     ],
                   ),
                 ),
-              ),
-
-              // Selected state overlay
-              if (isSelected)
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        context.palette.accent.withValues(alpha: 0.15),
-                        context.palette.accent.withValues(alpha: 0.05),
-                      ],
-                    ),
-                  ),
-                ),
-
-              // Content overlay
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top section - Type badge
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: context.palette.ink.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isSelected
-                                  ? context.palette.accent.withValues(
-                                      alpha: 0.6,
-                                    )
-                                  : context.palette.onCanvas.withValues(
-                                      alpha: 0.2,
-                                    ),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                isMusic
-                                    ? Icons.album_rounded
-                                    : Icons.graphic_eq_rounded,
-                                size: 12,
-                                color: isSelected
-                                    ? context.palette.accentText
-                                    : context.palette.onCanvas,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                isMusic ? 'MUSIC' : 'SOUND',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 10,
-                                  letterSpacing: 0.5,
-                                  color: isSelected
-                                      ? context.palette.accentText
-                                      : context.palette.onCanvas,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Bottom section - Play button and name
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Play/Pause button
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? context.palette.accent
-                                : context.palette.onCanvas,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    (isSelected
-                                            ? context.palette.accent
-                                            : context.palette.onCanvas)
-                                        .withValues(alpha: 0.5),
-                                blurRadius: 16,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            (isSelected && isCurrentlyPlaying)
-                                ? Icons.pause_rounded
-                                : Icons.play_arrow_rounded,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            size: 30,
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // Audio Name
-                        Text(
-                          audio.name,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                            color: context.palette.onCanvas,
-                            letterSpacing: -0.3,
-                            shadows: [
-                              Shadow(
-                                color: context.palette.ink.withValues(
-                                  alpha: 0.5,
-                                ),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -449,28 +284,12 @@ class _AudioBottomSheetState extends ConsumerState<AudioBottomSheet> {
       SnackBar(
         content: Row(
           children: [
-            Icon(icon, color: context.palette.accentText, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: TextStyle(
-                  color: context.palette.onCanvas,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
+            Icon(icon, size: 20),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: context.palette.surfaceRaised,
         duration: const Duration(milliseconds: 1500),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.only(bottom: 100, left: 20, right: 20),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: context.palette.border, width: 1),
-        ),
       ),
     );
   }
