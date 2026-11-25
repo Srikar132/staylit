@@ -1,20 +1,65 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/core/theme/theme_context.dart';
 import 'package:staylit/data/models/installed_app_model.dart';
 import 'package:staylit/presentation/providers/app_management_provide.dart';
-import 'package:staylit/presentation/providers/blocked_content_provider.dart';
 import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/presentation/providers/blocked_content_provider.dart';
 import 'package:staylit/presentation/providers/parental_control_provider.dart';
+import 'package:staylit/presentation/widgets/design/app_icon_badge.dart';
+import 'package:staylit/presentation/widgets/design/icon_circle_button.dart';
+import 'package:staylit/widgets/bottom_sheet_darg_handler.dart';
 import 'package:staylit/widgets/parental_control_dialogs.dart';
-import 'package:staylit/core/theme/theme_context.dart';
 
-// ============================================================================
-// FIXED: BlockAppsSheet with keyboard handling
-// ============================================================================
+/// When parental mode is on, unblocking needs the parental password. Returns
+/// true when it is fine to go ahead (mode off, or the password was right).
+Future<bool> _mayUnblock(
+  BuildContext context,
+  WidgetRef ref, {
+  required String userId,
+  required String description,
+}) async {
+  final doc = await FirebaseFirestore.instance
+      .collection('parental_controls')
+      .doc(userId)
+      .get();
+  final enabled = doc.exists && (doc.data()?['isEnabled'] as bool? ?? false);
+  if (!enabled) return true;
+  if (!context.mounted) return false;
+
+  final messenger = ScaffoldMessenger.of(context);
+  final errorColor = context.palette.error;
+  final service = ref.read(parentalControlServiceProvider);
+  final verified = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => VerifyPasswordDialog(
+      title: 'Parental mode',
+      description: description,
+      onVerify: (password) =>
+          service.verifyPassword(userId: userId, password: password),
+    ),
+  );
+
+  if (verified != true) {
+    messenger.showSnackBar(
+      SnackBar(
+        content: const Text('Incorrect password, or cancelled'),
+        backgroundColor: errorColor,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    return false;
+  }
+  return true;
+}
+
+/// Pick the apps to block during every focus session.
 class BlockAppsSheet extends ConsumerStatefulWidget {
   const BlockAppsSheet({super.key});
 
@@ -27,26 +72,16 @@ class _BlockAppsSheetState extends ConsumerState<BlockAppsSheet> {
   final _scrollController = ScrollController();
   Timer? _searchDebounce;
 
-  // Categories start expanded (matches previous default). Collapsing a
-  // category removes its app rows from the flat row list below, instead of
-  // resizing a non-virtualized Column - see _buildRows.
+  // Collapsing a category removes its app rows from the flat row list below.
   final Set<String> _collapsedCategories = {};
 
   @override
   void initState() {
     super.initState();
-    // appSearchQueryProvider is a global StateProvider (not scoped to this
-    // sheet), so a query typed in a previous open would otherwise survive
-    // close/reopen - the search box looks empty (fresh controller) but the
-    // list stays filtered by the stale query. Riverpod forbids writing to a
-    // provider synchronously during initState (throws "Tried to modify a
-    // provider while the widget tree was building"), so defer to a
-    // microtask - runs right after this build finishes, before the sheet is
-    // actually shown to the user.
+    // appSearchQueryProvider is global, so a stale query would survive
+    // close/reopen. Riverpod forbids writing during initState; defer.
     Future.microtask(() {
-      if (mounted) {
-        ref.read(appSearchQueryProvider.notifier).state = '';
-      }
+      if (mounted) ref.read(appSearchQueryProvider.notifier).state = '';
     });
   }
 
@@ -59,50 +94,26 @@ class _BlockAppsSheetState extends ConsumerState<BlockAppsSheet> {
   }
 
   void _onSearchChanged(String val) {
-    // groupedAppsProvider re-filters and re-sorts the full installed-apps
-    // list synchronously; doing that on every keystroke is what was making
-    // typing feel laggy. Debounce so a burst of keystrokes only recomputes
-    // once, after typing pauses.
+    // Re-filtering the full app list per keystroke made typing laggy.
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 250), () {
       ref.read(appSearchQueryProvider.notifier).state = val;
-      // Without this, a changed query updates the underlying list correctly
-      // but the ListView stays at whatever scroll offset the previous
-      // (narrower) result set left it at - a full list can look "stuck" on
-      // the same few items if you're scrolled past where it ends.
-      if (_scrollController.hasClients) {
-        _scrollController.jumpTo(0);
-      }
+      if (_scrollController.hasClients) _scrollController.jumpTo(0);
     });
   }
 
-  // Flattens {category: apps} into a single row list so ListView.builder
-  // only ever builds on-screen rows - regardless of how lopsided a
-  // category's app count is (most apps land in one uncategorized "Other"
-  // bucket, which used to render as one giant non-virtualized Column).
-  //
-  // Memoized: build() also reruns on every raw keyboard-inset frame (it
-  // reads MediaQuery.viewInsets directly, see below), which has nothing to
-  // do with the app/category data. Without this cache, that unrelated
-  // rebuild was redoing this full O(n) flatten - 100-300 items - on every
-  // single one of those frames during the keyboard animation. groupedApps
-  // is a Riverpod Provider value, so it keeps the same object identity
-  // across rebuilds unless its own inputs (search query, installed apps)
-  // actually changed - cheap to compare by reference.
+  // Flat row list so ListView.builder only builds on-screen rows. Memoized:
+  // build() reruns on every keyboard-inset frame.
   Map<String, List<InstalledApp>>? _rowsCacheKey;
   List<_Row> _cachedRows = const [];
 
   List<_Row> _rowsFor(Map<String, List<InstalledApp>> groupedApps) {
-    if (identical(groupedApps, _rowsCacheKey)) {
-      return _cachedRows;
-    }
+    if (identical(groupedApps, _rowsCacheKey)) return _cachedRows;
     final rows = <_Row>[];
     for (final entry in groupedApps.entries) {
-      final category = entry.key;
-      final apps = entry.value;
-      rows.add(_HeaderRow(category: category, apps: apps));
-      if (!_collapsedCategories.contains(category)) {
-        rows.addAll(apps.map(_AppRow.new));
+      rows.add(_HeaderRow(category: entry.key, apps: entry.value));
+      if (!_collapsedCategories.contains(entry.key)) {
+        rows.addAll(entry.value.map(_AppRow.new));
       }
     }
     _rowsCacheKey = groupedApps;
@@ -120,23 +131,31 @@ class _BlockAppsSheetState extends ConsumerState<BlockAppsSheet> {
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
     return Container(
-      // Fixed height, independent of the keyboard - the sheet is
-      // bottom-anchored, so shrinking this on every keyboard-animation
-      // frame both forces a full repaint of this decorated background each
-      // frame (expensive) AND visibly pushes the header/search bar downward
-      // as it shrinks. Only the ListView area below yields to the keyboard
-      // instead, via the trailing SizedBox.
+      // Fixed height: shrinking with the keyboard forced a full repaint per
+      // frame. Only the list yields to the keyboard (trailing spacer).
       height: screenHeight * 0.85,
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        color: context.palette.canvas,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadius.card),
+        ),
       ),
       child: Column(
         children: [
+          const BottomSheetDragHandle(),
           _buildHeader(context),
-          _buildSearchBar(context, ref),
+          _buildSearchBar(context),
           if (isLoading)
             const Expanded(child: Center(child: CircularProgressIndicator()))
+          else if (rows.isEmpty)
+            Expanded(
+              child: Center(
+                child: Text(
+                  'No apps found',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            )
           else
             Expanded(
               child: RepaintBoundary(
@@ -144,7 +163,12 @@ class _BlockAppsSheetState extends ConsumerState<BlockAppsSheet> {
                   scrollCacheExtent: ScrollCacheExtent.pixels(500),
                   controller: _scrollController,
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 30),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xl,
+                    AppSpacing.sm,
+                    AppSpacing.xl,
+                    AppSpacing.xxxl,
+                  ),
                   itemCount: rows.length,
                   itemBuilder: (context, index) {
                     final row = rows[index];
@@ -160,9 +184,6 @@ class _BlockAppsSheetState extends ConsumerState<BlockAppsSheet> {
                           if (!_collapsedCategories.add(row.category)) {
                             _collapsedCategories.remove(row.category);
                           }
-                          // groupedApps' identity doesn't change here, so
-                          // the _rowsFor cache would otherwise return the
-                          // stale (pre-toggle) row list.
                           _rowsCacheKey = null;
                         }),
                       ),
@@ -175,15 +196,6 @@ class _BlockAppsSheetState extends ConsumerState<BlockAppsSheet> {
                 ),
               ),
             ),
-          // Absorbs the keyboard inset without resizing the outer
-          // Container above - the Expanded ListView shrinks to make room
-          // for this instead. AnimatedContainer (not a raw SizedBox) so
-          // Flutter's own Tween smooths this: some OEM keyboards fire
-          // viewInsets updates in uneven bursts rather than a steady
-          // per-frame ramp, and reading that raw value directly would force
-          // a synchronous relayout of the ListView above on every one of
-          // those bursts - visible as stutter even when no single frame is
-          // actually slow.
           AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOut,
@@ -195,25 +207,21 @@ class _BlockAppsSheetState extends ConsumerState<BlockAppsSheet> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        AppSpacing.sm,
+        AppSpacing.xl,
+        AppSpacing.md,
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            'Select Apps to Block',
-            style: Theme.of(context).textTheme.headlineMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.close, size: 20),
-            ),
+          Expanded(child: Text('Apps to block', style: textTheme.displaySmall)),
+          IconCircleButton(
+            icon: Icons.close_rounded,
+            semanticLabel: 'Close',
+            size: 40,
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -221,37 +229,42 @@ class _BlockAppsSheetState extends ConsumerState<BlockAppsSheet> {
     );
   }
 
-  Widget _buildSearchBar(BuildContext context, WidgetRef ref) {
+  Widget _buildSearchBar(BuildContext context) {
+    final palette = context.palette;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.sm,
+      ),
       child: TextField(
         controller: _searchController,
         onChanged: _onSearchChanged,
-        style: TextStyle(color: context.palette.onCanvas),
+        textInputAction: TextInputAction.search,
+        style: Theme.of(context).textTheme.bodyLarge
+            ?.copyWith(color: palette.onCanvas),
         decoration: InputDecoration(
           hintText: 'Search apps',
-          prefixIcon: Icon(
-            Icons.search,
-            color: context.palette.onCanvasDisabled,
-          ),
+          prefixIcon: Icon(Icons.search_rounded, color: palette.onCanvasMuted),
           filled: true,
-          fillColor: context.palette.surfaceRaised,
+          fillColor: palette.surface,
+          contentPadding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
             borderSide: BorderSide.none,
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            borderSide: BorderSide.none,
+          ),
         ),
       ),
     );
   }
 }
 
-// ============================================================================
-// Flat row model - lets ListView.builder virtualize app tiles across all
-// categories, instead of each category's tiles being one non-virtualized
-// Column (see _BlockAppsSheetState._buildRows).
-// ============================================================================
+// ---------------------------------------------------------------------------
+// Flat row model
+// ---------------------------------------------------------------------------
 sealed class _Row {
   const _Row();
 }
@@ -267,11 +280,9 @@ class _AppRow extends _Row {
   const _AppRow(this.app);
 }
 
-// ============================================================================
-// Category header row - expand/collapse state now lives in
-// _BlockAppsSheetState (drives which rows are in the flat list), this widget
-// just renders the header + "block all in category" switch.
-// ============================================================================
+// ---------------------------------------------------------------------------
+// Category header: name, how many are blocked, "block all", expand/collapse.
+// ---------------------------------------------------------------------------
 class _CategoryHeader extends ConsumerWidget {
   final String category;
   final List<InstalledApp> apps;
@@ -288,149 +299,93 @@ class _CategoryHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
     final user = ref.watch(currentUserProvider).value;
-    final blockedAppsAsync = user != null
-        ? ref.watch(permanentlyBlockedAppsProvider(user.uid))
-        : const AsyncValue<List<String>>.data([]);
-
-    final blockedSet = blockedAppsAsync.maybeWhen(
-      data: (apps) => Set<String>.from(apps),
-      orElse: () => <String>{},
-    );
+    final blockedSet =
+        (user != null
+                ? ref.watch(permanentlyBlockedAppsProvider(user.uid))
+                : const AsyncValue<List<String>>.data([]))
+            .maybeWhen(
+              data: (apps) => Set<String>.from(apps),
+              orElse: () => <String>{},
+            );
 
     final blockedCount = apps
         .where((app) => blockedSet.contains(app.packageName))
         .length;
-    final areAllBlocked = blockedCount == apps.length;
+    final areAllBlocked = apps.isNotEmpty && blockedCount == apps.length;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.md),
       child: InkWell(
         onTap: onToggle,
+        borderRadius: BorderRadius.circular(AppRadius.md),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
           child: Row(
             children: [
-              Expanded(
-                child: Text(
-                  category,
-                  style: Theme.of(context).textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w600),
+              AnimatedRotation(
+                duration: const Duration(milliseconds: 200),
+                turns: isExpanded ? 0 : -0.25,
+                child: Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: palette.onCanvasMuted,
                 ),
               ),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(child: Text(category, style: textTheme.titleMedium)),
               if (blockedCount > 0)
                 Container(
-                  margin: const EdgeInsets.only(right: 12),
+                  margin: const EdgeInsets.only(right: AppSpacing.sm),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: AppSpacing.md,
+                    vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: context.palette.accent.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
+                    color: palette.accentSoft,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
                   child: Text(
                     '$blockedCount',
-                    style: TextStyle(
-                      color: context.palette.accentText,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                    style: textTheme.labelMedium?.copyWith(
+                      color: palette.accentText,
                     ),
                   ),
                 ),
-              Transform.scale(
-                scale: 0.8,
-                child: Switch(
-                  value: areAllBlocked,
-                  activeThumbColor: context.palette.accent,
-                  inactiveTrackColor: context.palette.border,
-                  onChanged: (bool value) async {
-                    if (user == null) return;
+              Switch(
+                value: areAllBlocked,
+                onChanged: (value) async {
+                  if (user == null) return;
+                  if (!value &&
+                      areAllBlocked &&
+                      !await _mayUnblock(
+                        context,
+                        ref,
+                        userId: user.uid,
+                        description: 'Enter your password to unblock apps',
+                      )) {
+                    return;
+                  }
 
-                    // Check if trying to unblock and parental mode is enabled
-                    if (!value && areAllBlocked) {
-                      // Check parental control status
-                      final parentalControlDoc = await FirebaseFirestore
-                          .instance
-                          .collection('parental_controls')
-                          .doc(user.uid)
-                          .get();
-
-                      if (parentalControlDoc.exists) {
-                        final data = parentalControlDoc.data();
-                        final isEnabled = data?['isEnabled'] as bool? ?? false;
-
-                        if (isEnabled && context.mounted) {
-                          // Show PIN dialog
-                          final verified = await showDialog<bool>(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (context) => VerifyPasswordDialog(
-                              title: 'Parental Control',
-                              description: 'Enter PIN to unblock apps',
-                              onVerify: (password) async {
-                                final service = ref.read(
-                                  parentalControlServiceProvider,
-                                );
-                                return await service.verifyPassword(
-                                  userId: user.uid,
-                                  password: password,
-                                );
-                              },
-                            ),
-                          );
-
-                          if (verified != true) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('❌ Incorrect PIN or cancelled'),
-                                  backgroundColor: context.palette.error,
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            }
-                            return;
-                          }
-                        }
-                      }
+                  final notifier = ref.read(
+                    blockedContentNotifierProvider.notifier,
+                  );
+                  for (final app in apps) {
+                    final blocked = blockedSet.contains(app.packageName);
+                    if (value && !blocked) {
+                      await notifier.addPermanentlyBlockedApp(
+                        user.uid,
+                        app.packageName,
+                      );
+                    } else if (!value && blocked) {
+                      await notifier.removePermanentlyBlockedApp(
+                        user.uid,
+                        app.packageName,
+                      );
                     }
-
-                    final notifier = ref.read(
-                      blockedContentNotifierProvider.notifier,
-                    );
-
-                    if (value) {
-                      // Add all apps in this category
-                      for (var app in apps) {
-                        if (!blockedSet.contains(app.packageName)) {
-                          await notifier.addPermanentlyBlockedApp(
-                            user.uid,
-                            app.packageName,
-                          );
-                        }
-                      }
-                    } else {
-                      // Remove all apps in this category
-                      for (var app in apps) {
-                        if (blockedSet.contains(app.packageName)) {
-                          await notifier.removePermanentlyBlockedApp(
-                            user.uid,
-                            app.packageName,
-                          );
-                        }
-                      }
-                    }
-                  },
-                ),
-              ),
-              AnimatedRotation(
-                duration: const Duration(milliseconds: 200),
-                turns: isExpanded ? 0.5 : 0,
-                child: Icon(
-                  Icons.keyboard_arrow_down,
-                  color: context.palette.onCanvas,
-                ),
+                  }
+                },
               ),
             ],
           ),
@@ -440,254 +395,94 @@ class _CategoryHeader extends ConsumerWidget {
   }
 }
 
-// ============================================================================
-// OPTIMIZED: Individual App Tile
-// ============================================================================
+// ---------------------------------------------------------------------------
+// One app: icon, name, switch. Tapping the row toggles it too.
+// ---------------------------------------------------------------------------
 class _AppListTile extends ConsumerWidget {
   final InstalledApp app;
 
   const _AppListTile({super.key, required this.app});
 
+  Future<void> _set(
+    BuildContext context,
+    WidgetRef ref,
+    String userId,
+    bool block,
+    bool wasBlocked,
+  ) async {
+    if (!block &&
+        wasBlocked &&
+        !await _mayUnblock(
+          context,
+          ref,
+          userId: userId,
+          description: 'Enter your password to unblock ${app.appName}',
+        )) {
+      return;
+    }
+    final notifier = ref.read(blockedContentNotifierProvider.notifier);
+    if (block) {
+      await notifier.addPermanentlyBlockedApp(userId, app.packageName);
+    } else {
+      await notifier.removePermanentlyBlockedApp(userId, app.packageName);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
     final user = ref.watch(currentUserProvider).value;
-    final blockedAppsAsync = user != null
-        ? ref.watch(permanentlyBlockedAppsProvider(user.uid))
-        : const AsyncValue<List<String>>.data([]);
-
-    final isBlocked = blockedAppsAsync.maybeWhen(
-      data: (apps) => apps.contains(app.packageName),
-      orElse: () => false,
-    );
+    final isBlocked =
+        (user != null
+                ? ref.watch(permanentlyBlockedAppsProvider(user.uid))
+                : const AsyncValue<List<String>>.data([]))
+            .maybeWhen(
+              data: (apps) => apps.contains(app.packageName),
+              orElse: () => false,
+            );
+    final icon = ref.watch(appIconProvider(app.packageName)).value;
 
     return RepaintBoundary(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
         child: Material(
-          color: Colors.transparent,
+          color: isBlocked ? palette.accentSoft : palette.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           child: InkWell(
-            onTap: () async {
-              if (user == null) return;
-
-              // Check if trying to unblock and parental mode is enabled
-              if (isBlocked) {
-                // Check parental control status
-                final parentalControlDoc = await FirebaseFirestore.instance
-                    .collection('parental_controls')
-                    .doc(user.uid)
-                    .get();
-
-                if (parentalControlDoc.exists) {
-                  final data = parentalControlDoc.data();
-                  final isEnabled = data?['isEnabled'] as bool? ?? false;
-
-                  if (isEnabled && context.mounted) {
-                    // Show PIN dialog
-                    final verified = await showDialog<bool>(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (context) => VerifyPasswordDialog(
-                        title: 'Parental Control',
-                        description: 'Enter PIN to unblock ${app.appName}',
-                        onVerify: (password) async {
-                          final service = ref.read(
-                            parentalControlServiceProvider,
-                          );
-                          return await service.verifyPassword(
-                            userId: user.uid,
-                            password: password,
-                          );
-                        },
-                      ),
-                    );
-
-                    if (verified != true) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('❌ Incorrect PIN or cancelled'),
-                            backgroundColor: context.palette.error,
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      }
-                      return;
-                    }
-                  }
-                }
-              }
-
-              final notifier = ref.read(
-                blockedContentNotifierProvider.notifier,
-              );
-              if (isBlocked) {
-                await notifier.removePermanentlyBlockedApp(
-                  user.uid,
-                  app.packageName,
-                );
-              } else {
-                await notifier.addPermanentlyBlockedApp(
-                  user.uid,
-                  app.packageName,
-                );
-              }
-            },
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            onTap: user == null
+                ? null
+                : () => _set(context, ref, user.uid, !isBlocked, isBlocked),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.sm,
+                AppSpacing.sm,
+                AppSpacing.sm,
+              ),
               child: Row(
                 children: [
-                  _AppIcon(packageName: app.packageName),
-                  const SizedBox(width: 12),
-
+                  AppIconBadge(name: app.appName, icon: icon, size: 40),
+                  const SizedBox(width: AppSpacing.lg),
                   Expanded(
                     child: Text(
                       app.appName,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: context.palette.onCanvas,
-                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
-
-                  Transform.scale(
-                    scale: 0.8,
-                    child: Switch(
-                      value: isBlocked,
-                      activeThumbColor: context.palette.accent,
-                      inactiveTrackColor: context.palette.border,
-                      onChanged: (bool value) async {
-                        if (user == null) return;
-
-                        // Check if trying to unblock and parental mode is enabled
-                        if (!value && isBlocked) {
-                          // Check parental control status
-                          final parentalControlDoc = await FirebaseFirestore
-                              .instance
-                              .collection('parental_controls')
-                              .doc(user.uid)
-                              .get();
-
-                          if (parentalControlDoc.exists) {
-                            final data = parentalControlDoc.data();
-                            final isEnabled =
-                                data?['isEnabled'] as bool? ?? false;
-
-                            if (isEnabled && context.mounted) {
-                              // Show PIN dialog
-                              final verified = await showDialog<bool>(
-                                context: context,
-                                barrierDismissible: false,
-                                builder: (context) => VerifyPasswordDialog(
-                                  title: 'Parental Control',
-                                  description:
-                                      'Enter PIN to unblock ${app.appName}',
-                                  onVerify: (password) async {
-                                    final service = ref.read(
-                                      parentalControlServiceProvider,
-                                    );
-                                    return await service.verifyPassword(
-                                      userId: user.uid,
-                                      password: password,
-                                    );
-                                  },
-                                ),
-                              );
-
-                              if (verified != true) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        '❌ Incorrect PIN or cancelled',
-                                      ),
-                                      backgroundColor: context.palette.error,
-                                      duration: Duration(seconds: 2),
-                                    ),
-                                  );
-                                }
-                                return;
-                              }
-                            }
-                          }
-                        }
-
-                        final notifier = ref.read(
-                          blockedContentNotifierProvider.notifier,
-                        );
-                        if (value) {
-                          await notifier.addPermanentlyBlockedApp(
-                            user.uid,
-                            app.packageName,
-                          );
-                        } else {
-                          await notifier.removePermanentlyBlockedApp(
-                            user.uid,
-                            app.packageName,
-                          );
-                        }
-                      },
-                    ),
+                  Switch(
+                    value: isBlocked,
+                    onChanged: user == null
+                        ? null
+                        : (value) =>
+                              _set(context, ref, user.uid, value, isBlocked),
                   ),
                 ],
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// ============================================================================
-// OPTIMIZED: App Icon Widget
-// ============================================================================
-class _AppIcon extends ConsumerWidget {
-  final String packageName;
-
-  const _AppIcon({required this.packageName});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final iconAsync = ref.watch(appIconProvider(packageName));
-
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: context.palette.surfaceRaised,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: iconAsync.when(
-          loading: () => const SizedBox.shrink(),
-          error: (err, stack) =>
-              Icon(Icons.android, color: context.palette.onCanvas, size: 24),
-          data: (iconBytes) {
-            if (iconBytes == null) {
-              return Icon(
-                Icons.android,
-                color: context.palette.onCanvas,
-                size: 24,
-              );
-            }
-            return Image.memory(
-              iconBytes,
-              fit: BoxFit.cover,
-              gaplessPlayback: true,
-              filterQuality: FilterQuality.medium,
-              errorBuilder: (context, error, stackTrace) {
-                return Icon(
-                  Icons.android,
-                  color: context.palette.onCanvas,
-                  size: 24,
-                );
-              },
-            );
-          },
         ),
       ),
     );

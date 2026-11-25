@@ -20,6 +20,8 @@ import 'package:staylit/data/models/focus_session_model.dart';
 import 'package:staylit/data/models/pomodoro_settings.dart';
 import 'package:staylit/data/models/user_model.dart';
 import 'package:staylit/data/models/user_settings_model.dart';
+import 'package:staylit/data/models/installed_app_model.dart';
+import 'package:staylit/models/block_app_bottom_model.dart';
 import 'package:staylit/models/focus_time_bottom_model.dart';
 import 'package:staylit/presentation/overlays/widgets/actions_buttons.dart';
 import 'package:staylit/presentation/overlays/widgets/block_header.dart';
@@ -29,7 +31,7 @@ import 'package:staylit/presentation/overlays/widgets/overlay_background.dart';
 import 'package:staylit/presentation/widgets/design/lit_badge.dart';
 import 'package:staylit/presentation/providers/settings_provider.dart';
 import 'package:staylit/presentation/providers/app_management_provide.dart'
-    show appIconProvider;
+    show appIconProvider, groupedAppsProvider, installedAppsProvider;
 import 'package:staylit/presentation/providers/app_limits_provider.dart';
 import 'package:staylit/presentation/widgets/design/app_icon_badge.dart';
 import 'package:staylit/presentation/widgets/design/limit_setup_sheet.dart';
@@ -527,6 +529,73 @@ void main() {
           body: Center(child: CreatePasswordDialog(onConfirm: (_) {})),
         ),
         brightness: b,
+      );
+    }
+  }, skip: !enabled);
+
+  testWidgets('block apps sheet previews', (tester) async {
+    if (!enabled) return;
+    await tester.runAsync(_loadFonts);
+    final user = UserModel(
+      uid: 'u1',
+      email: 'a@b.c',
+      createdAt: DateTime(2026),
+      lastLoginAt: DateTime(2026),
+    );
+    InstalledApp app(String name, String pkg, String category) => InstalledApp(
+      appName: name,
+      packageName: pkg,
+      versionName: '1',
+      installTime: 0,
+      updateTime: 0,
+      isSystemApp: false,
+      category: category,
+      canLaunch: true,
+    );
+    final grouped = {
+      'Social': [
+        app('Instagram', 'com.instagram.android', 'Social'),
+        app('Snapchat', 'com.snapchat.android', 'Social'),
+        app('WhatsApp', 'com.whatsapp', 'Social'),
+      ],
+      'Video': [
+        app('YouTube', 'com.google.android.youtube', 'Video'),
+        app('Netflix', 'com.netflix.mediaclient', 'Video'),
+      ],
+    };
+    final ig = await tester.runAsync(
+      () => _fakeIcon(const Color(0xFFF58529), const Color(0xFFDD2A7B)),
+    );
+    final overrides = <Override>[
+      currentUserProvider.overrideWith((ref) => Stream.value(user)),
+      groupedAppsProvider.overrideWithValue(grouped),
+      installedAppsProvider.overrideWith(
+        (ref) async => [for (final list in grouped.values) ...list],
+      ),
+      appIconProvider('com.instagram.android').overrideWith((ref) async => ig),
+      blockedContentProvider('u1').overrideWith(
+        (ref) => Stream.value(
+          BlockedContentModel(
+            permanentlyBlockedApps: [
+              'com.instagram.android',
+              'com.snapchat.android',
+            ],
+          ),
+        ),
+      ),
+    ];
+    for (final b in Brightness.values) {
+      await _snapshot(
+        tester,
+        name: 'block_apps_${b.name}',
+        child: Scaffold(
+          body: Align(
+            alignment: Alignment.bottomCenter,
+            child: const BlockAppsSheet(),
+          ),
+        ),
+        brightness: b,
+        overrides: overrides,
       );
     }
   }, skip: !enabled);
