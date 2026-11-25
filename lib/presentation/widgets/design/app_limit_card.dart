@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:staylit/core/theme/app_dimens.dart';
 import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/widgets/design/app_icon_badge.dart';
 
 /// Where an app is against its daily limit.
 enum AppLimitStatus { off, ok, near, exceeded }
@@ -18,6 +21,7 @@ class AppLimitCard extends StatelessWidget {
     required this.isActive,
     required this.onToggle,
     required this.onMenu,
+    this.icon,
   });
 
   final String appName;
@@ -26,6 +30,9 @@ class AppLimitCard extends StatelessWidget {
   final bool isActive;
   final ValueChanged<bool> onToggle;
   final VoidCallback onMenu;
+
+  /// Launcher icon bytes; falls back to the app's initial when null.
+  final Uint8List? icon;
 
   double get _progress =>
       limitMinutes <= 0 ? 0 : (usedMinutes / limitMinutes).clamp(0.0, 1.0);
@@ -74,14 +81,6 @@ class AppLimitCard extends StatelessWidget {
       AppLimitStatus.near => palette.warning,
       _ => palette.accent,
     };
-    final initial = appName.trim().isEmpty
-        ? '?'
-        : appName.trim()[0].toUpperCase();
-    final avatar = palette.groupColor(appName);
-    final onAvatar =
-        ThemeData.estimateBrightnessForColor(avatar) == Brightness.dark
-        ? palette.onInk
-        : palette.ink;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(
@@ -99,22 +98,7 @@ class AppLimitCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Opacity(
-                opacity: isActive ? 1 : 0.5,
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: avatar,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    initial,
-                    style: textTheme.titleLarge?.copyWith(color: onAvatar),
-                  ),
-                ),
-              ),
+              AppIconBadge(name: appName, icon: icon, dimmed: !isActive),
               const SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: Column(

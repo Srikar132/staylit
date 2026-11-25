@@ -18,7 +18,10 @@ import 'package:staylit/data/models/app_limit_model.dart';
 import 'package:staylit/data/models/blocked_content_model.dart';
 import 'package:staylit/data/models/focus_session_model.dart';
 import 'package:staylit/data/models/user_model.dart';
+import 'package:staylit/presentation/providers/app_icon_provider.dart';
 import 'package:staylit/presentation/providers/app_limits_provider.dart';
+import 'package:staylit/presentation/widgets/design/app_icon_badge.dart';
+import 'package:staylit/presentation/widgets/design/limit_setup_sheet.dart';
 import 'package:staylit/presentation/providers/auth_provider.dart';
 import 'package:staylit/presentation/providers/blocked_content_provider.dart';
 import 'package:staylit/presentation/screens/blocks_screen.dart';
@@ -88,6 +91,36 @@ Future<void> _snapshot(
     final bytes = (await image.toByteData(format: ui.ImageByteFormat.png))!;
     await File('$_outDir/$name.png').writeAsBytes(bytes.buffer.asUint8List());
   });
+}
+
+/// A stand-in launcher icon: a rounded gradient square with a glyph-like dot.
+Future<Uint8List> _fakeIcon(Color a, Color b) async {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  const size = 192.0;
+  final rect = RRect.fromRectAndRadius(
+    const Rect.fromLTWH(0, 0, size, size),
+    const Radius.circular(44),
+  );
+  canvas.drawRRect(
+    rect,
+    Paint()
+      ..shader = ui.Gradient.linear(Offset.zero, const Offset(size, size), [
+        a,
+        b,
+      ]),
+  );
+  canvas.drawCircle(
+    const Offset(size / 2, size / 2),
+    38,
+    Paint()..color = const Color(0xFFFFFFFF),
+  );
+  final image = await recorder.endRecording().toImage(
+    size.toInt(),
+    size.toInt(),
+  );
+  final data = await image.toByteData(format: ui.ImageByteFormat.png);
+  return data!.buffer.asUint8List();
 }
 
 HistoryEntry _entry(
@@ -230,7 +263,27 @@ void main() {
       createdAt: DateTime(2026),
       lastLoginAt: DateTime(2026),
     );
+    final igIcon = await tester.runAsync(
+      () => _fakeIcon(const Color(0xFFF58529), const Color(0xFFDD2A7B)),
+    );
+    final ytIcon = await tester.runAsync(
+      () => _fakeIcon(const Color(0xFFFF0033), const Color(0xFFB00020)),
+    );
+    final ttIcon = await tester.runAsync(
+      () => _fakeIcon(const Color(0xFF111111), const Color(0xFF25F4EE)),
+    );
+    final fbIcon = await tester.runAsync(
+      () => _fakeIcon(const Color(0xFF1877F2), const Color(0xFF0B4FB5)),
+    );
     final overrides = <Override>[
+      appIconProvider('com.instagram.android')
+          .overrideWith((ref) async => igIcon),
+      appIconProvider('com.google.android.youtube')
+          .overrideWith((ref) async => ytIcon),
+      appIconProvider('com.zhiliaoapp.musically')
+          .overrideWith((ref) async => ttIcon),
+      appIconProvider('com.facebook.katana')
+          .overrideWith((ref) async => fbIcon),
       currentUserProvider.overrideWith((ref) => Stream.value(user)),
       appLimitsProvider('u1').overrideWith(
         (ref) => Stream.value([
@@ -274,6 +327,32 @@ void main() {
         brightness: b,
         overrides: overrides,
         logicalSize: const Size(360, 1500),
+      );
+    }
+  }, skip: !enabled);
+
+  testWidgets('limit sheet previews', (tester) async {
+    if (!enabled) return;
+    await tester.runAsync(_loadFonts);
+    final icon = await tester.runAsync(
+      () => _fakeIcon(const Color(0xFFF58529), const Color(0xFFDD2A7B)),
+    );
+    for (final b in Brightness.values) {
+      await _snapshot(
+        tester,
+        name: 'limit_sheet_${b.name}',
+        child: Scaffold(
+          body: Align(
+            alignment: Alignment.bottomCenter,
+            child: LimitSetupSheet(
+              appName: 'Instagram',
+              appIcon: AppIconBadge(name: 'Instagram', icon: icon),
+              onSubmit: (_, _) {},
+            ),
+          ),
+        ),
+        brightness: b,
+        logicalSize: const Size(360, 800),
       );
     }
   }, skip: !enabled);
