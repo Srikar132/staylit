@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:staylit/data/models/installed_app_model.dart';
+import 'package:staylit/data/models/scroll_delta.dart';
 import 'package:staylit/presentation/providers/focus_session_provider.dart';
 
 /// Service class to handle all native Android permissions required by the app.
@@ -20,7 +21,6 @@ class NativeService {
       }
     });
   }
-
 
   // ============================================================================
   // FOCUS SESSION MANAGEMENT
@@ -106,10 +106,50 @@ class NativeService {
     }
   }
 
-  /// Stream of focus session events from native
-  static Stream<Map<String, dynamic>> get focusEventStream {
-    return _eventChannel.receiveBroadcastStream().map((event) {
-      return Map<String, dynamic>.from(event as Map);
+  // One shared subscription. Every receiveBroadcastStream() call re-runs the
+  // native onListen (replacing its event sink) and cancelling one listener
+  // would cut the others off, so all listeners share this stream.
+  static final Stream<Map<String, dynamic>> _sharedEvents = _eventChannel
+      .receiveBroadcastStream()
+      .map((event) => Map<String, dynamic>.from(event as Map))
+      .asBroadcastStream();
+
+  /// Stream of native events (focus session, scroll damage, ...). Shared.
+  static Stream<Map<String, dynamic>> get focusEventStream => _sharedEvents;
+
+  // ============================================================================
+  // SCROLL DAMAGE
+  // ============================================================================
+
+  /// Tells the native counter whether Scroll damage is on, and for which
+  /// account (a different account drops unsynced counts).
+  static Future<bool> setScrollDamageEnabled({
+    required bool enabled,
+    required String uid,
+  }) async {
+    try {
+      final result = await _platform.invokeMethod('setScrollDamageEnabled', {
+        'enabled': enabled,
+        'uid': uid,
+      });
+      return result as bool? ?? false;
+    } catch (e) {
+      debugPrint('Error setting scroll damage: $e');
+      return false;
+    }
+  }
+
+  /// Counts the native side has not handed over yet.
+  static Future<List<ScrollDelta>> getPendingScrollDamage() async {
+    final result = await _platform.invokeMethod('getPendingScrollDamage');
+    if (result is! List) return [];
+    return [for (final raw in result) ?ScrollDelta.tryParse(raw)];
+  }
+
+  /// Tells native these counts are stored, so it subtracts them.
+  static Future<void> consumeScrollDamage(List<ScrollDelta> deltas) async {
+    await _platform.invokeMethod('consumeScrollDamage', {
+      'days': [for (final delta in deltas) delta.toMap()],
     });
   }
 
@@ -249,15 +289,15 @@ class NativeService {
   /// Returns a detailed string with debugging information about accessibility service status.
   static Future<String> debugAccessibilityPermission() async {
     try {
-      final result = await _platform.invokeMethod('debugAccessibilityPermission');
+      final result = await _platform.invokeMethod(
+        'debugAccessibilityPermission',
+      );
       return result as String? ?? 'No debug info available';
     } catch (e) {
       debugPrint('Error getting accessibility debug info: $e');
       return 'Error getting debug info: $e';
     }
   }
-
-
 
   /// Get all installed apps on the device.
   /// Returns a list of [InstalledApp] objects containing app information.
@@ -275,7 +315,9 @@ class NativeService {
       final List<dynamic> appsList = result as List<dynamic>;
 
       return appsList.map((app) {
-        final Map<String, dynamic> appMap = Map<String, dynamic>.from(app as Map);
+        final Map<String, dynamic> appMap = Map<String, dynamic>.from(
+          app as Map,
+        );
         return InstalledApp.fromMap(appMap);
       }).toList();
     } catch (e) {
@@ -293,7 +335,6 @@ class NativeService {
       if (result == null) return null;
 
       return result as Uint8List;
-
     } on PlatformException catch (e) {
       // It's common for some system apps to fail icon retrieval, just log it lightly
       debugPrint("NativeService Icon Error ($packageName): '${e.message}'");
@@ -328,7 +369,9 @@ class NativeService {
   /// Check if persistent app blocking is enabled
   static Future<bool> isPersistentAppBlockingEnabled() async {
     try {
-      final result = await _platform.invokeMethod('isPersistentAppBlockingEnabled');
+      final result = await _platform.invokeMethod(
+        'isPersistentAppBlockingEnabled',
+      );
       return result as bool? ?? false;
     } catch (e) {
       debugPrint('Error checking persistent app blocking: $e');
@@ -370,7 +413,9 @@ class NativeService {
   /// Check if persistent website blocking is enabled
   static Future<bool> isPersistentWebsiteBlockingEnabled() async {
     try {
-      final result = await _platform.invokeMethod('isPersistentWebsiteBlockingEnabled');
+      final result = await _platform.invokeMethod(
+        'isPersistentWebsiteBlockingEnabled',
+      );
       return result as bool? ?? false;
     } catch (e) {
       debugPrint('Error checking persistent website blocking: $e');
@@ -379,9 +424,12 @@ class NativeService {
   }
 
   /// Get list of persistently blocked websites
-  static Future<List<Map<String, dynamic>>> getPersistentBlockedWebsites() async {
+  static Future<List<Map<String, dynamic>>>
+  getPersistentBlockedWebsites() async {
     try {
-      final result = await _platform.invokeMethod('getPersistentBlockedWebsites');
+      final result = await _platform.invokeMethod(
+        'getPersistentBlockedWebsites',
+      );
       if (result is List) {
         return result.cast<Map<String, dynamic>>();
       }
@@ -412,7 +460,9 @@ class NativeService {
   /// Check if persistent short-form blocking is enabled
   static Future<bool> isPersistentShortFormBlockingEnabled() async {
     try {
-      final result = await _platform.invokeMethod('isPersistentShortFormBlockingEnabled');
+      final result = await _platform.invokeMethod(
+        'isPersistentShortFormBlockingEnabled',
+      );
       return result as bool? ?? false;
     } catch (e) {
       debugPrint('Error checking persistent short-form blocking: $e');
@@ -423,7 +473,9 @@ class NativeService {
   /// Get persistent short-form blocks
   static Future<Map<String, dynamic>> getPersistentShortFormBlocks() async {
     try {
-      final result = await _platform.invokeMethod('getPersistentShortFormBlocks');
+      final result = await _platform.invokeMethod(
+        'getPersistentShortFormBlocks',
+      );
       if (result is Map) {
         return Map<String, dynamic>.from(result);
       }
@@ -454,7 +506,9 @@ class NativeService {
   /// Check if persistent notification blocking is enabled
   static Future<bool> isPersistentNotificationBlockingEnabled() async {
     try {
-      final result = await _platform.invokeMethod('isPersistentNotificationBlockingEnabled');
+      final result = await _platform.invokeMethod(
+        'isPersistentNotificationBlockingEnabled',
+      );
       return result as bool? ?? false;
     } catch (e) {
       debugPrint('Error checking persistent notification blocking: $e');
@@ -465,7 +519,9 @@ class NativeService {
   /// Get persistent notification blocks
   static Future<Map<String, dynamic>> getPersistentNotificationBlocks() async {
     try {
-      final result = await _platform.invokeMethod('getPersistentNotificationBlocks');
+      final result = await _platform.invokeMethod(
+        'getPersistentNotificationBlocks',
+      );
       if (result is Map) {
         return Map<String, dynamic>.from(result);
       }
@@ -486,11 +542,11 @@ class NativeService {
       final result = await _platform.invokeMethod('getAppUsageStats', {
         'days': days,
       });
-      
+
       if (result is Map) {
         return Map<String, dynamic>.from(result);
       }
-      
+
       return {
         'apps': <Map<String, dynamic>>[],
         'summary': {
@@ -500,13 +556,15 @@ class NativeService {
           'averageUsagePerApp': 0,
           'topApp': 'None',
           'daysAnalyzed': days,
-          'error': 'Invalid response format'
+          'error': 'Invalid response format',
         },
         'period': {
-          'startTime': DateTime.now().subtract(Duration(days: days)).millisecondsSinceEpoch,
+          'startTime': DateTime.now()
+              .subtract(Duration(days: days))
+              .millisecondsSinceEpoch,
           'endTime': DateTime.now().millisecondsSinceEpoch,
           'days': days,
-        }
+        },
       };
     } catch (e) {
       debugPrint('Error getting app usage stats: $e');
@@ -519,13 +577,15 @@ class NativeService {
           'averageUsagePerApp': 0,
           'topApp': 'None',
           'daysAnalyzed': days,
-          'error': e.toString()
+          'error': e.toString(),
         },
         'period': {
-          'startTime': DateTime.now().subtract(Duration(days: days)).millisecondsSinceEpoch,
+          'startTime': DateTime.now()
+              .subtract(Duration(days: days))
+              .millisecondsSinceEpoch,
           'endTime': DateTime.now().millisecondsSinceEpoch,
           'days': days,
-        }
+        },
       };
     }
   }
@@ -534,11 +594,11 @@ class NativeService {
   static Future<Map<String, dynamic>> getTodayUsageStats() async {
     try {
       final result = await _platform.invokeMethod('getTodayUsageStats');
-      
+
       if (result is Map) {
         return Map<String, dynamic>.from(result);
       }
-      
+
       return {
         'apps': <Map<String, dynamic>>[],
         'summary': {
@@ -548,13 +608,15 @@ class NativeService {
           'averageUsagePerApp': 0,
           'topApp': 'None',
           'daysAnalyzed': 1,
-          'error': 'Invalid response format'
+          'error': 'Invalid response format',
         },
         'period': {
-          'startTime': DateTime.now().copyWith(hour: 0, minute: 0, second: 0, millisecond: 0).millisecondsSinceEpoch,
+          'startTime': DateTime.now()
+              .copyWith(hour: 0, minute: 0, second: 0, millisecond: 0)
+              .millisecondsSinceEpoch,
           'endTime': DateTime.now().millisecondsSinceEpoch,
           'days': 1,
-        }
+        },
       };
     } catch (e) {
       debugPrint('Error getting today\'s usage stats: $e');
@@ -567,13 +629,15 @@ class NativeService {
           'averageUsagePerApp': 0,
           'topApp': 'None',
           'daysAnalyzed': 1,
-          'error': e.toString()
+          'error': e.toString(),
         },
         'period': {
-          'startTime': DateTime.now().copyWith(hour: 0, minute: 0, second: 0, millisecond: 0).millisecondsSinceEpoch,
+          'startTime': DateTime.now()
+              .copyWith(hour: 0, minute: 0, second: 0, millisecond: 0)
+              .millisecondsSinceEpoch,
           'endTime': DateTime.now().millisecondsSinceEpoch,
           'days': 1,
-        }
+        },
       };
     }
   }
@@ -582,39 +646,45 @@ class NativeService {
   static Future<Map<String, dynamic>> getTodayUsagePatterns() async {
     try {
       final result = await _platform.invokeMethod('getTodayUsagePatterns');
-      
+
       if (result is Map) {
         return Map<String, dynamic>.from(result);
       }
-      
+
       return {
-        'hourlyUsage': List.generate(24, (hour) => {
-          'hour': hour,
-          'usageMinutes': 0,
-          'isCurrentHour': hour == DateTime.now().hour,
-        }),
+        'hourlyUsage': List.generate(
+          24,
+          (hour) => {
+            'hour': hour,
+            'usageMinutes': 0,
+            'isCurrentHour': hour == DateTime.now().hour,
+          },
+        ),
         'summary': {
           'totalUsageToday': 0,
           'peakHour': 0,
           'peakUsage': 0,
           'currentHour': DateTime.now().hour,
-        }
+        },
       };
     } catch (e) {
       debugPrint('Error getting usage patterns: $e');
       return {
-        'hourlyUsage': List.generate(24, (hour) => {
-          'hour': hour,
-          'usageMinutes': 0,
-          'isCurrentHour': hour == DateTime.now().hour,
-        }),
+        'hourlyUsage': List.generate(
+          24,
+          (hour) => {
+            'hour': hour,
+            'usageMinutes': 0,
+            'isCurrentHour': hour == DateTime.now().hour,
+          },
+        ),
         'summary': {
           'totalUsageToday': 0,
           'peakHour': 0,
           'peakUsage': 0,
           'currentHour': DateTime.now().hour,
           'error': e.toString(),
-        }
+        },
       };
     }
   }
@@ -629,16 +699,16 @@ class NativeService {
         'packageName': packageName,
         'days': days,
       });
-      
+
       if (result is Map) {
         return Map<String, dynamic>.from(result);
       }
-      
+
       return {
         'appName': packageName,
         'packageName': packageName,
         'totalUsageMinutes': 0,
-        'error': 'Invalid response format'
+        'error': 'Invalid response format',
       };
     } catch (e) {
       debugPrint('Error getting app specific usage: $e');
@@ -646,7 +716,7 @@ class NativeService {
         'appName': packageName,
         'packageName': packageName,
         'totalUsageMinutes': 0,
-        'error': e.toString()
+        'error': e.toString(),
       };
     }
   }
