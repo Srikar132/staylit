@@ -39,6 +39,7 @@ import 'package:staylit/presentation/screens/blocks_screen.dart';
 import 'package:staylit/presentation/screens/focus/focus_home_data.dart';
 import 'package:staylit/presentation/screens/groups/groups_view.dart';
 import 'package:staylit/presentation/screens/progress/progress_view.dart';
+import 'package:staylit/presentation/screens/save_session/save_session_view.dart';
 
 final String? _outDir = Platform.environment['PREVIEW_DIR'];
 
@@ -454,6 +455,38 @@ void main() {
         ),
         brightness: b,
       );
+    }
+  }, skip: !enabled);
+
+  testWidgets('save session previews', (tester) async {
+    if (!enabled) return;
+    await tester.runAsync(_loadFonts);
+    for (final auto in [true, false]) {
+      for (final b in Brightness.values) {
+        await _snapshot(
+          tester,
+          name: 'save_${auto ? 'auto' : 'manual'}_${b.name}',
+          child: Scaffold(
+            body: SaveSessionView(
+              data: SaveSessionData(
+                focusMinutes: 25,
+                plannedMinutes: 25,
+                interruptions: 2,
+                timeRange: '9:10 AM - 9:35 AM',
+                autoCompleted: auto,
+              ),
+              notesController: TextEditingController(),
+              tags: const ['Study', 'Work', 'Reading', 'Coding', 'Other'],
+              selectedTag: 'Study',
+              onTag: (_) {},
+              saving: false,
+              onSave: () {},
+              onDiscard: () {},
+            ),
+          ),
+          brightness: b,
+        );
+      }
     }
   }, skip: !enabled);
 }

@@ -162,6 +162,29 @@ class FocusSessionRepository {
     );
   }
 
+  /// Adds a note and/or tag to a session that is already recorded. Fire and
+  /// forget like [finishSession]: the offline cache queues the write.
+  void updateSessionDetails({
+    required String sessionId,
+    String? notes,
+    String? tag,
+  }) {
+    final fields = <String, Object>{
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
+      'tag': ?tag,
+    };
+    if (fields.isEmpty) return;
+    unawaited(
+      _firestore
+          .collection('focusSessions')
+          .doc(sessionId)
+          .update(fields)
+          .catchError((Object error) {
+            debugPrint('Error updating session $sessionId: $error');
+          }),
+    );
+  }
+
   // Get today's sessions (cached by Firebase!). Discarded sessions are hidden.
   Stream<List<FocusSessionModel>> streamTodaySessions(String userId) {
     final dateString = DailyStat.dayKey(DateTime.now());

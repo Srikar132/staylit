@@ -104,6 +104,10 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
   // KEY FIX: Single source of truth for manual ending
   bool _isManuallyEnding = false;
 
+  // True when the timer ran out by itself: the session was already recorded,
+  // so the Save screen only adds a tag and a note.
+  bool _autoFinished = false;
+
   // Counted for the current session; written when it ends (issue #22).
   int _pauseCount = 0;
   int _interruptionCount = 0;
@@ -223,18 +227,22 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
 
   // KEY FIX: Separate handler for auto-completion (timer finished naturally)
   void _handleAutoCompletion(Map<String, dynamic>? data) {
-    debugPrint('🔄 Auto-completion detected - saving and going to home');
+    debugPrint('🔄 Auto-completion detected - recording, then Save screen');
 
-    state = state.copyWith(
-      status: FocusSessionStatus.completed,
-      isPaused: false,
-    );
     _stopLocalTimer();
 
-    // Auto-save without user input
+    // Record the session right away so nothing is lost if the app is closed
+    // before the user reaches the Save screen.
     if (data != null) {
       _saveCompletedSession(data);
     }
+    _autoFinished = true;
+
+    // endingWithSave makes the active screen open the Save screen (tag + note).
+    state = state.copyWith(
+      status: FocusSessionStatus.endingWithSave,
+      isPaused: false,
+    );
   }
 
   void _handleTimerUpdate(Map<String, dynamic>? data) {
@@ -305,6 +313,7 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
     state = state.copyWith(status: FocusSessionStatus.starting);
     _pauseCount = 0;
     _interruptionCount = 0;
+    _autoFinished = false;
     var nativeStarted = false;
 
     try {
@@ -569,11 +578,19 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
   }
 
   Map<String, dynamic> getCurrentSessionData() {
+    // Native's wall-clock minutes when it reported them, else our own timer.
+    final focusMinutes =
+        _safeInt(state.completionData?['actualDuration']) ??
+        state.elapsedMinutes;
     return {
       'sessionId': state.sessionId,
       'elapsedSeconds': state.elapsedSeconds ?? 0,
+      'focusMinutes': focusMinutes,
       'plannedDuration': state.plannedDuration,
       'sessionType': state.sessionType,
+      'interruptionCount': _interruptionCount,
+      'pauseCount': _pauseCount,
+      'autoCompleted': _autoFinished,
       'startTime': DateTime.now().subtract(
         Duration(seconds: state.elapsedSeconds ?? 0),
       ),
@@ -583,6 +600,24 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
   /// Manual end, then Save: records the session with the user's notes and tag.
   Future<void> completeSessionWithNotes({String? notes, String? tag}) async {
     try {
+      if (_autoFinished) {
+        // Already recorded when the timer ran out; only add the details.
+        final sessionId = state.sessionId;
+        if (sessionId != null) {
+          ref
+              .read(sessionRepositoryProvider)
+              .updateSessionDetails(
+                sessionId: sessionId,
+                notes: (notes ?? '').trim(),
+                tag: (tag == null || tag.isEmpty) ? null : tag,
+              );
+        }
+        _autoFinished = false;
+        _isManuallyEnding = false;
+        state = FocusSessionState(status: FocusSessionStatus.completed);
+        return;
+      }
+
       // Prefer native's wall-clock actualDuration (captured from the
       // session_completed event, even when its navigation was ignored during
       // manual ending) over the Dart local timer.
@@ -613,6 +648,12 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
   /// Manual end, then Discard: the session document is kept with status
   /// `discarded` (hidden from lists, counts toward no totals).
   void discardSession() {
+    if (_autoFinished) {
+      // Already recorded when the timer ran out: nothing to discard.
+      _autoFinished = false;
+      state = FocusSessionState(status: FocusSessionStatus.idle);
+      return;
+    }
     try {
       final actualDuration =
           _safeInt(state.completionData?['actualDuration']) ??
