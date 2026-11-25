@@ -74,7 +74,7 @@ object LitSheetSpec {
     fun timesUp(label: String, minutes: Int, focusActive: Boolean, parentalLocked: Boolean) = SheetSpec(
         mode = SheetMode.TIMES_UP,
         title = "Time's up",
-        body = "You watched $label for $minutes min.",
+        body = if (minutes > 0) "You watched $label for $minutes min." else "Your break from $label is over.",
         primaryLabel = "Done",
         secondaryLabel = null,
         passMinutes = passes(focusActive, parentalLocked),

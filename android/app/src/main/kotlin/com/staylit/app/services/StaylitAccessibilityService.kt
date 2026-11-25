@@ -22,6 +22,8 @@ import com.staylit.app.services.scroll.ScrollCounterEngine
 import com.staylit.app.services.scroll.ScrollDamageUi
 import com.staylit.app.services.scroll.ScrollDamageStore
 import com.staylit.app.services.scroll.ScrollTargets
+import com.staylit.app.services.scroll.ShortFormApps
+import com.staylit.app.services.scroll.ShortFormPassStore
 import com.staylit.app.services.scroll.ShortFormCheck
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -197,13 +199,14 @@ class StaylitAccessibilityService : AccessibilityService() {
         scrollUi = ScrollDamageUi(
             service = this,
             store = ScrollDamageStore.getInstance(applicationContext),
-            goHome = { performGlobalAction(GLOBAL_ACTION_HOME) },
-            // Blocking has priority: nothing from Scroll damage while a focus session or a block overlay owns the screen.
-            isSuppressed = {
-                FocusSessionManager.getInstance(applicationContext).isSessionActive() ||
-                    SimpleBlockOverlay.isAnyShowing()
-            },
+            passStore = ShortFormPassStore.getInstance(applicationContext),
+            leaveShortForm = { pkg -> leaveShortFormView(pkg) },
+            // Blocking has priority: no pill, offer or pass while a focus session or a block overlay owns the screen.
+            isFocusActive = { FocusSessionManager.getInstance(applicationContext).isSessionActive() },
+            isBlockOverlayShowing = { SimpleBlockOverlay.isAnyShowing() },
+            isBlockOn = { pkg -> shortFormBlockManager.isPackageBlocked(pkg) },
             stillInShortForm = { pkg -> isShortFormViewActive(pkg, android.os.SystemClock.elapsedRealtime(), useCache = false) },
+            isSwiping = { scrollEngine.burstPackage != null },
         )
 
         // Start as foreground service for persistence
@@ -253,15 +256,16 @@ class StaylitAccessibilityService : AccessibilityService() {
             val eventType = event.eventType
 
             // Scroll damage runs first and on its own: it must never skip or break the blocking below.
-            if (scrollDamageEnabled) {
-                when (eventType) {
-                    AccessibilityEvent.TYPE_VIEW_SCROLLED -> onScrollForDamage(event, packageName)
-                    AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
-                        scrollUi?.onWindowChanged(packageName)
-                        scrollUi?.onPossibleViewChange(packageName)
-                    }
-                    AccessibilityEvent.TYPE_VIEW_CLICKED -> scrollUi?.onPossibleViewChange(packageName)
+            if (scrollDamageEnabled && eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
+                onScrollForDamage(event, packageName)
+            }
+            // The blocked sheet must also go away when the user leaves, whether or not Scroll damage is on.
+            when (eventType) {
+                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
+                    scrollUi?.onWindowChanged(packageName)
+                    scrollUi?.onPossibleViewChange(packageName)
                 }
+                AccessibilityEvent.TYPE_VIEW_CLICKED -> scrollUi?.onPossibleViewChange(packageName)
             }
 
             Log.d(TAG, "Event: ${AccessibilityEvent.eventTypeToString(eventType)} for $packageName")
@@ -317,7 +321,8 @@ class StaylitAccessibilityService : AccessibilityService() {
             
             // Handle short-form content blocking with enhanced detection
             if (shortFormBlockManager.getActiveBlocks().isNotEmpty() && 
-                shortFormBlockManager.isPackageBlocked(packageName)) {
+                shortFormBlockManager.isPackageBlocked(packageName) &&
+                !isShortFormPassActive(packageName)) {
                 
                 // Add cooldown to prevent spam blocking
                 val currentTime = System.currentTimeMillis()
@@ -1499,14 +1504,17 @@ class StaylitAccessibilityService : AccessibilityService() {
             
             // STEP 2: Show simple native overlay (5 second duration with auto-dismiss)
             Handler(Looper.getMainLooper()).postDelayed({
-                SimpleBlockOverlay.show(
-                    context = applicationContext,
-                    platform = "YouTube",
-                    contentType = "shorts",
-                    onDismiss = {
-                        Log.d(TAG, "✅ Overlay dismissed, user is on YouTube Home")
-                    }
-                )
+                // The Lit sheet (Go back + break passes); the old overlay only if it cannot be shown.
+                if (scrollUi?.showBlocked("com.google.android.youtube") != true) {
+                    SimpleBlockOverlay.show(
+                        context = applicationContext,
+                        platform = "YouTube",
+                        contentType = "shorts",
+                        onDismiss = {
+                            Log.d(TAG, "✅ Overlay dismissed, user is on YouTube Home")
+                        }
+                    )
+                }
             }, 200) // Brief delay to let navigation complete
             
         } catch (e: Exception) {
@@ -2163,6 +2171,38 @@ class StaylitAccessibilityService : AccessibilityService() {
         return false
     }
 
+    /** A break pass is running for [pkg] (never during a focus session): the block lets it through. */
+    private fun isShortFormPassActive(pkg: String): Boolean =
+        ShortFormPassStore.getInstance(applicationContext).isActive(pkg) &&
+            !FocusSessionManager.getInstance(applicationContext).isSessionActive()
+
+    /** Takes the user out of [pkg]'s short-form view: the app's Home tab, or the launcher. */
+    private fun leaveShortFormView(pkg: String) {
+        try {
+            val done = when (pkg) {
+                "com.google.android.youtube" -> navigateToYouTubeHomeImmediate()
+                "com.instagram.android" -> navigateToInstagramHomeImmediate()
+                else -> false
+            }
+            if (!done) performGlobalAction(GLOBAL_ACTION_HOME)
+        } catch (e: Exception) {
+            Log.e(SCROLL_TAG, "leave failed", e)
+        }
+    }
+
+    /**
+     * The short-form block fired for [pkg]: show the Lit "blocked" sheet. With [navigate] the user is first
+     * taken out of the short-form view (callers that already navigated pass false). Returns false if [pkg]
+     * is not one of the four short-form apps, so the caller can fall back to the old overlay.
+     */
+    fun showShortFormBlockedSheet(pkg: String, navigate: Boolean): Boolean {
+        val ui = scrollUi ?: return false
+        if (ShortFormApps.forPackage(pkg) == null) return false
+        if (navigate) leaveShortFormView(pkg)
+        Handler(Looper.getMainLooper()).postDelayed({ ui.showBlocked(pkg) }, if (navigate) 250L else 0L)
+        return true
+    }
+
     /** Called from MainActivity when the Flutter setting changes. Turning off cancels everything now. */
     fun setScrollDamageEnabled(enabled: Boolean) {
         scrollDamageEnabled = enabled
@@ -2259,14 +2299,17 @@ class StaylitAccessibilityService : AccessibilityService() {
             
             // STEP 2: Show simple native overlay (5 second duration with auto-dismiss)
             Handler(Looper.getMainLooper()).postDelayed({
-                SimpleBlockOverlay.show(
-                    context = applicationContext,
-                    platform = "Instagram",
-                    contentType = "reels",
-                    onDismiss = {
-                        Log.d(TAG, "✅ Overlay dismissed, user is on Instagram Home")
-                    }
-                )
+                // The Lit sheet (Go back + break passes); the old overlay only if it cannot be shown.
+                if (scrollUi?.showBlocked("com.instagram.android") != true) {
+                    SimpleBlockOverlay.show(
+                        context = applicationContext,
+                        platform = "Instagram",
+                        contentType = "reels",
+                        onDismiss = {
+                            Log.d(TAG, "✅ Overlay dismissed, user is on Instagram Home")
+                        }
+                    )
+                }
             }, 200) // Brief delay to let navigation complete
             
         } catch (e: Exception) {

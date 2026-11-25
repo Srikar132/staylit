@@ -28,6 +28,9 @@ class ScrollDamageStore private constructor(context: Context) {
         private const val KEY_UID = "uid"
         private const val KEY_LEDGER = "ledger"
         private const val KEY_EVENTS = "events"
+        private const val KEY_PARENTAL = "parental_locked"
+        private const val KEY_TODAY_DAY = "today_day"
+        private const val KEY_TODAY_TOTAL = "today_total"
 
         /** Batch window for the "new data" ping to Flutter. */
         private const val PING_DELAY_MS = 5_000L
@@ -50,14 +53,27 @@ class ScrollDamageStore private constructor(context: Context) {
     @Volatile
     private var enabled = prefs.getBoolean(KEY_ENABLED, false)
 
+    /** A parent PIN protects the blocks: break passes must not be offered. Mirrored from Flutter. */
+    @Volatile
+    private var parentalLocked = prefs.getBoolean(KEY_PARENTAL, false)
+
+    private var todayDay = prefs.getString(KEY_TODAY_DAY, "") ?: ""
+    private var todayTotalValue = prefs.getInt(KEY_TODAY_TOTAL, 0)
+
     fun isEnabled(): Boolean = enabled
+
+    fun isParentalLocked(): Boolean = parentalLocked
+
+    /** Items counted on the local day [dayKey] (the ledger is consumed after each sync, this is not). */
+    @Synchronized
+    fun todayTotal(dayKey: String): Int = if (dayKey == todayDay) todayTotalValue else 0
 
     /**
      * Mirrors the Flutter setting. A different [uid] than the stored one drops unsynced data, so one
      * account's counts are never written to the next account on a shared device.
      */
     @Synchronized
-    fun setEnabled(enabled: Boolean, uid: String) {
+    fun setEnabled(enabled: Boolean, uid: String, parentalLocked: Boolean? = null) {
         val storedUid = prefs.getString(KEY_UID, "") ?: ""
         if (uid.isNotEmpty() && storedUid.isNotEmpty() && uid != storedUid) {
             ledger.clear()
@@ -65,8 +81,10 @@ class ScrollDamageStore private constructor(context: Context) {
             Log.d(TAG, "account changed, unsynced data dropped")
         }
         this.enabled = enabled
+        if (parentalLocked != null) this.parentalLocked = parentalLocked
         val editor = prefs.edit()
         editor.putBoolean(KEY_ENABLED, enabled)
+        editor.putBoolean(KEY_PARENTAL, this.parentalLocked)
         if (uid.isNotEmpty()) editor.putString(KEY_UID, uid)
         editor.putString(KEY_LEDGER, ledger.toJson())
         editor.putString(KEY_EVENTS, events.toJson())
@@ -76,7 +94,16 @@ class ScrollDamageStore private constructor(context: Context) {
     @Synchronized
     fun recordCount(day: String, tzOffsetMinutes: Int, pkg: String, newSession: Boolean) {
         ledger.add(day, tzOffsetMinutes, pkg, newSession)
-        prefs.edit().putString(KEY_LEDGER, ledger.toJson()).apply()
+        if (day != todayDay) {
+            todayDay = day
+            todayTotalValue = 0
+        }
+        todayTotalValue += 1
+        prefs.edit()
+            .putString(KEY_LEDGER, ledger.toJson())
+            .putString(KEY_TODAY_DAY, todayDay)
+            .putInt(KEY_TODAY_TOTAL, todayTotalValue)
+            .apply()
         schedulePing()
     }
 

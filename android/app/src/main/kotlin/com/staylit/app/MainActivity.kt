@@ -21,6 +21,7 @@ import com.staylit.app.services.scroll.DayDelta
 import com.staylit.app.services.scroll.ScrollDamageNotifier
 import com.staylit.app.services.scroll.ScrollDamageStore
 import com.staylit.app.services.scroll.ScrollEvent
+import com.staylit.app.services.scroll.ShortFormPassStore
 import com.staylit.app.managers.ShortFormBlockManager
 import com.staylit.app.managers.WebsiteBlockManager
 import com.staylit.app.utils.AppUtils
@@ -361,7 +362,8 @@ class MainActivity: FlutterActivity() {
                         val args = arguments as? Map<*, *>
                         val enabled = args?.get("enabled") as? Boolean ?: false
                         val uid = args?.get("uid") as? String ?: ""
-                        ScrollDamageStore.getInstance(this@MainActivity).setEnabled(enabled, uid)
+                        val parentalLocked = args?.get("parentalLocked") as? Boolean
+                        ScrollDamageStore.getInstance(this@MainActivity).setEnabled(enabled, uid, parentalLocked)
                         StaylitAccessibilityService.getInstance()?.setScrollDamageEnabled(enabled)
                         result.success(true)
                     }
@@ -404,6 +406,8 @@ class MainActivity: FlutterActivity() {
                                     // Start monitoring service if session started successfully
                                     if (success) {
                                         FocusMonitoringService.start(this@MainActivity)
+                                        // Focus has priority: any break pass ends when a session starts.
+                                        ShortFormPassStore.getInstance(this@MainActivity).cancelAll()
                                     }
 
                                     withContext(Dispatchers.Main) {
@@ -816,6 +820,8 @@ class MainActivity: FlutterActivity() {
             sessionCount = (m["sessionCount"] as? Number)?.toInt() ?: 0,
             threshold = (m["threshold"] as? Number)?.toInt() ?: 0,
             response = m["response"] as? String ?: "",
+            kind = m["kind"] as? String ?: "offer",
+            minutes = (m["minutes"] as? Number)?.toInt() ?: 0,
         )
     }
 

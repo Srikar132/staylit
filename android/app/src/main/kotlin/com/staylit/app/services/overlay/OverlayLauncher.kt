@@ -152,6 +152,14 @@ class OverlayLauncher private constructor(private val context: Context) {
 
         Log.d(TAG, "📹 Showing shorts block overlay for $appName")
 
+        // The Lit sheet is the block screen for the four short-form apps (instant, no Flutter engine).
+        // The Flutter overlay below stays only as a fallback when the accessibility service is not running.
+        val service = com.staylit.app.services.StaylitAccessibilityService.getInstance()
+        if (service != null && service.showShortFormBlockedSheet(packageName, navigate = true)) {
+            updateDebounce(packageName)
+            return
+        }
+
         val intent = Intent(context, BlockOverlayActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
 
