@@ -27,10 +27,6 @@ dependencies:
   installed_apps: ^1.4.0
   
   # Voice Assistant Dependencies
-  record: ^5.2.1
-  web_socket_channel: ^2.4.0
-  path_provider: ^2.1.2
-  uuid: ^4.3.3
   shared_preferences: ^2.5.6
 
 dev_dependencies:
@@ -41,9 +37,6 @@ dev_dependencies:
   flutter_native_splash: ^2.4.3
   shared_preferences_platform_interface: ^2.4.2
 
-dependency_overrides:
-  record_linux: ^1.0.0
-
 flutter:
   uses-material-design: true
   assets:
@@ -51,33 +44,36 @@ flutter:
     - assets/sounds/
 
   fonts:
-    - family: PlusJakartaSans
+    - family: SpaceGrotesk
       fonts:
-        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+        - asset: assets/fonts/SpaceGrotesk-Regular.ttf
           weight: 400
-        - asset: assets/fonts/PlusJakartaSans-Medium.ttf
+        - asset: assets/fonts/SpaceGrotesk-Medium.ttf
           weight: 500
-        - asset: assets/fonts/PlusJakartaSans-SemiBold.ttf
-          weight: 600
-        - asset: assets/fonts/PlusJakartaSans-Bold.ttf
+        - asset: assets/fonts/SpaceGrotesk-Bold.ttf
           weight: 700
-        - asset: assets/fonts/PlusJakartaSans-ExtraBold.ttf
-          weight: 800
 
 flutter_launcher_icons:
   image_path: "assets/icons/icon.png"
   android: "launcher_icon"
-  ios: true
+  ios: false
   min_sdk_android: 21
-  adaptive_icon_background: "#0B0B0C"
+  adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/icons/icon_foreground.png"
   adaptive_icon_monochrome: "assets/icons/icon_monochrome.png"
 
 flutter_native_splash:
-  color: "#0B0B0C"
+  color: "#FFFFFF"
+  color_dark: "#111113"
   image: assets/splash/splash_logo.png
+  image_dark: assets/splash/splash_logo.png
+  android: true
+  ios: false
+  web: false
   android_12:
     image: assets/splash/splash_logo.png
-    color: "#0B0B0C"
-    icon_background_color: "#0B0B0C"
-
+    color: "#FFFFFF"
+    icon_background_color: "#FFFFFF"
+    image_dark: assets/splash/splash_logo.png
+    color_dark: "#111113"
+    icon_background_color_dark: "#111113"

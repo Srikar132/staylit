@@ -95,8 +95,8 @@ class _ErrorScreen extends StatelessWidget {
                 icon: const Icon(Icons.refresh),
                 label: const Text('Try Again'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: context.palette.onCanvas,
-                  foregroundColor: context.palette.onCanvasMuted,
+                  backgroundColor: context.palette.accent,
+                  foregroundColor: context.palette.onAccent,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
                     vertical: 16,
@@ -155,8 +155,7 @@ class _LoadingScreenState extends State<_LoadingScreen>
         child: ScaleTransition(
           scale: _scaleAnimation,
           child: const Image(
-            image: AssetImage('assets/images/splash_icon.webp'),
-            width: 96,
+            image: AssetImage('assets/images/brand_mark.webp'),
             height: 96,
           ),
         ),

@@ -6,6 +6,7 @@ import 'package:pace/presentation/overlays/widgets/focus_timer_widget.dart';
 import 'package:pace/presentation/overlays/widgets/motivational_message.dart';
 import 'package:pace/presentation/overlays/widgets/overlay_background.dart';
 import 'package:pace/core/theme/theme_context.dart';
+import 'package:pace/presentation/widgets/design/lit_badge.dart';
 
 //import 'package:lottie/lottie.dart';
 
@@ -146,28 +147,10 @@ class _BlockedAppOverlayState extends ConsumerState<BlockedAppOverlay>
   Widget _buildBlockIcon() {
     return AnimatedBuilder(
       animation: _pulseController,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: 1.0 + (_pulseController.value * 0.1),
-          child: Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: context.palette.error.withValues(alpha: 0.1),
-              border: Border.all(color: context.palette.error, width: 3),
-              boxShadow: [
-                BoxShadow(
-                  color: context.palette.error.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: Icon(Icons.block, size: 60, color: context.palette.error),
-          ),
-        );
-      },
+      builder: (context, child) => Transform.scale(
+        scale: 1.0 + (_pulseController.value * 0.05),
+        child: const LitBadge(size: 140),
+      ),
     );
   }
 

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pace/data/repositories/theme_repository.dart';
+import 'package:pace/services/night_mode_bridge.dart';
 
 /// The theme mode loaded before `runApp`, so the very first frame already uses
 /// the right theme (no flash). Must be overridden in the root `ProviderScope`.
@@ -14,6 +17,10 @@ final themeRepositoryProvider = Provider<ThemeRepository>(
   (ref) => SharedPreferencesThemeRepository(),
 );
 
+final nightModeBridgeProvider = Provider<NightModeBridge>(
+  (ref) => MethodChannelNightModeBridge(),
+);
+
 /// Current [ThemeMode] (System by default) and the way to change it.
 class ThemeModeNotifier extends Notifier<ThemeMode> {
   @override
@@ -25,6 +32,8 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
   Future<void> setThemeMode(ThemeMode mode) async {
     if (mode == state) return;
     state = mode;
+    // Also tell Android, so the native splash matches (Android 12+; no-op below).
+    unawaited(ref.read(nightModeBridgeProvider).apply(mode));
     try {
       await ref.read(themeRepositoryProvider).save(mode);
     } catch (error, stackTrace) {

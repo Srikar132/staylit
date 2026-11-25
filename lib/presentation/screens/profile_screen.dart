@@ -12,6 +12,7 @@ import 'package:pace/models/parental_control.dart';
 import 'package:pace/widgets/parental_control_dialogs.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:pace/core/theme/theme_context.dart';
+import 'package:pace/core/constants/app_info.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -259,7 +260,7 @@ class ProfileScreen extends ConsumerWidget {
                 Row(
                   children: [
                     Text(
-                      'Pace',
+                      kAppName,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -313,7 +314,7 @@ class ProfileScreen extends ConsumerWidget {
               ],
             ),
           ),
-          // Mascot
+          // Pro card art
           Container(
             width: 80,
             height: 80,
@@ -922,7 +923,7 @@ class ProfileScreen extends ConsumerWidget {
 
                     // Open WhatsApp share
                     final url = Uri.parse(
-                      'https://wa.me/?text=Join me on Pace to beat phone addiction!',
+                      'https://wa.me/?text=Join me on $kAppName to beat phone addiction!',
                     );
                     if (await canLaunchUrl(url)) {
                       await launchUrl(url);

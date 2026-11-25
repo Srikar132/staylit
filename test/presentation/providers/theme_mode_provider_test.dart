@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pace/data/repositories/theme_repository.dart';
 import 'package:pace/presentation/providers/theme_mode_provider.dart';
+import 'package:pace/services/night_mode_bridge.dart';
 
 class FakeThemeRepository implements ThemeRepository {
   FakeThemeRepository({
@@ -25,14 +26,28 @@ class FakeThemeRepository implements ThemeRepository {
   }
 }
 
+class FakeNightModeBridge implements NightModeBridge {
+  final List<ThemeMode> applied = [];
+
+  @override
+  Future<bool> apply(ThemeMode mode) async {
+    applied.add(mode);
+    return true;
+  }
+}
+
 ProviderContainer makeContainer(
   FakeThemeRepository repository, {
   ThemeMode initial = ThemeMode.system,
+  FakeNightModeBridge? bridge,
 }) {
   final container = ProviderContainer(
     overrides: [
       initialThemeModeProvider.overrideWithValue(initial),
       themeRepositoryProvider.overrideWithValue(repository),
+      nightModeBridgeProvider.overrideWithValue(
+        bridge ?? FakeNightModeBridge(),
+      ),
     ],
   );
   addTearDown(container.dispose);
@@ -86,6 +101,32 @@ void main() {
           .setThemeMode(ThemeMode.dark);
 
       expect(container.read(themeModeProvider), ThemeMode.dark);
+    });
+
+    test('tells the native night mode about each change, once', () async {
+      final bridge = FakeNightModeBridge();
+      final container = makeContainer(FakeThemeRepository(), bridge: bridge);
+      final notifier = container.read(themeModeProvider.notifier);
+
+      await notifier.setThemeMode(ThemeMode.dark);
+      await notifier.setThemeMode(ThemeMode.dark); // no-op
+      await notifier.setThemeMode(ThemeMode.system);
+
+      expect(bridge.applied, [ThemeMode.dark, ThemeMode.system]);
+    });
+
+    test('still tells the native side when saving fails', () async {
+      final bridge = FakeNightModeBridge();
+      final container = makeContainer(
+        FakeThemeRepository(failOnSave: true),
+        bridge: bridge,
+      );
+
+      await container
+          .read(themeModeProvider.notifier)
+          .setThemeMode(ThemeMode.light);
+
+      expect(bridge.applied, [ThemeMode.light]);
     });
 
     test('reading without an override fails loudly', () {

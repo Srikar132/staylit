@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pace/core/constants/app_info.dart';
 import 'package:pace/core/router/app_router.dart';
 import 'package:pace/core/theme/app_theme.dart';
 import 'package:pace/core/theme/theme_context.dart';
@@ -11,6 +14,7 @@ import 'package:pace/data/repositories/theme_repository.dart';
 import 'package:pace/presentation/overlays/overlay_app.dart';
 import 'package:pace/presentation/providers/theme_mode_provider.dart';
 import 'package:pace/services/native_service.dart';
+import 'package:pace/services/night_mode_bridge.dart';
 
 // Overlay entry point - separate from main app
 @pragma('vm:entry-point')
@@ -53,6 +57,10 @@ void main() async {
   // LockInApp's builder.
   final themeMode = await SharedPreferencesThemeRepository().load();
 
+  // Keep Android's per-app night mode (the native splash) in sync with the saved
+  // choice, e.g. after an update. Never throws; no-op below Android 12.
+  unawaited(MethodChannelNightModeBridge().apply(themeMode));
+
   runApp(
     ProviderScope(
       overrides: [initialThemeModeProvider.overrideWithValue(themeMode)],
@@ -85,7 +93,7 @@ class _LockInAppState extends ConsumerState<LockInApp> {
     final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
-      title: 'Pace',
+      title: kAppName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

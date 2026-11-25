@@ -119,7 +119,7 @@ object NotificationHelper {
             val notification = NotificationCompat.Builder(context, LIMITS_CHANNEL_ID)
                 .setContentTitle("$percentage of daily limit reached")
                 .setContentText("$appName:  ${usedMinutes}/${limitMinutes} minutes used today")
-                .setSmallIcon(android.R.drawable.ic_dialog_alert) // Using system icon
+                .setSmallIcon(com.example.pace.R.drawable.ic_stat_staylit)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
                 .setCategory(NotificationCompat. CATEGORY_REMINDER)
@@ -150,7 +150,7 @@ object NotificationHelper {
             val notification = NotificationCompat.Builder(context, LIMITS_CHANNEL_ID)
                 .setContentTitle("Daily limit exceeded")
                 .setContentText("$appName: ${usedMinutes}/${limitMinutes} minutes. Resets in ${hoursUntilReset}h")
-                .setSmallIcon(android.R.drawable.ic_dialog_alert) // Using system icon
+                .setSmallIcon(com.example.pace.R.drawable.ic_stat_staylit)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
                 .setCategory(NotificationCompat. CATEGORY_REMINDER)
@@ -197,7 +197,7 @@ object NotificationHelper {
                 .setContentTitle(title)
                 .setContentText(message)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(message))
-                .setSmallIcon(android.R.drawable.ic_dialog_info) // Using system icon
+                .setSmallIcon(com.example.pace.R.drawable.ic_stat_staylit)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setAutoCancel(true)
                 .addAction(
@@ -237,7 +237,7 @@ object NotificationHelper {
                 .setContentTitle("🎯 $title")
                 .setContentText(message)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(message))
-                .setSmallIcon(android.R.drawable.star_big_on) // Using system icon
+                .setSmallIcon(com.example.pace.R.drawable.ic_stat_staylit)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setAutoCancel(true)
                 .setCategory(NotificationCompat.CATEGORY_STATUS)
@@ -302,7 +302,7 @@ object NotificationHelper {
             val notification = NotificationCompat.Builder(context, BLOCKS_CHANNEL_ID)
                 .setContentTitle("Content Blocked")
                 .setContentText(message)
-                .setSmallIcon(android.R. drawable.ic_delete) // Using system icon
+                .setSmallIcon(com.example.pace.R.drawable.ic_stat_staylit)
                 . setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setAutoCancel(true)
                 .setCategory(NotificationCompat.CATEGORY_STATUS)

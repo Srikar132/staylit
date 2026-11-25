@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'pomodoro_settings.dart';
 
 class UserSettingsModel {
@@ -13,6 +14,12 @@ class UserSettingsModel {
   final bool vibrationEnabled;
   final String theme;
 
+  /// Daily focus goal in minutes (Today's Goal card). Documents without the
+  /// field read as [defaultDailyGoalMinutes].
+  final int dailyGoalMinutes;
+
+  static const int defaultDailyGoalMinutes = 120;
+
   UserSettingsModel({
     required this.defaultDuration,
     required this.timerMode,
@@ -24,6 +31,7 @@ class UserSettingsModel {
     required this.soundEnabled,
     required this.vibrationEnabled,
     required this.theme,
+    this.dailyGoalMinutes = defaultDailyGoalMinutes,
   });
 
   factory UserSettingsModel.fromFirestore(DocumentSnapshot doc) {
@@ -39,6 +47,9 @@ class UserSettingsModel {
       soundEnabled: data['soundEnabled'] ?? true,
       vibrationEnabled: data['vibrationEnabled'] ?? true,
       theme: data['theme'] ?? 'dark',
+      dailyGoalMinutes:
+          (data['dailyGoalMinutes'] as num?)?.toInt() ??
+          defaultDailyGoalMinutes,
     );
   }
 
@@ -54,6 +65,7 @@ class UserSettingsModel {
       'soundEnabled': soundEnabled,
       'vibrationEnabled': vibrationEnabled,
       'theme': theme,
+      'dailyGoalMinutes': dailyGoalMinutes,
     };
   }
 
@@ -69,6 +81,7 @@ class UserSettingsModel {
     bool? soundEnabled,
     bool? vibrationEnabled,
     String? theme,
+    int? dailyGoalMinutes,
   }) {
     return UserSettingsModel(
       defaultDuration: defaultDuration ?? this.defaultDuration,
@@ -81,6 +94,7 @@ class UserSettingsModel {
       soundEnabled: soundEnabled ?? this.soundEnabled,
       vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
       theme: theme ?? this.theme,
+      dailyGoalMinutes: dailyGoalMinutes ?? this.dailyGoalMinutes,
     );
   }
 }

@@ -18,6 +18,7 @@ import 'package:pace/widgets/parental_control_dialogs.dart';
 import 'dart:async';
 
 import 'package:pace/core/theme/theme_context.dart';
+import 'package:pace/core/constants/app_info.dart';
 
 // Standalone permission check function accessible by all widgets
 Future<bool> _checkAndRequestPermissions(
@@ -49,7 +50,7 @@ Future<bool> _checkAndRequestPermissions(
           ),
           content: Text(
             'This feature requires Accessibility Service to block content.\n\n'
-            'Please enable "Pace" in Accessibility settings.',
+            'Please enable "$kAppName" in Accessibility settings.',
             style: TextStyle(color: context.palette.onCanvasSecondary),
           ),
           actions: [
@@ -131,7 +132,7 @@ Future<bool> _checkAndRequestUsageStatsPermission(BuildContext context) async {
         ),
         content: Text(
           'App Limits require Usage Access permission to track how long you use apps.\n\n'
-          'This permission allows Pace to:\n'
+          'This permission allows $kAppName to:\n'
           '• Monitor app usage time\n'
           '• Enforce daily limits\n'
           '• Show accurate usage statistics\n\n'
@@ -1921,7 +1922,7 @@ Future<void> _runWebsiteBlockingDiagnostics(
       result.writeln('');
       result.writeln('📋 Enable Steps:');
       result.writeln('1. Go to Android Settings');
-      result.writeln('2. Accessibility > Pace');
+      result.writeln('2. Accessibility > $kAppName');
       result.writeln('3. Toggle ON');
       result.writeln('');
     } else {

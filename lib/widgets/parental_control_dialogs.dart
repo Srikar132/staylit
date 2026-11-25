@@ -216,7 +216,7 @@ class _CreatePasswordDialogState extends State<CreatePasswordDialog> {
                     onPressed: _handleSetup,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: context.palette.onCanvas,
+                      backgroundColor: context.palette.accent,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -420,7 +420,7 @@ class _VerifyPasswordDialogState extends State<VerifyPasswordDialog> {
                     onPressed: _handleVerify,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: context.palette.onCanvas,
+                      backgroundColor: context.palette.accent,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

@@ -5,6 +5,7 @@ import '../providers/overlay_provider.dart';
 import '../widgets/overlay_background.dart';
 
 import 'package:pace/core/theme/theme_context.dart';
+import 'package:pace/presentation/widgets/design/lit_badge.dart';
 
 class AppLimitOverlay extends ConsumerStatefulWidget {
   const AppLimitOverlay({super.key});
@@ -102,7 +103,8 @@ class _AppLimitOverlayState extends ConsumerState<AppLimitOverlay>
                         animationController: _progressController,
                       ),
                     ),*/
-                  const SizedBox(height: 32),
+                  const LitBadge(size: 120),
+                  const SizedBox(height: 24),
 
                   // Limit exceeded message
                   FadeTransition(

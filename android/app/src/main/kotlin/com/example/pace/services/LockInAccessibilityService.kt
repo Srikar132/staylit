@@ -2358,7 +2358,7 @@ class LockInAccessibilityService : AccessibilityService() {
             return NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("LockIn Protection Active")
                 .setContentText("Blocking distracting content in the background")
-                .setSmallIcon(android.R.drawable.ic_menu_view) // Use system icon for now
+                .setSmallIcon(com.example.pace.R.drawable.ic_stat_staylit)
                 .setContentIntent(pendingIntent)
                 .setOngoing(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -2372,7 +2372,7 @@ class LockInAccessibilityService : AccessibilityService() {
             return NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("LockIn Protection Active")
                 .setContentText("Blocking distracting content")
-                .setSmallIcon(android.R.drawable.ic_menu_view)
+                .setSmallIcon(com.example.pace.R.drawable.ic_stat_staylit)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setOngoing(true)
                 .build()

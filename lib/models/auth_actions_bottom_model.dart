@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pace/core/constants/images.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
 import 'package:pace/widgets/bottom_sheet_darg_handler.dart';
+import 'package:pace/core/constants/app_info.dart';
 
 class AuthActionsBottomModel extends ConsumerWidget {
   const AuthActionsBottomModel({super.key});
@@ -24,7 +25,7 @@ class AuthActionsBottomModel extends ConsumerWidget {
           const SizedBox(height: 20.0),
 
           Text(
-            'Welcome to Pace!',
+            'Welcome to $kAppName!',
             style: theme.textTheme.headlineLarge?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -50,10 +51,7 @@ class AuthActionsBottomModel extends ConsumerWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Image.asset(
-                        kGoogleLogoImage,
-                        height: 20.0,
-                      ),
+                      Image.asset(kGoogleLogoImage, height: 20.0),
                       const SizedBox(width: 8.0),
                       const Text('Continue with Google'),
                     ],

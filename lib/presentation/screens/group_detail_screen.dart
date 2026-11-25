@@ -7,6 +7,7 @@ import 'package:pace/presentation/providers/group_provider.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:pace/core/theme/theme_context.dart';
+import 'package:pace/core/constants/app_info.dart';
 
 /// Detailed view of a specific group with members and leaderboard
 class GroupDetailScreen extends ConsumerStatefulWidget {
@@ -882,7 +883,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
     SharePlus.instance.share(
       ShareParams(
         text:
-            '🎯 Join my focus group "${group.name}" on Pace!\n\n'
+            '🎯 Join my focus group "${group.name}" on $kAppName!\n\n'
             '${group.description}\n\n'
             '👥 ${group.memberIds.length} members\n'
             '⏱️ ${group.getFormattedFocusTime()} total focus time\n\n'

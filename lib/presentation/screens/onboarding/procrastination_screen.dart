@@ -28,38 +28,10 @@ class ProcrastinationScreen extends ConsumerWidget {
         children: [
           const SizedBox(height: 40),
 
-          // Mascot + Question
+          // Question
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                    width: 2,
-                  ),
-                ),
-                child: ClipOval(
-                  child: Image.asset(
-                    'assets/images/mascot.webp',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                        child: Icon(
-                          Icons.person,
-                          size: 30,
-                          color: theme.colorScheme.primary,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(16),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pace/core/constants/app_info.dart';
 import 'package:pace/core/theme/theme_context.dart';
 import 'package:pace/presentation/providers/theme_mode_provider.dart';
 
@@ -15,7 +16,7 @@ class OverlayApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
-      title: 'Pace Overlay',
+      title: '$kAppName Overlay',
       debugShowCheckedModeBanner: false,
       routerConfig: OverlayRouter.router,
       theme: AppTheme.light,

@@ -1,125 +1,113 @@
 import 'package:flutter/material.dart';
-import 'package:pace/core/constants/images.dart';
+import 'package:pace/core/theme/app_dimens.dart';
+import 'package:pace/core/theme/theme_context.dart';
 import 'package:pace/models/auth_actions_bottom_model.dart';
 import 'package:pace/models/model_manager.dart';
-import 'package:pace/widgets/testimonial_card.dart';
-import 'package:pace/core/theme/theme_context.dart';
+import 'package:pace/presentation/widgets/design/app_pill_button.dart';
+import 'package:pace/presentation/widgets/design/hero_panel.dart';
+import 'package:pace/presentation/widgets/design/staylit_wordmark.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
+  void _getStarted(BuildContext context) {
+    BottomSheetManager.show(
+      context: context,
+      child: const AuthActionsBottomModel(),
+      isDismissible: false,
+      enableDrag: true,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      body: Stack(
+      body: Column(
         children: [
-          Positioned.fill(
-            child: Image.asset(kWelcomeBackgroundImage, fit: BoxFit.cover),
-          ),
-
-          Positioned.fill(
-            child: Container(
-              color: context.palette.scrim.withValues(alpha: 0.25),
+          Expanded(
+            flex: 11,
+            child: SizedBox(
+              width: double.infinity,
+              child: HeroPanel(
+                child: SafeArea(
+                  bottom: false,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: AppSpacing.xl),
+                      StaylitWordmark(
+                        fontSize: 30,
+                        stayColor: palette.onAccent,
+                        litColor: palette.onInk,
+                      ),
+                      Expanded(
+                        child: Center(
+                          // Lit sits on a white disc: an orange flame would
+                          // vanish on the orange panel.
+                          child: AspectRatio(
+                            aspectRatio: 1,
+                            child: Container(
+                              margin: const EdgeInsets.all(AppSpacing.xxl),
+                              padding: const EdgeInsets.all(
+                                AppSpacing.xxxl + 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: palette.surfaceRaised,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Image.asset(
+                                'assets/images/lit.webp',
+                                fit: BoxFit.contain,
+                                semanticLabel: 'Lit, the Staylit flame',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
-
-          SafeArea(
+          Expanded(
+            flex: 9,
             child: Padding(
-              padding: const EdgeInsets.only(
-                left: 24.0,
-                right: 24.0,
-                top: 70.0,
-                bottom: 24.0,
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xxl,
+                AppSpacing.xxl,
+                AppSpacing.xxl,
+                AppSpacing.xxl,
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(width: 16),
-                      Text(
-                        'Pace',
-                        style: theme.textTheme.displayLarge?.copyWith(
-                          color: theme.colorScheme.primary,
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(text: 'Focus Better\n'),
+                        TextSpan(
+                          text: 'Stay in Flow',
+                          style: TextStyle(color: palette.accentText),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 100),
-
-                  Text(
-                    '#1',
-                    style: theme.textTheme.displayLarge?.copyWith(
-                      color: theme.colorScheme.primary,
+                      ],
                     ),
                     textAlign: TextAlign.center,
+                    style: textTheme.displayMedium,
                   ),
+                  const SizedBox(height: AppSpacing.md),
                   Text(
-                    'Study App',
-                    style: theme.textTheme.headlineLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 30,
-                      color: theme.colorScheme.onSurface,
-                    ),
+                    'Block distractions and build deep work habits, '
+                    'effortlessly.',
                     textAlign: TextAlign.center,
+                    style: textTheme.bodyLarge,
                   ),
-                  Text(
-                    'for students to',
-                    style: theme.textTheme.headlineLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 30,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  Text(
-                    'focus',
-                    style: theme.textTheme.headlineLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 30,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
                   const Spacer(),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      TrustItem(
-                        title: "Trusted by",
-                        value: "2M+",
-                        subtitle: "students",
-                        theme: theme,
-                      ),
-                      const SizedBox(width: 32),
-                      TrustItem(
-                        title: "Rated",
-                        value: "4.7",
-                        subtitle: "stars",
-                        theme: theme,
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  ElevatedButton(
-                    onPressed: () {
-                      BottomSheetManager.show(
-                        context: context,
-                        child: const AuthActionsBottomModel(),
-                        isDismissible: false,
-                        enableDrag: true,
-                      );
-                    },
-                    child: const Text('Get Started'),
+                  AppPillButton(
+                    label: 'Get Started',
+                    onPressed: () => _getStarted(context),
                   ),
                 ],
               ),

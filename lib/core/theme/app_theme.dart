@@ -61,8 +61,10 @@ abstract final class AppTheme {
       surfaceContainerLowest: p.canvas,
       surfaceContainerLow: p.surface,
       surfaceContainer: p.surface,
-      surfaceContainerHigh: p.surfaceRaised,
-      surfaceContainerHighest: p.surfaceRaised,
+      // Card-like containers must stay visible on the canvas, which in light
+      // mode is the same white as surfaceRaised, so they use `surface`.
+      surfaceContainerHigh: p.surface,
+      surfaceContainerHighest: p.surface,
       outline: p.onCanvasMuted,
       outlineVariant: p.divider,
       inverseSurface: p.ink,
@@ -265,7 +267,7 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
         indicatorColor: Colors.transparent,
         elevation: 0,
-        height: 72,
+        height: 62,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return textTheme.labelSmall?.copyWith(

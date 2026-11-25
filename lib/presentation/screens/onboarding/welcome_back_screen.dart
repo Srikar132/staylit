@@ -38,35 +38,6 @@ class WelcomeBackScreen extends ConsumerWidget {
 
           const SizedBox(height: 40),
 
-          // Mascot image
-          Container(
-            width: 200,
-            height: 200,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                width: 3,
-              ),
-            ),
-            child: ClipOval(
-              child: Image.asset(
-                'assets/images/mascot.webp',
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                    child: Icon(
-                      Icons.person,
-                      size: 100,
-                      color: theme.colorScheme.primary,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-
           const Spacer(),
 
           // Continue button

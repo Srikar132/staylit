@@ -179,7 +179,7 @@ class AppMonitoringService : Service() {
                 .setContentText(
                     "$sessionTypeName • ${elapsedMinutes}min • ${blockedApps.size} apps blocked"
                 )
-                .setSmallIcon(android.R.drawable.ic_lock_lock)
+                .setSmallIcon(com.example.pace.R.drawable.ic_stat_staylit)
                 .setOngoing(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setCategory(NotificationCompat.CATEGORY_SERVICE)
@@ -707,7 +707,7 @@ class AppMonitoringService : Service() {
                 NotificationCompat.Builder(this, CHANNEL_ID)
                     .setContentTitle("App Blocked")
                     .setContentText("$appName was blocked during focus session")
-                    .setSmallIcon(android.R.drawable.ic_delete)
+                    .setSmallIcon(com.example.pace.R.drawable.ic_stat_staylit)
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setAutoCancel(true)
                     .setSilent(false)

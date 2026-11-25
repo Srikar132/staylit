@@ -5,6 +5,7 @@ import 'package:pace/data/models/group_model.dart';
 import 'package:pace/presentation/providers/group_provider.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
 import 'package:pace/core/theme/theme_context.dart';
+import 'package:pace/core/constants/app_info.dart';
 
 /// Screen for creating a new group
 class CreateGroupScreen extends ConsumerStatefulWidget {
@@ -146,7 +147,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
         '🎯 Join my focus group: "$groupName"!\n\n'
         '📚 Let\'s stay focused and productive together.\n'
         '🏆 Track progress on the leaderboard.\n\n'
-        '👉 Open Pace app and search for this group:\n'
+        '👉 Open $kAppName app and search for this group:\n'
         'Group ID: $groupId\n\n'
         '💪 Let\'s achieve our goals together!';
 

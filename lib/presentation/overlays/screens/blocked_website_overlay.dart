@@ -4,6 +4,7 @@ import 'package:pace/presentation/overlays/providers/overlay_provider.dart';
 import 'package:pace/presentation/overlays/widgets/focus_timer_widget.dart';
 import 'package:pace/presentation/overlays/widgets/overlay_background.dart';
 import 'package:pace/core/theme/theme_context.dart';
+import 'package:pace/presentation/widgets/design/lit_badge.dart';
 
 class BlockedWebsiteOverlay extends ConsumerStatefulWidget {
   const BlockedWebsiteOverlay({super.key});
@@ -188,32 +189,10 @@ class _BlockedWebsiteOverlayState extends ConsumerState<BlockedWebsiteOverlay>
   Widget _buildShieldIcon() {
     return AnimatedBuilder(
       animation: _pulseController,
-      builder: (context, child) {
-        return Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: context.palette.info.withValues(
-              alpha: 0.1 + (_pulseController.value * 0.1),
-            ),
-            border: Border.all(
-              color: context.palette.info.withValues(
-                alpha: 0.5 + (_pulseController.value * 0.3),
-              ),
-              width: 3,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: context.palette.info.withValues(alpha: 0.3),
-                blurRadius: 20 + (_pulseController.value * 10),
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: Icon(Icons.security, size: 50, color: context.palette.info),
-        );
-      },
+      builder: (context, child) => Transform.scale(
+        scale: 1.0 + (_pulseController.value * 0.05),
+        child: const LitBadge(size: 130),
+      ),
     );
   }
 

@@ -4,6 +4,7 @@ import 'package:pace/presentation/overlays/providers/overlay_provider.dart';
 import 'package:pace/presentation/overlays/widgets/focus_timer_widget.dart';
 import 'package:pace/presentation/overlays/widgets/overlay_background.dart';
 import 'package:pace/core/theme/theme_context.dart';
+import 'package:pace/presentation/widgets/design/lit_badge.dart';
 
 class BlockedShortsOverlay extends ConsumerStatefulWidget {
   const BlockedShortsOverlay({super.key});
@@ -222,27 +223,8 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
           },
         ),
 
-        // Center icon
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: _getPlatformColor(platform),
-            boxShadow: [
-              BoxShadow(
-                color: _getPlatformColor(platform).withValues(alpha: 0.6),
-                blurRadius: 20,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: Icon(
-            _getPlatformIcon(platform),
-            size: 40,
-            color: context.palette.onCanvas,
-          ),
-        ),
+        // Center: Lit
+        const LitBadge(size: 110),
       ],
     );
   }
@@ -355,23 +337,6 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
         return context.palette.warning;
       default:
         return context.palette.warning;
-    }
-  }
-
-  IconData _getPlatformIcon(String platform) {
-    switch (platform.toLowerCase()) {
-      case 'youtube':
-        return Icons.play_circle_outline;
-      case 'instagram':
-        return Icons.camera_alt;
-      case 'tiktok':
-        return Icons.music_note;
-      case 'facebook':
-        return Icons.video_library;
-      case 'snapchat':
-        return Icons.photo_camera;
-      default:
-        return Icons.videocam_off;
     }
   }
 }

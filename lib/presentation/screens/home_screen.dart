@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:pace/core/theme/app_dimens.dart';
+import 'package:pace/core/theme/theme_context.dart';
 import 'package:pace/presentation/screens/blocks_screen.dart';
 import 'package:pace/presentation/screens/focus_screen.dart';
 import 'package:pace/presentation/screens/group_screen.dart';
 import 'package:pace/presentation/screens/usage_stats_screen.dart';
-import 'package:pace/presentation/screens/insights_screen.dart';
+import 'package:pace/presentation/widgets/design/black_bottom_nav.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,21 +24,47 @@ class _HomeScreenState extends State<HomeScreen> {
     _buildGroup,
     _buildBlocks,
     _buildUsage,
-    _buildInsights,
   ];
   final List<Widget?> _screens = List.filled(_screenBuilders.length, null);
+
+  // Same order as _screenBuilders.
+  static const _navItems = <BottomNavItem>[
+    BottomNavItem(
+      icon: Icons.home_outlined,
+      selectedIcon: Icons.home_rounded,
+      label: 'Focus',
+    ),
+    BottomNavItem(
+      icon: Icons.groups_outlined,
+      selectedIcon: Icons.groups_rounded,
+      label: 'Groups',
+    ),
+    BottomNavItem(
+      icon: Icons.shield_outlined,
+      selectedIcon: Icons.shield_rounded,
+      label: 'Blocks',
+    ),
+    BottomNavItem(
+      icon: Icons.bar_chart_rounded,
+      selectedIcon: Icons.bar_chart_rounded,
+      label: 'Usage',
+    ),
+  ];
 
   static Widget _buildFocus(BuildContext _) => const FocusScreen();
   static Widget _buildGroup(BuildContext _) => const GroupScreen();
   static Widget _buildBlocks(BuildContext _) => const BlocksScreen();
   static Widget _buildUsage(BuildContext _) => const UsageStatsScreen();
-  static Widget _buildInsights(BuildContext _) => const InsightsScreen();
 
   @override
   Widget build(BuildContext context) {
     _screens[_selectedIndex] ??= _screenBuilders[_selectedIndex](context);
+    final palette = context.palette;
 
     return Scaffold(
+      // The near-black behind the content shows through the content's rounded
+      // bottom corners, which is what makes the nav bar read as a separate bar.
+      backgroundColor: palette.ink,
       // Keyboard viewInsets are a single global window value - every
       // Scaffold in the tree reacts to them by default, not just the one
       // actually hosting the focused field. Modal sheets opened above this
@@ -47,58 +75,26 @@ class _HomeScreenState extends State<HomeScreen> {
       // resize-avoidance for their own inline fields (UsageStatsScreen) have
       // their own nested Scaffold, so they're unaffected by this.
       resizeToAvoidBottomInset: false,
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          for (var i = 0; i < _screens.length; i++)
-            _screens[i] ?? const SizedBox.shrink(),
-        ],
+      body: ClipRRect(
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(AppRadius.card),
+        ),
+        child: ColoredBox(
+          color: palette.canvas,
+          child: IndexedStack(
+            index: _selectedIndex,
+            children: [
+              for (var i = 0; i < _screens.length; i++)
+                _screens[i] ?? const SizedBox.shrink(),
+            ],
+          ),
+        ),
       ),
 
-      // USING MATERIAL 3 NAVIGATION BAR
-      // This matches the 'navigationBarTheme' in your AppTheme file
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: Colors.transparent,
-        indicatorColor: Colors.transparent, // 🔥 removes shine
-        surfaceTintColor: Colors.transparent, // 🔥 removes overlay tint
+      bottomNavigationBar: BlackBottomNav(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        destinations: const [
-          // Index 0
-          NavigationDestination(
-            icon: Icon(Icons.center_focus_strong_outlined),
-            selectedIcon: Icon(Icons.center_focus_strong),
-            label: 'Focus',
-          ),
-          // Index 1
-          NavigationDestination(
-            icon: Icon(Icons.group_outlined),
-            selectedIcon: Icon(Icons.group),
-            label: 'Groups',
-          ),
-          // Index 2
-          NavigationDestination(
-            icon: Icon(Icons.block_outlined),
-            selectedIcon: Icon(Icons.block),
-            label: 'Blocks',
-          ),
-          // Index 3
-          NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            selectedIcon: Icon(Icons.bar_chart),
-            label: 'Usage',
-          ),
-          // Index 4
-          NavigationDestination(
-            icon: Icon(Icons.insights_outlined),
-            selectedIcon: Icon(Icons.insights),
-            label: 'Insights',
-          ),
-        ],
+        onSelected: (index) => setState(() => _selectedIndex = index),
+        items: _navItems,
       ),
     );
   }

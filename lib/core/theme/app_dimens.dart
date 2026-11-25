@@ -8,13 +8,13 @@ library;
 abstract final class AppSpacing {
   static const double xs = 4;
   static const double sm = 8;
-  static const double md = 12;
-  static const double lg = 16;
+  static const double md = 10;
+  static const double lg = 14;
 
   /// Standard screen gutter.
-  static const double xl = 20;
-  static const double xxl = 24;
-  static const double xxxl = 32;
+  static const double xl = 16;
+  static const double xxl = 20;
+  static const double xxxl = 28;
 }
 
 /// Corner radii.
@@ -24,10 +24,10 @@ abstract final class AppRadius {
   static const double lg = 20;
 
   /// Cards.
-  static const double card = 28;
+  static const double card = 24;
 
   /// Hero panels and large sheets.
-  static const double hero = 36;
+  static const double hero = 30;
 
   /// Large enough to render any control as a pill/circle.
   static const double pill = 999;
@@ -39,8 +39,8 @@ abstract final class AppSizes {
   static const double minTouchTarget = 48;
 
   /// Circular icon button (back, bell, more).
-  static const double iconButton = 56;
+  static const double iconButton = 48;
 
   /// Primary pill button height.
-  static const double buttonHeight = 56;
+  static const double buttonHeight = 50;
 }

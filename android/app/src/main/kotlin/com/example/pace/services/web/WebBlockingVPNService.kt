@@ -666,7 +666,7 @@ class WebBlockingVPNService : VpnService() {
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Website Blocking Active")
             .setContentText("Blocking ${blockedDomains.size} websites • ${totalBlockedRequests} blocked")
-            .setSmallIcon(R.drawable.ic_shield)
+            .setSmallIcon(R.drawable.ic_stat_staylit)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)

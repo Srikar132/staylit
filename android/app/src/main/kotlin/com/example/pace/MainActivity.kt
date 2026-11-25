@@ -1,8 +1,10 @@
 package com.example.pace
 
 import android.app.ComponentCaller
+import android.app.UiModeManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -301,6 +303,30 @@ class MainActivity: FlutterActivity() {
         }
     }
 
+    /**
+     * Sets Android's per-app night mode so the system splash screen (drawn before
+     * Flutter starts) follows the in-app Appearance setting.
+     *
+     * Needs API 31+; returns false on older versions or for an unknown [mode].
+     * [mode] is "light", "dark" or "system" (follow the phone).
+     */
+    private fun applyNightMode(mode: String?): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
+        val nightMode = when (mode) {
+            "light" -> UiModeManager.MODE_NIGHT_NO
+            "dark" -> UiModeManager.MODE_NIGHT_YES
+            "system" -> UiModeManager.MODE_NIGHT_AUTO
+            else -> return false
+        }
+        return try {
+            getSystemService(UiModeManager::class.java).setApplicationNightMode(nightMode)
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not set night mode to $mode", e)
+            false
+        }
+    }
+
     private fun handleMainMethodCall(
         method: String,
         arguments: Any?,
@@ -311,6 +337,13 @@ class MainActivity: FlutterActivity() {
                 Log.v(TAG, "Method call: $method")
 
                 when (method) {
+                    // ====================
+                    // APPEARANCE
+                    // ====================
+                    "setNightMode" -> {
+                        result.success(applyNightMode(arguments as? String))
+                    }
+
                     // ====================
                     // FOCUS SESSION METHODS
                     // ====================

@@ -7,6 +7,7 @@ import 'package:pace/presentation/providers/auth_provider.dart';
 import 'package:pace/widgets/permission_instruction_dialog.dart';
 import 'package:pace/models/model_manager.dart';
 import 'package:pace/core/theme/theme_context.dart';
+import 'package:pace/core/constants/app_info.dart';
 
 class PermissionScreen extends ConsumerStatefulWidget {
   const PermissionScreen({super.key});
@@ -300,10 +301,11 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
         'granted': permissionState.overlayPermission,
         'onTap': () => _showPermissionInstructionDialog(
           title: 'Display Over Other Apps Permission',
-          description: 'This permission allows Pace to display blocking screens over other apps when you try to open distracting apps.',
+          description:
+              'This permission allows $kAppName to display blocking screens over other apps when you try to open distracting apps.',
           steps: const [
             'Tap "Open Settings" below',
-            'Find "Pace" in the app list',
+            'Find "$kAppName" in the app list',
             'Toggle "Allow display over other apps" ON',
             'Return to this app',
           ],
@@ -317,10 +319,11 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
         'granted': permissionState.displayPopupPermission,
         'onTap': () => _showPermissionInstructionDialog(
           title: 'Display Popup Windows Permission',
-          description: 'This permission allows Pace to show popup reminders and motivational messages to help you stay focused.',
+          description:
+              'This permission allows $kAppName to show popup reminders and motivational messages to help you stay focused.',
           steps: const [
             'Tap "Open Settings" below',
-            'Find "Pace" in the Special App Access list',
+            'Find "$kAppName" in the Special App Access list',
             'Look for "Display pop-up windows" or similar option',
             'Toggle the permission ON',
             'Return to this app',
@@ -371,37 +374,10 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
 
               const SizedBox(height: 24),
 
-              // Mascot + Message
+              // Message
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: theme.colorScheme.outline,
-                    ),
-                    child: ClipOval(
-                      child: Image.asset(
-                        'assets/images/mascot.webp',
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: 0.3,
-                            ),
-                            child: Icon(
-                              Icons.android,
-                              size: 30,
-                              color: theme.colorScheme.primary,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.all(16),
@@ -730,7 +706,7 @@ class _PermissionTileState extends State<_PermissionTile> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: context.palette.onCanvas,
+                      color: context.palette.accent,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: GestureDetector(
@@ -749,7 +725,7 @@ class _PermissionTileState extends State<_PermissionTile> {
                       child: Text(
                         'Allow',
                         style: theme.textTheme.titleSmall?.copyWith(
-                          color: context.palette.ink,
+                          color: context.palette.onAccent,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

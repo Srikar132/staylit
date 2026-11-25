@@ -428,7 +428,7 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
                     widget.onSave();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: context.palette.onCanvas,
+                    backgroundColor: context.palette.accent,
                     foregroundColor: context.palette.onAccent,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),

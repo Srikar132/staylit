@@ -5,8 +5,7 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     
-    <!-- Voice Assistant Permissions -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- Audio playback (ambient music, focus cues) -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
     
     <!-- Usage Stats Permission -->
@@ -34,7 +33,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
-        android:label="Pace"
+        android:label="Staylit"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         

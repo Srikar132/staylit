@@ -28,10 +28,7 @@ void main() {
     });
 
     test('uses the bundled font family', () {
-      expect(
-        AppTheme.light.textTheme.bodyMedium?.fontFamily,
-        'PlusJakartaSans',
-      );
+      expect(AppTheme.light.textTheme.bodyMedium?.fontFamily, 'SpaceGrotesk');
     });
 
     group('overlayStyle', () {

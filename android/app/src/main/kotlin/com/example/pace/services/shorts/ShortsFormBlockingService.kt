@@ -240,7 +240,7 @@ class ShortsBlockingService : AccessibilityService() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Short-form Blocking Active")
             .setContentText("LockIn is protecting your focus.")
-            .setSmallIcon(R.drawable.ic_shield) // Ensure this exists (Step 2)
+            .setSmallIcon(R.drawable.ic_stat_staylit)
             .setOngoing(true) // This should now resolve with proper import
             .build()
     }

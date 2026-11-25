@@ -3,19 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pace/core/router/app_router.dart'
     show profileRoute, activeSessionRoute;
+import 'package:pace/core/theme/theme_context.dart';
+import 'package:pace/data/models/user_model.dart';
+import 'package:pace/data/models/user_settings_model.dart';
 import 'package:pace/models/focus_time_bottom_model.dart';
 import 'package:pace/models/model_manager.dart';
 import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/presentation/providers/focus_session_provider.dart';
 import 'package:pace/presentation/providers/blocked_content_provider.dart';
+import 'package:pace/presentation/providers/daily_stats_provider.dart';
+import 'package:pace/presentation/providers/focus_session_provider.dart';
 import 'package:pace/presentation/providers/settings_provider.dart';
 import 'package:pace/presentation/providers/usage_stats_provider.dart';
-import 'package:pace/widgets/focus_timer_widget.dart';
-import 'package:pace/widgets/lumo_mascot_widget.dart';
-
-import 'dart:math';
-
-import 'package:pace/core/theme/theme_context.dart';
+import 'package:pace/presentation/screens/focus/focus_home_data.dart';
+import 'package:pace/presentation/screens/focus/focus_home_view.dart';
+import 'package:pace/presentation/widgets/goal_sheet.dart';
 
 class FocusScreen extends ConsumerStatefulWidget {
   const FocusScreen({super.key});
@@ -25,31 +26,6 @@ class FocusScreen extends ConsumerStatefulWidget {
 }
 
 class _FocusScreenState extends ConsumerState<FocusScreen> {
-  // List of motivational quotes
-  final List<String> _quotes = [
-    "Stay committed to your decisions, but stay flexible in your approach.",
-    "Concentrate all your thoughts upon the work in hand.",
-    "The successful warrior is the average man, with laser-like focus.",
-    "Lack of direction, not lack of time, is the problem.",
-    "Focus on being productive instead of busy.",
-    "The ability to focus is the key skill of the 21st century.",
-    "Success demands singleness of purpose.",
-  ];
-
-  int _currentQuoteIndex = -1;
-  final Random _random = Random();
-
-  // Function to change quotes when Lumo is tapped
-  void _changeQuote() {
-    setState(() {
-      int newIndex;
-      do {
-        newIndex = _random.nextInt(_quotes.length);
-      } while (newIndex == _currentQuoteIndex && _quotes.length > 1);
-      _currentQuoteIndex = newIndex;
-    });
-  }
-
   // Show focus mode modal and handle session creation
   void _showFocusModeModal() {
     BottomSheetManager.show(
@@ -128,6 +104,67 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
     }
   }
 
+  /// Opens the goal picker and saves the choice to the user's settings.
+  Future<void> _editGoal(String userId, UserSettingsModel? settings) async {
+    final chosen = await showGoalSheet(
+      context,
+      initialMinutes:
+          settings?.dailyGoalMinutes ??
+          UserSettingsModel.defaultDailyGoalMinutes,
+    );
+    if (chosen == null || settings == null) return;
+    try {
+      await ref
+          .read(settingsRepositoryProvider)
+          .updateSettings(userId, settings.copyWith(dailyGoalMinutes: chosen));
+    } catch (e) {
+      debugPrint('Error saving daily goal: $e');
+    }
+  }
+
+  static String _modeLabel(String mode) => switch (mode) {
+    'timer' => 'Timer',
+    'stopwatch' => 'Stopwatch',
+    'pomodoro' => 'Pomodoro',
+    _ =>
+      mode.isEmpty ? 'Timer' : '${mode[0].toUpperCase()}${mode.substring(1)}',
+  };
+
+  FocusHomeData _homeData(UserModel user) {
+    final settings = ref.watch(userSettingsProvider(user.uid)).value;
+    final week = ref.watch(weekStatsProvider(user.uid)).value;
+    final sessions = ref.watch(todaySessionsProvider(user.uid)).value ?? [];
+    final blocked = ref.watch(blockedContentProvider(user.uid)).value;
+    final usage = ref.watch(todayUsageStatsProvider);
+
+    final weekMinutes = week != null
+        ? [for (final day in week) day.focusMinutes]
+        : List<int>.filled(7, 0);
+    final blockedCount = blocked?.permanentlyBlockedApps.length ?? 0;
+    final duration = settings?.defaultDuration ?? 25;
+
+    return FocusHomeData(
+      firstName: user.firstName,
+      photoUrl: user.photoURL,
+      usageText: usage.when(
+        data: (stats) => stats.formattedTotalTimeExcludingSelf,
+        loading: () => '...',
+        error: (_, _) => '0m',
+      ),
+      goalMinutes:
+          settings?.dailyGoalMinutes ??
+          UserSettingsModel.defaultDailyGoalMinutes,
+      todayMinutes: weekMinutes.last,
+      weekMinutes: weekMinutes,
+      setupTitle:
+          '$duration min · ${_modeLabel(settings?.timerMode ?? 'timer')}',
+      setupSubtitle: blockedCount == 0
+          ? 'No apps blocked'
+          : '$blockedCount ${blockedCount == 1 ? 'app' : 'apps'} blocked',
+      sessions: [for (final s in sessions) SessionTileData.fromSession(s)],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userAsync = ref.watch(currentUserProvider);
@@ -138,262 +175,21 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
           return const Center(child: Text('Please login first'));
         }
 
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Custom Header
-                _buildHeader(context, user),
-
-                const SizedBox(height: 100),
-
-                // Focus Timer Widget - now handles its own settings
-                FocusTimerWidget(onTap: _showFocusModeModal),
-
-                const Spacer(),
-
-                // Quotation Card
-                if (_currentQuoteIndex > -1) _buildQuoteCard(),
-
-                const SizedBox(height: 10),
-
-                // Lumo Mascot - Tap to change quote
-                LumoMascotWidget(onTap: _changeQuote),
-
-                const SizedBox(height: 50),
-
-                // Start Focus Mode Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _showFocusModeModal,
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                    ),
-                    child: const Text('Start focus mode'),
-                  ),
-                ),
-
-                const SizedBox(height: 5),
-              ],
-            ),
+        return FocusHomeView(
+          data: _homeData(user),
+          onProfile: () => context.push(profileRoute),
+          onEditGoal: () => _editGoal(
+            user.uid,
+            ref.read(userSettingsProvider(user.uid)).value,
           ),
+          onSetup: _showFocusModeModal,
+          onStart: _showFocusModeModal,
         );
       },
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (_, _) =>
           const Scaffold(body: Center(child: Text('Error loading user data'))),
-    );
-  }
-
-  // Quotation Card Widget
-  Widget _buildQuoteCard() {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
-      transitionBuilder: (Widget child, Animation<double> animation) {
-        return FadeTransition(
-          opacity: animation,
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 0.1),
-              end: Offset.zero,
-            ).animate(animation),
-            child: child,
-          ),
-        );
-      },
-      child: Container(
-        key: ValueKey<int>(_currentQuoteIndex),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor.withAlpha(60),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.format_quote,
-              color: context.palette.onCanvas.withValues(alpha: 0.6),
-              size: 24,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                _quotes[_currentQuoteIndex],
-                style: TextStyle(
-                  color: context.palette.onCanvas.withValues(alpha: 0.9),
-                  fontSize: 14,
-                  fontStyle: FontStyle.italic,
-                  height: 1.4,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Icon(
-              Icons.format_quote,
-              color: context.palette.onCanvas.withValues(alpha: 0.6),
-              size: 24,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context, user) {
-    return Row(
-      children: [
-        // User Profile Avatar
-        GestureDetector(
-          onTap: () => context.push(profileRoute),
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: context.palette.onCanvas.withValues(alpha: 0.3),
-                width: 1.5,
-              ),
-            ),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: context.palette.onCanvas.withValues(alpha: 0.2),
-              backgroundImage: user.photoURL != null
-                  ? NetworkImage(user.photoURL!)
-                  : null,
-              child: user.photoURL == null
-                  ? Text(
-                      user.firstName[0].toUpperCase(),
-                      style: TextStyle(
-                        color: context.palette.onCanvas,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
-                  : null,
-            ),
-          ),
-        ),
-
-        const Spacer(),
-
-        // Usage Time Card - Using today's usage stats (excluding pace app)
-        Consumer(
-          builder: (context, ref, child) {
-            final todayUsageAsync = ref.watch(todayUsageStatsProvider);
-
-            return todayUsageAsync.when(
-              data: (usageStats) {
-                return _buildStatCard(
-                  label: 'Usage',
-                  value: usageStats.formattedTotalTimeExcludingSelf,
-                  backgroundColor: context.palette.onCanvas.withValues(
-                    alpha: 0.15,
-                  ),
-                );
-              },
-              loading: () => _buildStatCard(
-                label: 'Usage',
-                value: '...',
-                backgroundColor: context.palette.onCanvas.withValues(
-                  alpha: 0.15,
-                ),
-              ),
-              error: (_, _) => _buildStatCard(
-                label: 'Usage',
-                value: '0m',
-                backgroundColor: context.palette.onCanvas.withValues(
-                  alpha: 0.15,
-                ),
-              ),
-            );
-          },
-        ),
-
-        const Spacer(),
-
-        // Streak/Action Icon
-        GestureDetector(
-          onTap: () {
-            // Open settings, notifications, or streak details
-          },
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Theme.of(context).focusColor,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.local_fire_department,
-                  color: context.palette.onCanvas,
-                  size: 16,
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  '${user.currentStreak}',
-                  style: TextStyle(
-                    color: context.palette.onCanvas,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard({
-    required String label,
-    required String value,
-    required Color backgroundColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 5),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: context.palette.onCanvas.withValues(alpha: 0.2),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: context.palette.onCanvas.withValues(alpha: 0.7),
-              fontSize: 9,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 1),
-          Text(
-            value,
-            style: TextStyle(
-              color: context.palette.onCanvas,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
