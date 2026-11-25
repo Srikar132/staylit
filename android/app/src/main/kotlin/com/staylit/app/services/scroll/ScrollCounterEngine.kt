@@ -13,7 +13,7 @@ import kotlin.math.abs
  * All the tunable constants are in [Config] so they can be adjusted after device testing.
  */
 class ScrollCounterEngine(
-    private val config: Config = Config(),
+    val config: Config = Config(),
     /** Local day key (`yyyy-MM-dd`) for a wall-clock time. */
     private val dayKeyOf: (Long) -> String = { ScrollDayKey.of(it) },
     /** Time zone offset in minutes for a wall-clock time. */

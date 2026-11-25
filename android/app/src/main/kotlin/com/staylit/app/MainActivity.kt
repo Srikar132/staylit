@@ -17,6 +17,9 @@ import com.staylit.app.services.focus.FocusSessionManager
 import com.staylit.app.services.limits.AppLimitManager
 import com.staylit.app.services.StaylitAccessibilityService
 import com.staylit.app.services.shared.BlockingConfig
+import com.staylit.app.services.scroll.DayDelta
+import com.staylit.app.services.scroll.ScrollDamageNotifier
+import com.staylit.app.services.scroll.ScrollDamageStore
 import com.staylit.app.managers.ShortFormBlockManager
 import com.staylit.app.managers.WebsiteBlockManager
 import com.staylit.app.utils.AppUtils
@@ -179,6 +182,11 @@ class MainActivity: FlutterActivity() {
                 eventSink = events
                 sessionManager.setEventSink(events)
 
+                // Scroll damage: tell Flutter when new counts exist (it pulls the numbers itself)
+                ScrollDamageNotifier.listener = { payload ->
+                    sendEventToFlutter("scroll_damage_update", payload)
+                }
+
                 // Send queued events
                 eventQueue.forEach { (event, data) ->
                     sendEventToFlutter(event, data)
@@ -191,6 +199,7 @@ class MainActivity: FlutterActivity() {
             override fun onCancel(arguments: Any?) {
                 eventSink = null
                 sessionManager.setEventSink(null)
+                ScrollDamageNotifier.listener = null
                 Log.d(TAG, "Event channel disconnected")
             }
         })
@@ -342,6 +351,30 @@ class MainActivity: FlutterActivity() {
                     // ====================
                     "setNightMode" -> {
                         result.success(applyNightMode(arguments as? String))
+                    }
+
+                    // ====================
+                    // SCROLL DAMAGE
+                    // ====================
+                    "setScrollDamageEnabled" -> {
+                        val args = arguments as? Map<*, *>
+                        val enabled = args?.get("enabled") as? Boolean ?: false
+                        val uid = args?.get("uid") as? String ?: ""
+                        ScrollDamageStore.getInstance(this@MainActivity).setEnabled(enabled, uid)
+                        StaylitAccessibilityService.getInstance()?.setScrollDamageEnabled(enabled)
+                        result.success(true)
+                    }
+
+                    "getPendingScrollDamage" -> {
+                        val pending = ScrollDamageStore.getInstance(this@MainActivity).pending()
+                        result.success(pending.map { it.toMap() })
+                    }
+
+                    "consumeScrollDamage" -> {
+                        val args = arguments as? Map<*, *>
+                        val days = (args?.get("days") as? List<*>)?.mapNotNull { parseDayDelta(it) } ?: emptyList()
+                        ScrollDamageStore.getInstance(this@MainActivity).consume(days)
+                        result.success(true)
                     }
 
                     // ====================
@@ -741,6 +774,23 @@ class MainActivity: FlutterActivity() {
         }
     }
 
+    /** One day's counts from Flutter. Numbers arrive as Int or Long, so go through Number. */
+    private fun parseDayDelta(raw: Any?): DayDelta? {
+        val m = raw as? Map<*, *> ?: return null
+        val day = m["day"] as? String ?: return null
+        val perApp = (m["perApp"] as? Map<*, *>)?.mapNotNull { (k, v) ->
+            val key = k as? String ?: return@mapNotNull null
+            key to ((v as? Number)?.toInt() ?: 0)
+        }?.toMap() ?: emptyMap()
+        return DayDelta(
+            day = day,
+            tzOffsetMinutes = (m["tzOffsetMinutes"] as? Number)?.toInt() ?: 0,
+            total = (m["total"] as? Number)?.toInt() ?: 0,
+            perApp = perApp,
+            sessions = (m["sessions"] as? Number)?.toInt() ?: 0,
+        )
+    }
+
     private fun sendEventToFlutter(event: String, data: Any) {
         try {
             val eventData = mapOf(
@@ -824,6 +874,7 @@ class MainActivity: FlutterActivity() {
             // Cleanup
             scope.cancel()
 
+            ScrollDamageNotifier.listener = null
                         eventSink = null
             eventQueue.clear()
 
