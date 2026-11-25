@@ -4,7 +4,7 @@ import 'package:staylit/core/theme/theme_context.dart';
 import 'package:staylit/presentation/screens/blocks_screen.dart';
 import 'package:staylit/presentation/screens/focus_screen.dart';
 import 'package:staylit/presentation/screens/group_screen.dart';
-import 'package:staylit/presentation/screens/usage_stats_screen.dart';
+import 'package:staylit/presentation/screens/progress_screen.dart';
 import 'package:staylit/presentation/widgets/design/black_bottom_nav.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -23,7 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _buildFocus,
     _buildGroup,
     _buildBlocks,
-    _buildUsage,
+    _buildProgress,
   ];
   final List<Widget?> _screens = List.filled(_screenBuilders.length, null);
 
@@ -45,16 +45,16 @@ class _HomeScreenState extends State<HomeScreen> {
       label: 'Blocks',
     ),
     BottomNavItem(
-      icon: Icons.bar_chart_rounded,
-      selectedIcon: Icons.bar_chart_rounded,
-      label: 'Usage',
+      icon: Icons.insights_outlined,
+      selectedIcon: Icons.insights_rounded,
+      label: 'Progress',
     ),
   ];
 
   static Widget _buildFocus(BuildContext _) => const FocusScreen();
   static Widget _buildGroup(BuildContext _) => const GroupScreen();
   static Widget _buildBlocks(BuildContext _) => const BlocksScreen();
-  static Widget _buildUsage(BuildContext _) => const UsageStatsScreen();
+  static Widget _buildProgress(BuildContext _) => const ProgressScreen();
 
   @override
   Widget build(BuildContext context) {
@@ -72,8 +72,8 @@ class _HomeScreenState extends State<HomeScreen> {
       // keyboard inset manually, so this base Scaffold reacting too was
       // redundant - it made the tab behind the sheet visibly shift/resize
       // whenever a text field inside the sheet got focus. Tabs that do need
-      // resize-avoidance for their own inline fields (UsageStatsScreen) have
-      // their own nested Scaffold, so they're unaffected by this.
+      // resize-avoidance for their own inline fields have their own nested
+      // Scaffold, so they're unaffected by this.
       resizeToAvoidBottomInset: false,
       body: ClipRRect(
         borderRadius: const BorderRadius.vertical(
