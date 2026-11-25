@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:staylit/core/theme/app_dimens.dart';
 import 'package:staylit/core/theme/theme_context.dart';
 import 'package:staylit/presentation/screens/focus/scroll_mood.dart';
+import 'package:staylit/presentation/widgets/design/lit_badge.dart';
 import 'package:staylit/presentation/widgets/design/week_bar_chart.dart';
 
 /// Home card for Scroll damage: a calm `surface` card. Off, it is one slim row
@@ -62,24 +63,16 @@ class ScrollDamageCard extends StatelessWidget {
   }
 }
 
+/// Lit's scowling Scroll damage pose.
 class _IconPill extends StatelessWidget {
   const _IconPill();
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Container(
+    return const SizedBox(
       width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: palette.surfaceRaised,
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        Icons.swipe_vertical_rounded,
-        size: 20,
-        color: palette.accentText,
-      ),
+      height: 44,
+      child: LitBadge(size: 44, asset: LitBadge.scrollAsset),
     );
   }
 }

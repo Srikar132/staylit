@@ -6,9 +6,10 @@ Run from the repository root:
 
 Input : designs/brand/flame-source.png          (1024 px flame, smiling face, white background)
         designs/brand/flame-focused-source.png  (same flame, determined face)
+        designs/brand/flame-scroll-source.png   (same flame, scowling face, Scroll damage)
 Output: designs/brand/*                  masters (not shipped)
         assets/icons/*, assets/splash/*  generator inputs for flutter_launcher_icons / flutter_native_splash
-        assets/images/{brand_mark,lit}.webp   in-app artwork
+        assets/images/{brand_mark,lit,lit_focused,lit_scroll}.webp   in-app artwork
         android/app/src/main/res/drawable-*dpi/ic_stat_staylit.png   notification icon
 
 Requires Pillow and numpy. Never upscale: all outputs are made from the 1024 px source.
@@ -22,6 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent
 BRAND = ROOT / "designs" / "brand"
 SOURCE_CALM = BRAND / "flame-source.png"
 SOURCE_FOCUSED = BRAND / "flame-focused-source.png"
+SOURCE_SCROLL = BRAND / "flame-scroll-source.png"  # scowling pose for Scroll damage
 
 WHITE = (255, 255, 255, 255)
 PEACH = (245, 189, 164, 255)  # #F5BDA4, the flame's inner fill
@@ -121,6 +123,13 @@ def main() -> None:
             quality=92,
             method=6,
         )
+
+    # The scowling pose: drop faint matte noise so it sits cleanly on dark cards.
+    scroll = extract_alpha(Image.open(SOURCE_SCROLL))
+    arr = np.array(scroll)
+    arr[arr[..., 3] < 18] = 0
+    scroll = Image.fromarray(arr, "RGBA")
+    webp(scroll, 768, "lit_scroll.webp")
 
     webp(calm, 512, "brand_mark.webp")  # in-app loading splash
     webp(calm, 768, "lit.webp")  # welcome hero

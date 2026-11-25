@@ -45,7 +45,7 @@ class ScrollDamageSheet extends StatelessWidget {
           children: [
             const BottomSheetDragHandle(),
             const SizedBox(height: AppSpacing.lg),
-            const LitBadge(size: 96),
+            const LitBadge(size: 104, asset: LitBadge.scrollAsset),
             const SizedBox(height: AppSpacing.lg),
             Text(
               'Scroll damage',
