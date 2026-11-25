@@ -241,6 +241,66 @@ void main() {
     });
   });
 
+  group('ScrollEvent kinds and the block mirror', () {
+    ScrollEvent event({
+      String pkg = 'com.instagram.android',
+      String response = 'break',
+      String kind = 'offer',
+    }) => ScrollEvent(
+      ts: 1,
+      day: 'd',
+      tzOffsetMinutes: 0,
+      pkg: pkg,
+      sessionCount: 30,
+      threshold: 30,
+      response: response,
+      kind: kind,
+    );
+
+    test('kind and minutes default for old rows and round trip', () {
+      final old = ScrollEvent.tryParse({'ts': 5, 'response': 'keep'})!;
+      expect(old.kind, 'offer');
+      expect(old.minutes, 0);
+
+      final pass = ScrollEvent.tryParse({
+        'ts': 6,
+        'response': 'start',
+        'kind': 'pass',
+        'minutes': 10,
+      })!;
+      expect(pass.kind, 'pass');
+      expect(pass.minutes, 10);
+      expect(ScrollEvent.tryParse(pass.toMap())!.minutes, 10);
+    });
+
+    test(
+      'only Take a break from the sheet or the island switches a block on',
+      () {
+        expect(event().switchedBlockOn, isTrue);
+        expect(event(kind: 'island').switchedBlockOn, isTrue);
+        expect(event(response: 'keep').switchedBlockOn, isFalse);
+        expect(
+          event(kind: 'blocked', response: 'go_back').switchedBlockOn,
+          isFalse,
+        );
+        expect(event(kind: 'pass', response: 'start').switchedBlockOn, isFalse);
+      },
+    );
+
+    test('the four apps map to the Blocks tab toggle keys', () {
+      String key(String pkg) {
+        final t = event(pkg: pkg).blockTarget!;
+        return '${t.platform}_${t.feature}';
+      }
+
+      expect(key('com.instagram.android'), 'Instagram_Reels');
+      expect(key('com.google.android.youtube'), 'YouTube_Shorts');
+      expect(key('com.zhiliaoapp.musically'), 'TikTok_Videos');
+      expect(key('com.facebook.katana'), 'Facebook_Reels');
+      expect(event(pkg: 'com.other').blockTarget, isNull);
+    });
+  });
+
   test('the flusher also works for events', () async {
     final written = <int>[];
     var reads = 0;

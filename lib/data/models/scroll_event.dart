@@ -9,6 +9,8 @@ class ScrollEvent {
     required this.sessionCount,
     required this.threshold,
     required this.response,
+    this.kind = 'offer',
+    this.minutes = 0,
   });
 
   /// Epoch milliseconds when the offer appeared. Unique per offer, so it is
@@ -26,8 +28,15 @@ class ScrollEvent {
   /// The first-offer threshold in force (N).
   final int threshold;
 
-  /// `break`, `keep`, `timeout` or `left`.
+  /// Offer answers: `break`, `keep`, `timeout`, `left`. Others: `shown`, `go_back`, `done`,
+  /// `start`, `expired`, `ended_early`.
   final String response;
+
+  /// `offer` (sheet answer), `island` (answer from the island card), `blocked` (block sheet) or `pass`.
+  final String kind;
+
+  /// Break pass length in minutes for `pass` rows, else 0.
+  final int minutes;
 
   /// Parses a map from the native bridge. Null if it has no timestamp.
   static ScrollEvent? tryParse(Object? raw) {
@@ -42,6 +51,8 @@ class ScrollEvent {
       sessionCount: _int(raw['sessionCount']),
       threshold: _int(raw['threshold']),
       response: raw['response'] is String ? raw['response'] as String : '',
+      kind: raw['kind'] is String ? raw['kind'] as String : 'offer',
+      minutes: _int(raw['minutes']),
     );
   }
 
@@ -55,5 +66,21 @@ class ScrollEvent {
     'sessionCount': sessionCount,
     'threshold': threshold,
     'response': response,
+    'kind': kind,
+    'minutes': minutes,
+  };
+
+  /// The user chose Take a break: the app's short-form block was switched on natively and the
+  /// Blocks tab (Firestore) has to show it.
+  bool get switchedBlockOn =>
+      response == 'break' && (kind == 'offer' || kind == 'island');
+
+  /// The Blocks-tab toggle (platform, feature) for this event's app, or null for other apps.
+  ({String platform, String feature})? get blockTarget => switch (pkg) {
+    'com.instagram.android' => (platform: 'Instagram', feature: 'Reels'),
+    'com.google.android.youtube' => (platform: 'YouTube', feature: 'Shorts'),
+    'com.zhiliaoapp.musically' => (platform: 'TikTok', feature: 'Videos'),
+    'com.facebook.katana' => (platform: 'Facebook', feature: 'Reels'),
+    _ => null,
   };
 }

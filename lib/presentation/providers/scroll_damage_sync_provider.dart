@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:staylit/data/models/scroll_delta.dart';
 import 'package:staylit/data/models/scroll_event.dart';
 import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/presentation/providers/blocked_content_provider.dart';
+import 'package:staylit/presentation/providers/parental_control_provider.dart';
 import 'package:staylit/presentation/providers/scroll_damage_provider.dart';
 import 'package:staylit/presentation/providers/settings_provider.dart';
 import 'package:staylit/services/native_service.dart';
@@ -35,6 +37,10 @@ final scrollDamageSyncProvider = Provider<void>((ref) {
   final enabled = ref.watch(
     userSettingsProvider(uid).select((s) => s.value?.scrollDamageEnabled),
   );
+  // A parent PIN protects the blocks: native must not offer break passes then.
+  final parentalLocked = ref.watch(
+    parentalControlProvider(uid).select((p) => p.value?.isEnabled),
+  );
   final repository = ref.read(scrollStatsRepositoryProvider);
   final flusher = ScrollFlusher<ScrollDelta>(
     readPending: NativeService.getPendingScrollDamage,
@@ -44,7 +50,27 @@ final scrollDamageSyncProvider = Provider<void>((ref) {
   );
   final eventFlusher = ScrollFlusher<ScrollEvent>(
     readPending: NativeService.getPendingScrollEvents,
-    write: repository.addEvents,
+    write: (userId, events) {
+      repository.addEvents(userId, events);
+      // Take a break switched a block on natively: show the same switch in the Blocks tab.
+      for (final event in events) {
+        final target = event.blockTarget;
+        if (!event.switchedBlockOn || target == null) continue;
+        unawaited(
+          ref
+              .read(blockedContentNotifierProvider.notifier)
+              .toggleShortFormBlockStatus(
+                userId,
+                target.platform,
+                target.feature,
+                true,
+              )
+              .catchError((Object e) {
+                debugPrint('Could not mirror the block to Firestore: $e');
+              }),
+        );
+      }
+    },
     consume: NativeService.consumeScrollEvents,
   );
   Future<void> flushAll() async {
@@ -63,19 +89,24 @@ final scrollDamageSyncProvider = Provider<void>((ref) {
     lifecycle.dispose();
   });
 
-  unawaited(_start(flushAll, uid, enabled));
+  unawaited(_start(flushAll, uid, enabled, parentalLocked));
 });
 
 Future<void> _start(
   Future<void> Function() flushAll,
   String uid,
   bool? enabled,
+  bool? parentalLocked,
 ) async {
   // Settings still loading: leave native as it is, just collect what it has.
   if (enabled != null) {
     // Flag first so Turn off stops counting immediately, then hand over
     // whatever was counted before it.
-    await NativeService.setScrollDamageEnabled(enabled: enabled, uid: uid);
+    await NativeService.setScrollDamageEnabled(
+      enabled: enabled,
+      uid: uid,
+      parentalLocked: parentalLocked,
+    );
   }
   await flushAll();
 }

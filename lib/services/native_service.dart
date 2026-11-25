@@ -127,11 +127,13 @@ class NativeService {
   static Future<bool> setScrollDamageEnabled({
     required bool enabled,
     required String uid,
+    bool? parentalLocked,
   }) async {
     try {
       final result = await _platform.invokeMethod('setScrollDamageEnabled', {
         'enabled': enabled,
         'uid': uid,
+        'parentalLocked': ?parentalLocked,
       });
       return result as bool? ?? false;
     } catch (e) {
