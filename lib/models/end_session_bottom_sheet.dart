@@ -1,85 +1,55 @@
 import 'package:flutter/material.dart';
-import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/presentation/widgets/design/app_pill_button.dart';
+import 'package:staylit/widgets/bottom_sheet_darg_handler.dart';
 
+/// Confirmation shown before a focus session is ended early. Pops `true` when
+/// the user confirms; dismissing the sheet (or "Keep going") leaves it null.
 class EndSessionBottomSheet extends StatelessWidget {
   const EndSessionBottomSheet({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final textTheme = Theme.of(context).textTheme;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-      decoration: BoxDecoration(
-        color: theme.bottomSheetTheme.backgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Handle bar
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: context.palette.border,
-              borderRadius: BorderRadius.circular(2),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl,
+          0,
+          AppSpacing.xl,
+          AppSpacing.xl,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const BottomSheetDragHandle(),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'Stop focusing?',
+              style: textTheme.displaySmall,
+              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: 32),
-
-          // Title
-          Text(
-            'Are you sure you want to stop\nfocusing?',
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              height: 1.3,
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Take a deep breath before you decide. '
+              'Your time so far still counts.',
+              style: textTheme.bodyLarge,
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-
-          // Subtitle
-          Text(
-            'Take a deep breath before you decide!',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: context.palette.onCanvasMuted,
+            const SizedBox(height: AppSpacing.xxl),
+            AppPillButton(
+              label: 'Keep going',
+              onPressed: () => Navigator.pop(context),
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
-
-          // Buttons
-          Column(
-            children: [
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: context.palette.border,
-                    foregroundColor: context.palette.onCanvas,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Stop focusing',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-            ],
-          ),
-        ],
+            const SizedBox(height: AppSpacing.md),
+            AppPillButton(
+              label: 'Stop focusing',
+              variant: PillButtonVariant.outline,
+              onPressed: () => Navigator.pop(context, true),
+            ),
+          ],
+        ),
       ),
     );
   }

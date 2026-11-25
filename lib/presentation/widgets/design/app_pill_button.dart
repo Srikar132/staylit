@@ -21,6 +21,7 @@ class AppPillButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.icon,
+    this.leading,
     this.variant = PillButtonVariant.primary,
     this.expand = true,
   });
@@ -30,6 +31,9 @@ class AppPillButton extends StatelessWidget {
   /// Null disables the button.
   final VoidCallback? onPressed;
   final IconData? icon;
+
+  /// A custom widget (e.g. a brand logo) shown instead of [icon].
+  final Widget? leading;
   final PillButtonVariant variant;
 
   /// Stretch to the available width.
@@ -66,7 +70,13 @@ class AppPillButton extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[Icon(icon, size: 22), const SizedBox(width: 8)],
+          if (leading != null) ...[
+            leading!,
+            const SizedBox(width: 8),
+          ] else if (icon != null) ...[
+            Icon(icon, size: 22),
+            const SizedBox(width: 8),
+          ],
           Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
         ],
       ),
