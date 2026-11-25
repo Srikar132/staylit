@@ -108,6 +108,9 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
   // so the Save screen only adds a tag and a note.
   bool _autoFinished = false;
 
+  // Asks native to end a timer session whose countdown reached 0:00 but never completed.
+  Timer? _dueTimer;
+
   // Counted for the current session; written when it ends (issue #22).
   int _pauseCount = 0;
   int _interruptionCount = 0;
@@ -243,6 +246,30 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
       status: FocusSessionStatus.endingWithSave,
       isPaused: false,
     );
+
+    // Native keeps the completion until we confirm it, so a lost live event can still be recovered.
+    final id = (data?['sessionId'] as String?) ?? state.sessionId;
+    if (id != null) NativeService.ackCompletion(id);
+  }
+
+  /// Cold start: a timer session ended while no Activity was listening. Restores just enough state to
+  /// record it and open the Save screen.
+  void recoverCompletion(Map<String, dynamic> data) {
+    final sessionId = data['sessionId'] as String?;
+    if (sessionId == null ||
+        state.status == FocusSessionStatus.endingWithSave) {
+      return;
+    }
+    final planned = _safeInt(data['plannedDuration']);
+    state = state.copyWith(
+      sessionId: sessionId,
+      plannedDuration: planned,
+      sessionType: data['sessionType'] as String?,
+      elapsedSeconds: planned != null ? planned * 60 : null,
+      remainingSeconds: 0,
+      completionData: data,
+    );
+    _handleAutoCompletion(data);
   }
 
   void _handleTimerUpdate(Map<String, dynamic>? data) {
@@ -284,6 +311,30 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
           elapsedSeconds: newElapsed,
           remainingSeconds: newRemaining,
         );
+
+        // The countdown is only a display: the session ends when native says so. If that does not
+        // arrive (its timer was lost), ask native to end it instead of waiting at 0:00 forever.
+        if (newRemaining == 0 &&
+            (state.sessionType ?? '').toLowerCase() == 'timer') {
+          _startDueCheck();
+        }
+      }
+    });
+  }
+
+  void _startDueCheck() {
+    if (_dueTimer != null) return;
+    _dueTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
+      if (!ref.mounted || !state.isActive) {
+        timer.cancel();
+        _dueTimer = null;
+        return;
+      }
+      final data = await NativeService.completeSessionIfDue();
+      if (data != null && ref.mounted && state.isActive) {
+        timer.cancel();
+        _dueTimer = null;
+        _handleAutoCompletion(data);
       }
     });
   }
@@ -291,6 +342,8 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
   void _stopLocalTimer() {
     _localTimer?.cancel();
     _localTimer = null;
+    _dueTimer?.cancel();
+    _dueTimer = null;
   }
 
   String _getTodayDateString() {
@@ -511,6 +564,13 @@ class FocusSessionNotifier extends Notifier<FocusSessionState> {
           '(elapsed: ${elapsedSeconds}s, type: ${mappedData['sessionType']})',
         );
       } else if (state.isActive) {
+        // Native says there is no session, but it may have just ended on its own: that completion is
+        // remembered until we confirm it. Go to the Save screen for it instead of straight Home.
+        final pending = await NativeService.getPendingCompletion();
+        if (pending != null) {
+          _handleAutoCompletion(pending);
+          return;
+        }
         state = FocusSessionState(status: FocusSessionStatus.idle);
         _stopLocalTimer();
       }
