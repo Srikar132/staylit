@@ -12,10 +12,12 @@ import 'package:staylit/presentation/providers/auth_provider.dart';
 import 'package:staylit/presentation/providers/blocked_content_provider.dart';
 import 'package:staylit/presentation/providers/daily_stats_provider.dart';
 import 'package:staylit/presentation/providers/focus_session_provider.dart';
+import 'package:staylit/presentation/providers/home_tab_provider.dart';
 import 'package:staylit/presentation/providers/settings_provider.dart';
 import 'package:staylit/presentation/providers/usage_stats_provider.dart';
 import 'package:staylit/presentation/screens/focus/focus_home_data.dart';
 import 'package:staylit/presentation/screens/focus/focus_home_view.dart';
+import 'package:staylit/presentation/screens/focus/today_buckets.dart';
 import 'package:staylit/presentation/widgets/goal_sheet.dart';
 
 class FocusScreen extends ConsumerStatefulWidget {
@@ -133,15 +135,21 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
   FocusHomeData _homeData(UserModel user) {
     final settings = ref.watch(userSettingsProvider(user.uid)).value;
     final week = ref.watch(weekStatsProvider(user.uid)).value;
+    final streak = ref.watch(streakProvider(user.uid)).value;
     final sessions = ref.watch(todaySessionsProvider(user.uid)).value ?? [];
     final blocked = ref.watch(blockedContentProvider(user.uid)).value;
     final usage = ref.watch(todayUsageStatsProvider);
 
-    final weekMinutes = week != null
-        ? [for (final day in week) day.focusMinutes]
-        : List<int>.filled(7, 0);
+    final todayMinutes = week != null && week.isNotEmpty
+        ? week.last.focusMinutes
+        : 0;
     final blockedCount = blocked?.permanentlyBlockedApps.length ?? 0;
     final duration = settings?.defaultDuration ?? 25;
+    final now = DateTime.now();
+
+    final apps = blockedCount == 0
+        ? 'No apps blocked'
+        : '$blockedCount ${blockedCount == 1 ? 'app' : 'apps'} blocked';
 
     return FocusHomeData(
       firstName: user.firstName,
@@ -154,14 +162,19 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
       goalMinutes:
           settings?.dailyGoalMinutes ??
           UserSettingsModel.defaultDailyGoalMinutes,
-      todayMinutes: weekMinutes.last,
-      weekMinutes: weekMinutes,
-      setupTitle:
-          '$duration min · ${_modeLabel(settings?.timerMode ?? 'timer')}',
-      setupSubtitle: blockedCount == 0
-          ? 'No apps blocked'
-          : '$blockedCount ${blockedCount == 1 ? 'app' : 'apps'} blocked',
-      sessions: [for (final s in sessions) SessionTileData.fromSession(s)],
+      todayMinutes: todayMinutes,
+      todayBuckets: bucketTodayMinutes([
+        for (final s in sessions)
+          if (s.actualDuration != null)
+            (start: s.startTime, minutes: s.actualDuration!),
+      ], day: now),
+      currentBucket: currentBucket(now),
+      setupLabel:
+          '${_modeLabel(settings?.timerMode ?? 'timer')} · $duration min · $apps',
+      streak: streak?.current ?? 0,
+      streakWeek: week != null
+          ? [for (final day in week) day.completedSessions]
+          : List<int>.filled(7, 0),
     );
   }
 
@@ -184,6 +197,11 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
           ),
           onSetup: _showFocusModeModal,
           onStart: _showFocusModeModal,
+          onScrollDamage: () =>
+              ref.read(homeTabRequestProvider.notifier).request(HomeTab.blocks),
+          onSeeAll: () => ref
+              .read(homeTabRequestProvider.notifier)
+              .request(HomeTab.progress),
         );
       },
       loading: () =>

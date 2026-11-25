@@ -13,6 +13,11 @@ class GoalCard extends StatelessWidget {
     required this.todayMinutes,
     required this.weekMinutes,
     required this.onEditGoal,
+    this.highlightIndex,
+    this.tooltipText,
+    this.axisLabels,
+    this.chartDescription,
+    this.chartHeight = 128,
   });
 
   /// Daily goal in minutes.
@@ -25,6 +30,22 @@ class GoalCard extends StatelessWidget {
   final List<int> weekMinutes;
 
   final VoidCallback onEditGoal;
+
+  /// Bar to stripe; defaults to the last one.
+  final int? highlightIndex;
+
+  /// Text of the tooltip over the highlighted bar; defaults to today's total.
+  /// An empty string hides it.
+  final String? tooltipText;
+
+  /// Evenly spaced captions under the chart (e.g. "12a", "6a", "12p", "6p").
+  final List<String>? axisLabels;
+
+  /// Screen-reader description of the chart; defaults to a last-N-days text.
+  final String? chartDescription;
+
+  /// Height of the bars (including the tooltip space above them).
+  final double chartHeight;
 
   int get _percent => goalMinutes <= 0
       ? 0
@@ -75,8 +96,9 @@ class GoalCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           WeekBarChart(
             values: weekMinutes,
-            highlightIndex: weekMinutes.length - 1,
-            tooltip: _tooltip(todayMinutes),
+            height: chartHeight,
+            highlightIndex: highlightIndex ?? weekMinutes.length - 1,
+            tooltip: tooltipText ?? _tooltip(todayMinutes),
             barColor: palette.ink,
             stripeBaseColor: palette.onInk,
             stripeColor: palette.ink,
@@ -86,9 +108,26 @@ class GoalCard extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
             semanticsLabel:
+                chartDescription ??
                 'Focus time for the last ${weekMinutes.length} days. '
-                'Today ${DurationText.spoken(todayMinutes)}.',
+                    'Today ${DurationText.spoken(todayMinutes)}.',
           ),
+          if (axisLabels != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            ExcludeSemantics(
+              child: Row(
+                children: [
+                  for (final label in axisLabels!)
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: textTheme.labelSmall?.copyWith(color: secondary),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: AppSpacing.md),
           Row(
             children: [

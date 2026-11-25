@@ -44,6 +44,26 @@ class SessionTileData {
   }
 }
 
+/// Scroll Damage numbers for the Home card (null data = feature off).
+@immutable
+class ScrollDamageData {
+  const ScrollDamageData({
+    required this.todayCount,
+    required this.week,
+    this.trendText,
+    this.trendGood = true,
+  });
+
+  final int todayCount;
+
+  /// Items scrolled per day for the last 7 days, oldest first.
+  final List<int> week;
+
+  /// e.g. "↓ 12% vs yesterday".
+  final String? trendText;
+  final bool trendGood;
+}
+
 /// Everything the Focus home screen shows, already resolved from providers.
 @immutable
 class FocusHomeData {
@@ -53,10 +73,12 @@ class FocusHomeData {
     required this.usageText,
     required this.goalMinutes,
     required this.todayMinutes,
-    required this.weekMinutes,
-    required this.setupTitle,
-    required this.setupSubtitle,
-    required this.sessions,
+    required this.todayBuckets,
+    required this.currentBucket,
+    required this.setupLabel,
+    required this.streak,
+    required this.streakWeek,
+    this.scrollDamage,
   });
 
   final String firstName;
@@ -67,13 +89,21 @@ class FocusHomeData {
   final int goalMinutes;
   final int todayMinutes;
 
-  /// Minutes per day for the last 7 days, oldest first; last is today.
-  final List<int> weekMinutes;
+  /// Focus minutes per 2-hour bucket of today (12 values from midnight).
+  final List<int> todayBuckets;
 
-  /// e.g. "25 min · Timer".
-  final String setupTitle;
+  /// Index of the bucket the clock is in.
+  final int currentBucket;
 
-  /// e.g. "5 apps blocked".
-  final String setupSubtitle;
-  final List<SessionTileData> sessions;
+  /// e.g. "Timer · 25 min · 5 apps blocked".
+  final String setupLabel;
+
+  /// Current streak in days.
+  final int streak;
+
+  /// Completed sessions per day for the last 7 days, oldest first.
+  final List<int> streakWeek;
+
+  /// Null while Scroll Damage is not collecting data.
+  final ScrollDamageData? scrollDamage;
 }

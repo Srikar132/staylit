@@ -245,35 +245,32 @@ class _ComponentSheet extends StatelessWidget {
   }
 }
 
-Widget _focusHome() => Scaffold(
+Widget _focusHome({bool scrollOn = false}) => Scaffold(
   body: FocusHomeView(
     onProfile: () {},
     onEditGoal: () {},
     onSetup: () {},
     onStart: () {},
-    data: const FocusHomeData(
+    onScrollDamage: () {},
+    onSeeAll: () {},
+    data: FocusHomeData(
       firstName: 'Jack',
       photoUrl: null,
       usageText: '2h 5m',
       goalMinutes: 150,
       todayMinutes: 112,
-      weekMinutes: [60, 35, 90, 120, 150, 40, 112],
-      setupTitle: '25 min · Timer',
-      setupSubtitle: '5 apps blocked',
-      sessions: [
-        SessionTileData(
-          title: 'Algebra',
-          subtitle: '9:41 AM · Completed',
-          minutes: 52,
-          icon: Icons.check_circle_outline_rounded,
-        ),
-        SessionTileData(
-          title: 'Focus session',
-          subtitle: '2:10 PM · Ended early',
-          minutes: 18,
-          icon: Icons.timelapse_rounded,
-        ),
-      ],
+      todayBuckets: const [0, 0, 0, 0, 52, 0, 18, 0, 42, 0, 0, 0],
+      currentBucket: 8,
+      setupLabel: 'Timer · 25 min · 5 apps blocked',
+      streak: 4,
+      streakWeek: const [1, 0, 2, 1, 3, 1, 2],
+      scrollDamage: scrollOn
+          ? const ScrollDamageData(
+              todayCount: 87,
+              week: [140, 96, 210, 120, 160, 99, 87],
+              trendText: '↓ 12% vs yesterday',
+            )
+          : null,
     ),
   ),
   bottomNavigationBar: const _Nav(),
@@ -371,6 +368,17 @@ void main() {
         tester,
         name: 'focus_home_$tag',
         child: _focusHome(),
+        brightness: mode,
+      );
+    });
+    testWidgets('render focus home scroll on ($tag)', skip: !enabled, (
+      tester,
+    ) async {
+      await tester.runAsync(_loadFonts);
+      await _snapshot(
+        tester,
+        name: 'focus_home_scroll_$tag',
+        child: _focusHome(scrollOn: true),
         brightness: mode,
       );
     });
