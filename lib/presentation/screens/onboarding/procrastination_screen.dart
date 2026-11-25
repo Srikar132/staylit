@@ -1,224 +1,89 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pace/core/router/app_router.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/presentation/providers/onboarding_provider.dart';
+import 'package:staylit/core/router/app_router.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/presentation/providers/onboarding_provider.dart';
+import 'package:staylit/presentation/screens/onboarding/onboarding_layout.dart';
+import 'package:staylit/presentation/widgets/design/option_card.dart';
 
 class ProcrastinationScreen extends ConsumerWidget {
   const ProcrastinationScreen({super.key});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final onboardingState = ref.watch(onboardingProvider);
-    final onboardingNotifier = ref.read(onboardingProvider.notifier);
+  static const _levels = <({String id, String text, IconData icon})>[
+    (
+      id: 'struggle',
+      text: 'I struggle to get started',
+      icon: Icons.hourglass_empty_rounded,
+    ),
+    (
+      id: 'few_bad_days',
+      text: 'I have a few bad days',
+      icon: Icons.wb_cloudy_outlined,
+    ),
+    (
+      id: 'consistent',
+      text: "I'm fairly consistent",
+      icon: Icons.trending_up_rounded,
+    ),
+  ];
 
-    final procrastinationLevels = [
-      {'id': 'struggle', 'text': 'I struggle to get started'},
-      {'id': 'few_bad_days', 'text': 'I have a few bad days'},
-      {'id': 'consistent', 'text': "I'm fairly consistent"},
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 40),
-
-          // Mascot + Question
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                    width: 2,
-                  ),
-                ),
-                child: ClipOval(
-                  child: Image.asset(
-                    'assets/images/mascot.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                        child: Icon(
-                          Icons.person,
-                          size: 30,
-                          color: theme.colorScheme.primary,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    'How often do you procrastinate before you start focusing?',
-                    style: theme.textTheme.titleLarge,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 32),
-
-          // Procrastination level options
-          ...procrastinationLevels.map((level) {
-            final isSelected =
-                onboardingState.procrastinationLevel == level['id'];
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12.0),
-              child: _ProcrastinationOption(
-                text: level['text'] as String,
-                isSelected: isSelected,
-                onTap: () {
-                  onboardingNotifier.setProcrastinationLevel(
-                    level['id'] as String,
-                  );
-                },
-              ),
-            );
-          }),
-
-          const Spacer(),
-
-          // Complete onboarding button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onboardingState.procrastinationLevel == null
-                  ? null
-                  : () async {
-                      // Check if user data is available
-                      final userAsyncValue = ref.read(currentUserProvider);
-                      userAsyncValue.when(
-                        data: (user) async {
-                          if (user == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text(
-                                  'User not found. Please sign in again.',
-                                ),
-                                backgroundColor: theme.colorScheme.error,
-                              ),
-                            );
-                            return;
-                          }
-
-                          try {
-                            await onboardingNotifier.completeOnboarding(
-                              user.uid,
-                            );
-
-                            // Route back through /splash so the router's
-                            // redirect logic decides where to land next.
-                            if (context.mounted) {
-                              context.go(splashRoute);
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error: ${e.toString()}'),
-                                  backgroundColor: theme.colorScheme.error,
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        loading: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Loading user data...'),
-                            ),
-                          );
-                        },
-                        error: (error, stack) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Error loading user: $error'),
-                              backgroundColor: theme.colorScheme.error,
-                            ),
-                          );
-                        },
-                      );
-                    },
-              child: const Text('Continue'),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-        ],
-      ),
+  void _showError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: context.palette.error),
     );
   }
-}
 
-class _ProcrastinationOption extends StatelessWidget {
-  final String text;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _ProcrastinationOption({
-    required this.text,
-    required this.isSelected,
-    required this.onTap,
-  });
+  Future<void> _complete(BuildContext context, WidgetRef ref) async {
+    final user = ref.read(currentUserProvider);
+    await user.when(
+      data: (user) async {
+        if (user == null) {
+          _showError(context, 'User not found. Please sign in again.');
+          return;
+        }
+        try {
+          await ref
+              .read(onboardingProvider.notifier)
+              .completeOnboarding(user.uid);
+          // Route back through /splash so the router's redirect logic decides
+          // where to land next.
+          if (context.mounted) context.go(splashRoute);
+        } catch (e) {
+          if (context.mounted) _showError(context, 'Error: $e');
+        }
+      },
+      loading: () async {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Loading user data...')));
+      },
+      error: (error, stack) async =>
+          _showError(context, 'Error loading user: $error'),
+    );
+  }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(onboardingProvider);
+    final notifier = ref.read(onboardingProvider.notifier);
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? theme.colorScheme.primary.withValues(alpha: 0.15)
-              : theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected
-                ? theme.colorScheme.primary
-                : theme.colorScheme.outline,
-            width: isSelected ? 2 : 1,
+    return OnboardingQuestionLayout(
+      title: 'How often do you procrastinate before you start focusing?',
+      actionLabel: 'Continue',
+      onAction: state.procrastinationLevel == null
+          ? null
+          : () => _complete(context, ref),
+      children: [
+        for (final level in _levels)
+          OptionCard(
+            title: level.text,
+            leading: Icon(level.icon),
+            selected: state.procrastinationLevel == level.id,
+            onTap: () => notifier.setProcrastinationLevel(level.id),
           ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                text,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: isSelected ? Colors.white : Colors.white70,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                ),
-              ),
-            ),
-            Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: isSelected ? theme.colorScheme.primary : Colors.white30,
-            ),
-          ],
-        ),
-      ),
+      ],
     );
   }
 }

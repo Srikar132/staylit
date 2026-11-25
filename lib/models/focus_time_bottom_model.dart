@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/core/theme/app_theme.dart';
-import 'package:pace/data/models/installed_app_model.dart';
-import 'package:pace/models/block_app_bottom_model.dart';
-import 'package:pace/models/model_manager.dart';
-import 'package:pace/presentation/providers/app_management_provide.dart';
-import 'package:pace/presentation/providers/blocked_content_provider.dart';
-import 'package:pace/widgets/bottom_sheet_darg_handler.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/presentation/providers/settings_provider.dart';
+import 'package:staylit/data/models/installed_app_model.dart';
+import 'package:staylit/models/block_app_bottom_model.dart';
+import 'package:staylit/models/model_manager.dart';
+import 'package:staylit/presentation/providers/app_management_provide.dart';
+import 'package:staylit/presentation/providers/blocked_content_provider.dart';
+import 'package:staylit/widgets/bottom_sheet_darg_handler.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/presentation/providers/settings_provider.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/widgets/design/app_pill_button.dart';
+import 'package:staylit/presentation/widgets/design/icon_circle_button.dart';
 
 // ============================================================================
 // OPTIMIZED: Extracted BlockedAppsSection to prevent unnecessary rebuilds
@@ -39,32 +42,26 @@ class _BlockedAppsSection extends ConsumerWidget {
         );
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.lg,
+        ),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.1),
-            width: 1,
-          ),
+          color: context.palette.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
         ),
         child: Row(
           children: [
-            const Text(
-              'Blocked Apps',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+            Text(
+              'Blocked apps',
+              style: Theme.of(context).textTheme.titleMedium,
             ),
             const Spacer(),
             _BlockedAppsPreview(blockedSet: blockedSet),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.sm),
             Icon(
-              Icons.chevron_right,
-              color: Colors.white.withValues(alpha: 0.5),
-              size: 20,
+              Icons.chevron_right_rounded,
+              color: context.palette.onCanvasMuted,
             ),
           ],
         ),
@@ -93,10 +90,7 @@ class _BlockedAppsPreview extends ConsumerWidget {
             .toList();
 
         if (blockedAppsList.isEmpty) {
-          return Text(
-            'None',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-          );
+          return Text('None', style: Theme.of(context).textTheme.bodyMedium);
         }
 
         return Row(
@@ -106,10 +100,7 @@ class _BlockedAppsPreview extends ConsumerWidget {
             const SizedBox(width: 12),
             Text(
               '${blockedSet.length} app${blockedSet.length != 1 ? 's' : ''}',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 14,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
         );
@@ -182,7 +173,7 @@ class _AppIconCircle extends ConsumerWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(color: backgroundColor, width: 2),
-        color: AppColors.surfaceElevated,
+        color: context.palette.surfaceRaised,
       ),
       child: ClipOval(
         child: iconAsync.when(
@@ -195,11 +186,15 @@ class _AppIconCircle extends ConsumerWidget {
                 filterQuality: FilterQuality.medium,
               );
             }
-            return const Icon(Icons.android, size: 12, color: Colors.white);
+            return Icon(
+              Icons.android,
+              size: 12,
+              color: context.palette.onCanvas,
+            );
           },
           loading: () => const SizedBox(),
           error: (_, _) =>
-              const Icon(Icons.android, size: 12, color: Colors.white),
+              Icon(Icons.android, size: 12, color: context.palette.onCanvas),
         ),
       ),
     );
@@ -243,7 +238,7 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
               _breaks = settings.numberOfBreaks;
               _blockHomeScreen = settings.blockPhoneHomeScreen;
               _strictMode = settings.strictMode;
-              _selectedMode = settings.timerMode;
+              _selectedMode = settings.timerMode.toLowerCase();
               _isInitialized = true;
             });
           }
@@ -256,7 +251,7 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
         _breaks = 0;
         _blockHomeScreen = false;
         _strictMode = false;
-        _selectedMode = "timer";
+        _selectedMode = 'timer';
         _isInitialized = true;
       }
     }
@@ -336,7 +331,7 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
             _breaks = settings.numberOfBreaks;
             _blockHomeScreen = settings.blockPhoneHomeScreen;
             _strictMode = settings.strictMode;
-            _selectedMode = settings.timerMode;
+            _selectedMode = settings.timerMode.toLowerCase();
             _isInitialized = true;
           });
         }
@@ -345,20 +340,18 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
 
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     final screenHeight = MediaQuery.of(context).size.height;
+    final textTheme = Theme.of(context).textTheme;
 
     return Container(
       // Fixed height, independent of the keyboard - this sheet hosts
-      // BlockAppsSheet as a nested modal on top of itself, and when a
-      // search field inside that inner sheet gets focus, this outer
-      // Container was ALSO resizing+repainting its full decorated
-      // background on every raw keyboard-inset frame (same anti-pattern
-      // already fixed in block_app_bottom_model.dart's BlockAppsSheet -
-      // this was the other half of it, still causing the same jank since
-      // both sheets are mounted at once during that flow).
+      // BlockAppsSheet as a nested modal on top of itself, and resizing this
+      // container on every keyboard-inset frame caused jank.
       height: screenHeight * 0.85,
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        color: context.palette.canvas,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadius.card),
+        ),
       ),
       child: Column(
         children: [
@@ -366,10 +359,12 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              // AnimatedPadding (not raw Padding) so Flutter's own Tween
-              // smooths bursty keyboard-inset updates instead of relaying
-              // out this whole scroll content on every raw callback.
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.sm,
+                AppSpacing.xl,
+                AppSpacing.xl,
+              ),
               child: AnimatedPadding(
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOut,
@@ -377,23 +372,18 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text('Focus session', style: textTheme.displaySmall),
+                    const SizedBox(height: AppSpacing.xl),
                     _buildModeSelector(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.xl),
                     _buildDurationSection(),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     _buildBreaksSection(),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Block settings',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.xxl),
+                    Text('Block settings', style: textTheme.headlineSmall),
+                    const SizedBox(height: AppSpacing.md),
                     const _BlockedAppsSection(),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     _buildToggleOption(
                       title: 'Block phone home screen',
                       value: _blockHomeScreen,
@@ -402,38 +392,27 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
                         _updateSettings(blockHome: value);
                       },
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     _buildStrictModeOption(),
                   ],
                 ),
               ),
             ),
           ),
-          // FIXED: Button stays at bottom, accounting for keyboard
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    widget.onSave();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Start Focus Now',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                ),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.sm,
+                AppSpacing.xl,
+                AppSpacing.xl,
+              ),
+              child: AppPillButton(
+                label: 'Start focus now',
+                onPressed: () {
+                  Navigator.pop(context);
+                  widget.onSave();
+                },
               ),
             ),
           ),
@@ -441,131 +420,160 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
       ),
     );
   }
-
-  // OPTIMIZED: Cached color values
-  static final _containerBgColor = Colors.white.withValues(alpha: 0.05);
-  static final _borderColor = Colors.white.withValues(alpha: 0.1);
-  static final _textSecondaryColor = Colors.white.withValues(alpha: 0.7);
-  static final _iconColor = Colors.white.withValues(alpha: 0.5);
 
   Widget _buildModeSelector() {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
+        color: context.palette.surface,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
       child: Row(
         children: [
-          _buildModeButton('Timer', _selectedMode == 'Timer'),
-          _buildModeButton('Stopwatch', _selectedMode == 'Stopwatch'),
-          // _buildModeButton('Pomodoro', _selectedMode == 'Pomodoro'),
+          _buildModeButton('Timer', 'timer'),
+          _buildModeButton('Stopwatch', 'stopwatch'),
         ],
       ),
     );
   }
 
-  Widget _buildModeButton(String mode, bool isSelected) {
+  Widget _buildModeButton(String label, String value) {
+    final isSelected = _selectedMode == value;
+    final palette = context.palette;
     return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() => _selectedMode = mode);
-          _updateSettings(mode: mode);
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? Theme.of(context).colorScheme.primary
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            mode,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: isSelected ? Colors.black : Colors.white,
-              fontSize: 14,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+      child: Semantics(
+        button: true,
+        selected: isSelected,
+        label: label,
+        excludeSemantics: true,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            setState(() => _selectedMode = value);
+            _updateSettings(mode: value);
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+            decoration: BoxDecoration(
+              color: isSelected ? palette.accent : Colors.transparent,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+            ),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: isSelected ? palette.onAccent : palette.onCanvas,
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  /// Rounded `surface` card used by every row in this sheet.
+  Widget _card({required Widget child, EdgeInsets? padding}) {
+    return Container(
+      width: double.infinity,
+      padding:
+          padding ??
+          const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.lg,
+          ),
+      decoration: BoxDecoration(
+        color: context.palette.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _stepper({
+    required String valueText,
+    required VoidCallback? onMinus,
+    required VoidCallback? onPlus,
+    required String label,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconCircleButton(
+          icon: Icons.remove_rounded,
+          semanticLabel: 'Decrease $label',
+          size: 40,
+          background: context.palette.surfaceRaised,
+          onPressed: onMinus,
+        ),
+        SizedBox(
+          width: 88,
+          child: Text(
+            valueText,
+            textAlign: TextAlign.center,
+            style: textTheme.titleMedium,
+          ),
+        ),
+        IconCircleButton(
+          icon: Icons.add_rounded,
+          semanticLabel: 'Increase $label',
+          size: 40,
+          background: context.palette.surfaceRaised,
+          onPressed: onPlus,
+        ),
+      ],
     );
   }
 
   Widget _buildDurationSection() {
-    return GestureDetector(
-      onTap: _showDurationPicker,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: _containerBgColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _borderColor),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Total duration',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            Row(
-              children: [
-                Text(
-                  '$_duration mins',
-                  style: TextStyle(color: _textSecondaryColor, fontSize: 16),
-                ),
-                const SizedBox(width: 8),
-                Icon(Icons.chevron_right, color: _iconColor, size: 20),
-              ],
-            ),
-          ],
-        ),
+    final textTheme = Theme.of(context).textTheme;
+    return _card(
+      child: Row(
+        children: [
+          Expanded(child: Text('Duration', style: textTheme.titleMedium)),
+          _stepper(
+            label: 'duration',
+            valueText: '$_duration min',
+            onMinus: _duration > 5
+                ? () => _changeDuration(_duration - 5)
+                : null,
+            onPlus: _duration < 180
+                ? () => _changeDuration(_duration + 5)
+                : null,
+          ),
+        ],
       ),
     );
   }
 
+  void _changeDuration(int value) {
+    final next = value.clamp(5, 180);
+    setState(() => _duration = next);
+    _updateSettings(duration: next);
+  }
+
   Widget _buildBreaksSection() {
-    return GestureDetector(
-      onTap: _showBreaksPicker,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: _containerBgColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _borderColor),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Breaks',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            Row(
-              children: [
-                Text(
-                  '$_breaks break${_breaks != 1 ? 's' : ''}',
-                  style: TextStyle(color: _textSecondaryColor, fontSize: 16),
-                ),
-                const SizedBox(width: 8),
-                Icon(Icons.chevron_right, color: _iconColor, size: 20),
-              ],
-            ),
-          ],
-        ),
+    final textTheme = Theme.of(context).textTheme;
+    return _card(
+      child: Row(
+        children: [
+          Expanded(child: Text('Breaks', style: textTheme.titleMedium)),
+          _stepper(
+            label: 'breaks',
+            valueText: '$_breaks',
+            onMinus: _breaks > 0 ? () => _changeBreaks(_breaks - 1) : null,
+            onPlus: _breaks < 5 ? () => _changeBreaks(_breaks + 1) : null,
+          ),
+        ],
       ),
     );
+  }
+
+  void _changeBreaks(int value) {
+    final next = value.clamp(0, 5);
+    setState(() => _breaks = next);
+    _updateSettings(breaks: next);
   }
 
   Widget _buildToggleOption({
@@ -573,121 +581,67 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: _containerBgColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderColor),
+    return _card(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.xs,
+        AppSpacing.sm,
+        AppSpacing.xs,
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
+          Expanded(
+            child: Text(title, style: Theme.of(context).textTheme.titleMedium),
           ),
-          Transform.scale(
-            scale: 0.8,
-            child: Switch(
-              value: value,
-              onChanged: onChanged,
-              activeThumbColor: Colors.white,
-              activeTrackColor: Colors.white.withValues(alpha: 0.3),
-              inactiveThumbColor: Colors.white.withValues(alpha: 0.5),
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
-            ),
-          ),
+          Switch(value: value, onChanged: onChanged),
         ],
       ),
     );
   }
 
   Widget _buildStrictModeOption() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: _containerBgColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderColor),
+    final textTheme = Theme.of(context).textTheme;
+    return _card(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.sm,
+        AppSpacing.md,
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Text(
-                    'Strict mode',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.premium,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text(
-                      'PRO',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Transform.scale(
-                scale: 0.8,
-                child: Switch(
-                  value: _strictMode,
-                  onChanged: (value) {
-                    setState(() => _strictMode = value);
-                    _updateSettings(strict: value);
-                  },
-                  activeThumbColor: Colors.white,
-                  activeTrackColor: Colors.white.withValues(alpha: 0.3),
-                  inactiveThumbColor: Colors.white.withValues(alpha: 0.5),
-                  inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
+              Text('Strict mode', style: textTheme.titleMedium),
+              const SizedBox(width: AppSpacing.sm),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: context.palette.premium,
+                  borderRadius: BorderRadius.circular(6),
                 ),
+                child: Text(
+                  'PRO',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: context.palette.onAccent,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Switch(
+                value: _strictMode,
+                onChanged: (value) {
+                  setState(() => _strictMode = value);
+                  _updateSettings(strict: value);
+                },
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'You cannot end your session early',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
-                fontSize: 13,
-              ),
-            ),
-          ),
+          Text('You cannot end your session early', style: textTheme.bodySmall),
         ],
       ),
     );
-  }
-
-  void _showDurationPicker() {
-    /* Keep empty as requested */
-  }
-
-  void _showBreaksPicker() {
-    /* Keep empty as requested */
   }
 }

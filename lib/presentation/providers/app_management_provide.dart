@@ -1,30 +1,30 @@
-
-
 // Simple FutureProvider that calls your static method
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/data/models/installed_app_model.dart';
-import 'package:pace/services/native_service.dart';
+import 'package:staylit/data/models/installed_app_model.dart';
+import 'package:staylit/services/native_service.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:pace/presentation/providers/blocked_content_provider.dart';
+import 'package:staylit/presentation/providers/blocked_content_provider.dart';
 
-
-final installedAppsProvider = FutureProvider.autoDispose<List<InstalledApp>>((ref) async {
+final installedAppsProvider = FutureProvider.autoDispose<List<InstalledApp>>((
+  ref,
+) async {
   // You can add logic here to filter system apps if needed
   final apps = await NativeService.getInstalledApps();
   return apps;
 });
 
 // 2. Family Provider for Icons (Caches icons individually)
-final appIconProvider = FutureProvider.family<Uint8List?, String>((ref, packageName) async {
+final appIconProvider = FutureProvider.family<Uint8List?, String>((
+  ref,
+  packageName,
+) async {
   return await NativeService.getAppIcon(packageName);
 });
 
 // 3. Search Query State
 final appSearchQueryProvider = StateProvider<String>((ref) => '');
-
-
 
 // 4. Filtered & Grouped Apps (The Brain)
 final groupedAppsProvider = Provider<Map<String, List<InstalledApp>>>((ref) {
@@ -33,21 +33,32 @@ final groupedAppsProvider = Provider<Map<String, List<InstalledApp>>>((ref) {
 
   // Popular apps to prioritize at the top
   const popularApps = [
-    'instagram', 'youtube', 'facebook', 'whatsapp', 'twitter',
-    'snapchat', 'tiktok', 'telegram', 'discord', 'reddit',
-    'netflix', 'spotify', 'twitch', 'pinterest', 'linkedin'
+    'instagram',
+    'youtube',
+    'facebook',
+    'whatsapp',
+    'twitter',
+    'snapchat',
+    'tiktok',
+    'telegram',
+    'discord',
+    'reddit',
+    'netflix',
+    'spotify',
+    'twitch',
+    'pinterest',
+    'linkedin',
   ];
 
   return appsAsync.maybeWhen(
     data: (apps) {
-      // Filter by search query and exclude Pace app itself
+      // Filter by search query and exclude Staylit app itself
       final filtered = apps.where((app) {
         final matchesSearch = app.appName.toLowerCase().contains(query);
-        // Exclude Pace app from the list
-        final isNotPace = !app.packageName.toLowerCase().contains('pace') &&
-                            !app.packageName.toLowerCase().contains('lockin') &&
-                            app.appName.toLowerCase() != 'lock in' &&
-                            app.appName.toLowerCase() != 'lockin';
+        // Exclude Staylit app from the list
+        final isNotPace =
+            !app.packageName.toLowerCase().contains('staylit') &&
+            app.appName.toLowerCase() != 'staylit';
         // Allow all apps including YouTube which might be marked as system app
         return matchesSearch && isNotPace;
       }).toList();
@@ -90,31 +101,34 @@ final groupedAppsProvider = Provider<Map<String, List<InstalledApp>>>((ref) {
 });
 
 // 5. Allowed Apps Provider (Non-blocked apps)
-final allowedAppsProvider = Provider.family<AsyncValue<List<InstalledApp>>, String>((ref, userId) {
-  final appsAsync = ref.watch(installedAppsProvider);
-  final blockedAppsAsync = ref.watch(permanentlyBlockedAppsProvider(userId));
+final allowedAppsProvider =
+    Provider.family<AsyncValue<List<InstalledApp>>, String>((ref, userId) {
+      final appsAsync = ref.watch(installedAppsProvider);
+      final blockedAppsAsync = ref.watch(
+        permanentlyBlockedAppsProvider(userId),
+      );
 
-  return appsAsync.when(
-    data: (apps) {
-      return blockedAppsAsync.when(
-        data: (blockedPackages) {
-          // Filter out blocked apps and system apps
-          final allowed = apps.where((app) {
-            final isNotBlocked = !blockedPackages.contains(app.packageName);
-            final isNotSystem = !app.isSystemApp;
-            return isNotBlocked && isNotSystem;
-          }).toList();
-          
-          // Sort alphabetically
-          allowed.sort((a, b) => a.appName.compareTo(b.appName));
-          
-          return AsyncValue.data(allowed);
+      return appsAsync.when(
+        data: (apps) {
+          return blockedAppsAsync.when(
+            data: (blockedPackages) {
+              // Filter out blocked apps and system apps
+              final allowed = apps.where((app) {
+                final isNotBlocked = !blockedPackages.contains(app.packageName);
+                final isNotSystem = !app.isSystemApp;
+                return isNotBlocked && isNotSystem;
+              }).toList();
+
+              // Sort alphabetically
+              allowed.sort((a, b) => a.appName.compareTo(b.appName));
+
+              return AsyncValue.data(allowed);
+            },
+            loading: () => const AsyncValue.loading(),
+            error: (err, stack) => AsyncValue.error(err, stack),
+          );
         },
         loading: () => const AsyncValue.loading(),
         error: (err, stack) => AsyncValue.error(err, stack),
       );
-    },
-    loading: () => const AsyncValue.loading(),
-    error: (err, stack) => AsyncValue.error(err, stack),
-  );
-});
+    });

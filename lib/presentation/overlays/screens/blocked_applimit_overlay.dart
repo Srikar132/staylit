@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/app_theme.dart';
+import 'package:staylit/presentation/overlays/widgets/block_header.dart';
+import 'package:staylit/presentation/overlays/widgets/actions_buttons.dart';
+
 import '../providers/overlay_provider.dart';
 import '../widgets/overlay_background.dart';
+
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/widgets/design/lit_badge.dart';
 
 class AppLimitOverlay extends ConsumerStatefulWidget {
   const AppLimitOverlay({super.key});
@@ -55,9 +60,11 @@ class _AppLimitOverlayState extends ConsumerState<AppLimitOverlay>
     final overlayNotifier = ref.read(overlayDataProvider.notifier);
 
     if (overlayState.isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      return Scaffold(
+        backgroundColor: context.palette.ink,
+        body: Center(
+          child: CircularProgressIndicator(color: context.palette.onInk),
+        ),
       );
     }
 
@@ -74,11 +81,6 @@ class _AppLimitOverlayState extends ConsumerState<AppLimitOverlay>
       canPop: false,
       child: Scaffold(
         body: OverlayBackground(
-          gradient: const LinearGradient(
-            colors: [AppColors.background, AppColors.surface],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
@@ -98,7 +100,8 @@ class _AppLimitOverlayState extends ConsumerState<AppLimitOverlay>
                         animationController: _progressController,
                       ),
                     ),*/
-                  const SizedBox(height: 32),
+                  const LitBadge(size: 120),
+                  const SizedBox(height: 24),
 
                   // Limit exceeded message
                   FadeTransition(
@@ -162,101 +165,28 @@ class _AppLimitOverlayState extends ConsumerState<AppLimitOverlay>
   }
 
   Widget _buildLimitMessage(String appName, String limitType) {
-    return Column(
-      children: [
-        Text(
-          '${limitType.capitalize()} Limit Exceeded',
-          style: const TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.red.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
-          ),
-          child: Text(
-            appName,
-            style: const TextStyle(
-              color: Colors.red,
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-            ),
-          ),
-        ),
-      ],
+    return BlockHeader(
+      title: '${limitType.capitalize()} limit reached',
+      chip: appName,
+      danger: true,
     );
   }
 
   Widget _buildActionButtons(OverlayDataNotifier notifier, bool allowOverride) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => notifier.goHome(),
-                icon: const Icon(Icons.home),
-                label: const Text('Go Home'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.withValues(alpha: 0.2),
-                  foregroundColor: Colors.green,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: Colors.green.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            if (!allowOverride) ...[
-              const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _showAlternativeApps(context),
-                  icon: const Icon(Icons.apps),
-                  label: const Text('Alternatives'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue.withValues(alpha: 0.2),
-                    foregroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                        color: Colors.blue.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
+    return BlockActions(
+      primaryLabel: 'Go home',
+      onPrimary: notifier.goHome,
+      secondary: [
         if (!allowOverride) ...[
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _showUsageStats(context),
-              icon: const Icon(Icons.analytics_outlined),
-              label: const Text('View Usage Stats'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.orange,
-                side: BorderSide(color: Colors.orange.withValues(alpha: 0.5)),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
+          BlockAction(
+            label: 'Alternatives',
+            icon: Icons.apps_rounded,
+            onPressed: () => _showAlternativeApps(context),
+          ),
+          BlockAction(
+            label: 'Usage',
+            icon: Icons.analytics_outlined,
+            onPressed: () => _showUsageStats(context),
           ),
         ],
       ],
@@ -270,16 +200,18 @@ class _AppLimitOverlayState extends ConsumerState<AppLimitOverlay>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: context.palette.onCanvas.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(
+          color: context.palette.onCanvas.withValues(alpha: 0.1),
+        ),
       ),
       child: Column(
         children: [
           Text(
             'Usage Insight',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.8),
+              color: context.palette.onCanvas.withValues(alpha: 0.8),
               fontWeight: FontWeight.w600,
               fontSize: 16,
             ),
@@ -288,7 +220,7 @@ class _AppLimitOverlayState extends ConsumerState<AppLimitOverlay>
           Text(
             'You\'ve used this app for $hoursUsed hours today ($percentageUsed% over your limit). Consider taking a break and engaging in other activities.',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
+              color: context.palette.onCanvas.withValues(alpha: 0.7),
               fontSize: 14,
             ),
             textAlign: TextAlign.center,
@@ -313,7 +245,7 @@ class _AppLimitOverlayState extends ConsumerState<AppLimitOverlay>
   //     ScaffoldMessenger.of(context).showSnackBar(
   //       SnackBar(
   //         content: Text('Limit overridden for $minutes minutes'),
-  //         backgroundColor: Colors.orange,
+  //         backgroundColor: context.palette.warning,
   //         behavior: SnackBarBehavior.floating,
   //       ),
   //     );
@@ -328,7 +260,7 @@ class _AppLimitOverlayState extends ConsumerState<AppLimitOverlay>
   void _showAlternativeApps(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -337,10 +269,10 @@ class _AppLimitOverlayState extends ConsumerState<AppLimitOverlay>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'Try These Instead',
               style: TextStyle(
-                color: Colors.white,
+                color: context.palette.onCanvas,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -378,11 +310,13 @@ class _AppLimitOverlayState extends ConsumerState<AppLimitOverlay>
     IconData icon,
   ) {
     return ListTile(
-      leading: Icon(icon, color: Colors.blue),
-      title: Text(title, style: const TextStyle(color: Colors.white)),
+      leading: Icon(icon, color: context.palette.info),
+      title: Text(title, style: TextStyle(color: context.palette.onCanvas)),
       subtitle: Text(
         description,
-        style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+        style: TextStyle(
+          color: context.palette.onCanvas.withValues(alpha: 0.7),
+        ),
       ),
       contentPadding: EdgeInsets.zero,
     );
@@ -391,7 +325,7 @@ class _AppLimitOverlayState extends ConsumerState<AppLimitOverlay>
   void _showUsageStats(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -400,18 +334,18 @@ class _AppLimitOverlayState extends ConsumerState<AppLimitOverlay>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'Your Usage Pattern',
               style: TextStyle(
-                color: Colors.white,
+                color: context.palette.onCanvas,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'This feature will show detailed usage analytics in the future.',
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(color: context.palette.onCanvasSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),

@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:pace/data/models/pomodoro_settings.dart';
-import 'package:pace/data/models/user_settings_model.dart';
+import 'package:staylit/data/models/pomodoro_settings.dart';
+import 'package:staylit/data/models/user_settings_model.dart';
 
 class SettingsRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -30,7 +30,6 @@ class SettingsRepository {
               autoStartBreaks: true,
               soundEnabled: true,
               vibrationEnabled: true,
-              theme: 'dark',
             );
 
             _cachedSettings = defaultSettings;
@@ -76,7 +75,6 @@ class SettingsRepository {
           autoStartBreaks: true,
           soundEnabled: true,
           vibrationEnabled: true,
-          theme: 'dark',
         );
 
         await _firestore
@@ -131,7 +129,6 @@ class SettingsRepository {
       autoStartBreaks: true,
       soundEnabled: true,
       vibrationEnabled: true,
-      theme: 'dark',
     );
 
     try {

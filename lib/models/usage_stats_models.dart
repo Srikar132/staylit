@@ -86,8 +86,8 @@ class AppUsageStats {
     }
 
     // ADDED: Filter out your own app from stats
-    if (packageName.contains('pace') || 
-        packageName == 'com.example.pace') {
+    if (packageName.contains('staylit') || 
+        packageName == 'com.staylit.app') {
       return AppCategory.others; // Or create a new category to hide it
     }
 
@@ -222,9 +222,9 @@ class UsageStatsResponse {
   List<AppUsageStats> get otherApps =>
       apps.where((app) => app.category == AppCategory.others).toList();
 
-  // ADDED: Filter out the pace app from all lists
+  // ADDED: Filter out the staylit app from all lists
   List<AppUsageStats> get appsExcludingSelf =>
-      apps.where((app) => !app.packageName.contains('pace')).toList();
+      apps.where((app) => !app.packageName.contains('staylit')).toList();
 
   int get totalDistractingTime =>
       distractingApps.fold(0, (sum, app) => sum + app.totalUsageMinutes);
@@ -235,7 +235,7 @@ class UsageStatsResponse {
   int get totalOthersTime =>
       otherApps.fold(0, (sum, app) => sum + app.totalUsageMinutes);
 
-  // ADDED: Total time excluding the pace app
+  // ADDED: Total time excluding the staylit app
   int get totalUsageExcludingSelf =>
       appsExcludingSelf.fold(0, (sum, app) => sum + app.totalUsageMinutes);
 
@@ -272,7 +272,7 @@ class UsageStatsResponse {
     return '${totalOthersTime}m';
   }
 
-  // ADDED: Formatted time excluding pace app
+  // ADDED: Formatted time excluding staylit app
   String get formattedTotalTimeExcludingSelf {
     final hours = totalUsageExcludingSelf / 60;
     if (hours >= 1) {

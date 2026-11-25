@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/core/theme/app_theme.dart';
-import 'package:pace/presentation/overlays/providers/overlay_provider.dart';
-import 'package:pace/presentation/overlays/widgets/focus_timer_widget.dart';
-import 'package:pace/presentation/overlays/widgets/overlay_background.dart';
+import 'package:staylit/presentation/overlays/providers/overlay_provider.dart';
+import 'package:staylit/presentation/overlays/widgets/focus_timer_widget.dart';
+import 'package:staylit/presentation/overlays/widgets/overlay_background.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/widgets/design/lit_badge.dart';
+import 'package:staylit/presentation/overlays/widgets/block_header.dart';
+import 'package:staylit/presentation/overlays/widgets/end_session_dialog.dart';
+import 'package:staylit/presentation/overlays/widgets/actions_buttons.dart';
 
 class BlockedWebsiteOverlay extends ConsumerStatefulWidget {
   const BlockedWebsiteOverlay({super.key});
@@ -64,9 +68,11 @@ class _BlockedWebsiteOverlayState extends ConsumerState<BlockedWebsiteOverlay>
     final overlayNotifier = ref.read(overlayDataProvider.notifier);
 
     if (overlayState.isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      return Scaffold(
+        backgroundColor: context.palette.ink,
+        body: Center(
+          child: CircularProgressIndicator(color: context.palette.onInk),
+        ),
       );
     }
 
@@ -76,11 +82,6 @@ class _BlockedWebsiteOverlayState extends ConsumerState<BlockedWebsiteOverlay>
       canPop: false,
       child: Scaffold(
         body: OverlayBackground(
-          gradient: const LinearGradient(
-            colors: [AppColors.background, AppColors.surface],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
           child: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
@@ -186,138 +187,33 @@ class _BlockedWebsiteOverlayState extends ConsumerState<BlockedWebsiteOverlay>
   Widget _buildShieldIcon() {
     return AnimatedBuilder(
       animation: _pulseController,
-      builder: (context, child) {
-        return Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.blue.withValues(
-              alpha: 0.1 + (_pulseController.value * 0.1),
-            ),
-            border: Border.all(
-              color: Colors.blue.withValues(
-                alpha: 0.5 + (_pulseController.value * 0.3),
-              ),
-              width: 3,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.blue.withValues(alpha: 0.3),
-                blurRadius: 20 + (_pulseController.value * 10),
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: const Icon(Icons.security, size: 50, color: Colors.blue),
-        );
-      },
+      builder: (context, child) => Transform.scale(
+        scale: 1.0 + (_pulseController.value * 0.05),
+        child: const LitBadge(size: 130),
+      ),
     );
   }
 
   Widget _buildBlockMessage(String domain) {
-    return Column(
-      children: [
-        const Text(
-          'Website Blocked',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.blue.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.blue.withValues(alpha: 0.5)),
-          ),
-          child: Text(
-            domain,
-            style: const TextStyle(
-              color: Colors.blue,
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'This website is blocked during your focus session',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.8),
-            fontSize: 16,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+    return BlockHeader(
+      title: 'Website blocked',
+      chip: domain,
+      message: 'This website is blocked during your focus session.',
     );
   }
 
   Widget _buildActionButtons(OverlayDataNotifier notifier) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => notifier.goHome(),
-                icon: const Icon(Icons.home),
-                label: const Text('Go to Home'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.withValues(alpha: 0.2),
-                  foregroundColor: Colors.green,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: Colors.green.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => notifier.goBack(),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Go Back'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange.withValues(alpha: 0.2),
-                  foregroundColor: Colors.orange,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: Colors.orange.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () => _showEndSessionDialog(context, notifier),
-            icon: const Icon(Icons.stop_circle_outlined),
-            label: const Text('End Focus Session'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red,
-              side: BorderSide(color: Colors.red.withValues(alpha: 0.5)),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
+    return BlockActions(
+      primaryLabel: 'Go home',
+      onPrimary: notifier.goHome,
+      secondary: [
+        BlockAction(
+          label: 'Go back',
+          icon: Icons.arrow_back_rounded,
+          onPressed: notifier.goBack,
         ),
       ],
+      onEndSession: () => _showEndSessionDialog(context, notifier),
     );
   }
 
@@ -325,9 +221,11 @@ class _BlockedWebsiteOverlayState extends ConsumerState<BlockedWebsiteOverlay>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: context.palette.onCanvas.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(
+          color: context.palette.onCanvas.withValues(alpha: 0.1),
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -355,12 +253,12 @@ class _BlockedWebsiteOverlayState extends ConsumerState<BlockedWebsiteOverlay>
   }) {
     return Column(
       children: [
-        Icon(icon, color: Colors.blue, size: 20),
+        Icon(icon, color: context.palette.info, size: 20),
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: context.palette.onCanvas,
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),
@@ -368,7 +266,7 @@ class _BlockedWebsiteOverlayState extends ConsumerState<BlockedWebsiteOverlay>
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.6),
+            color: context.palette.onCanvas.withValues(alpha: 0.6),
             fontSize: 12,
           ),
         ),
@@ -380,41 +278,6 @@ class _BlockedWebsiteOverlayState extends ConsumerState<BlockedWebsiteOverlay>
     BuildContext context,
     OverlayDataNotifier notifier,
   ) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'End Focus Session?',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          'Ending your session now will remove all website blocks. Are you sure? ',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Stay Focused',
-              style: TextStyle(color: Colors.blue),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              notifier.endFocusSession();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('End Session'),
-          ),
-        ],
-      ),
-    );
+    showEndSessionDialog(context, onConfirm: notifier.endFocusSession);
   }
 }

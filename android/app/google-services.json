@@ -1,57 +1,42 @@
 {
   "project_info": {
-    "project_number": "276612873176",
-    "project_id": "lock-in-6f9fc",
-    "storage_bucket": "lock-in-6f9fc.firebasestorage.app"
+    "project_number": "910469793819",
+    "project_id": "staylit-4064f",
+    "storage_bucket": "staylit-4064f.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:276612873176:android:5621e904856f0a082d50ad",
+        "mobilesdk_app_id": "1:910469793819:android:56ed8f46e144485c4d50be",
         "android_client_info": {
-          "package_name": "dev.srikar.pace"
+          "package_name": "com.staylit.app"
         }
       },
       "oauth_client": [
         {
-          "client_id": "276612873176-g9p43a3dsvaa4m51a2g2b17ng47hm4d9.apps.googleusercontent.com",
+          "client_id": "910469793819-t10lj86v4pijddidnm94kmj11affp9lt.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "dev.srikar.pace",
-            "certificate_hash": "bae5d40e5cad16a410414a2d5812a6aca0e336bf"
-          }
-        },
-        {
-          "client_id": "276612873176-qdhs5hu4e8h8654co9dtggicf1gd1gil.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "dev.srikar.pace",
+            "package_name": "com.staylit.app",
             "certificate_hash": "63d203555af4497b82b1209fc4b0b6b1a5d0362d"
           }
         },
         {
-          "client_id": "276612873176-0f83fdm29agqtufq1utl52d7usge8abg.apps.googleusercontent.com",
+          "client_id": "910469793819-kq90a39eiier109g2f9cliha2rjk4n52.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBcoTRyWGb7Y8S7KMWqH99lobyrd3VOiv0"
+          "current_key": "AIzaSyDRMmG2daJVMkCR67BGe7bOfGtRqVK9KSg"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "276612873176-0f83fdm29agqtufq1utl52d7usge8abg.apps.googleusercontent.com",
+              "client_id": "910469793819-kq90a39eiier109g2f9cliha2rjk4n52.apps.googleusercontent.com",
               "client_type": 3
-            },
-            {
-              "client_id": "276612873176-5lbtmngcsm0vm8c49agvg3dnvfg5k74u.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.lockIn"
-              }
             }
           ]
         }

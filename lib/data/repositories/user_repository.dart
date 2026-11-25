@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:pace/data/models/user_model.dart';
+import 'package:staylit/data/models/user_model.dart';
 
 class UserRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -31,17 +31,6 @@ class UserRepository {
     }
   }
 
-  // Update permission status
-  Future<void> updatePermissionStatus(String uid, bool granted) async {
-    try {
-      await _firestore.collection('users').doc(uid).update({
-        'hasGrantedPermissions': granted,
-      });
-    } catch (e) {
-      debugPrint('Error updating permission status: $e');
-      rethrow;
-    }
-  }
 
   // Update onboarding answers
   Future<void> updateOnboardingAnswers({

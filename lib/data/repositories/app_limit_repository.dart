@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:pace/data/models/app_limit_model.dart';
+import 'package:staylit/data/models/app_limit_model.dart';
 
 class AppLimitRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

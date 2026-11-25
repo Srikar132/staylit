@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:pace/presentation/screens/blocks_screen.dart';
-import 'package:pace/presentation/screens/focus_screen.dart';
-import 'package:pace/presentation/screens/group_screen.dart';
-import 'package:pace/presentation/screens/usage_stats_screen.dart';
-import 'package:pace/presentation/screens/insights_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/providers/home_tab_provider.dart';
+import 'package:staylit/presentation/screens/blocks_screen.dart';
+import 'package:staylit/presentation/screens/focus_screen.dart';
+import 'package:staylit/presentation/screens/group_screen.dart';
+import 'package:staylit/presentation/screens/progress_screen.dart';
+import 'package:staylit/presentation/widgets/design/black_bottom_nav.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedIndex = 0;
 
   // Lazily built so tabs the user never opens don't pay init/network cost.
@@ -21,22 +25,55 @@ class _HomeScreenState extends State<HomeScreen> {
     _buildFocus,
     _buildGroup,
     _buildBlocks,
-    _buildUsage,
-    _buildInsights,
+    _buildProgress,
   ];
   final List<Widget?> _screens = List.filled(_screenBuilders.length, null);
+
+  // Same order as _screenBuilders.
+  static const _navItems = <BottomNavItem>[
+    BottomNavItem(
+      icon: Icons.home_outlined,
+      selectedIcon: Icons.home_rounded,
+      label: 'Focus',
+    ),
+    BottomNavItem(
+      icon: Icons.groups_outlined,
+      selectedIcon: Icons.groups,
+      label: 'Groups',
+    ),
+    BottomNavItem(
+      icon: Icons.shield_outlined,
+      selectedIcon: Icons.shield_rounded,
+      label: 'Blocks',
+    ),
+    BottomNavItem(
+      icon: Icons.insights_outlined,
+      selectedIcon: Icons.insights_rounded,
+      label: 'Progress',
+    ),
+  ];
 
   static Widget _buildFocus(BuildContext _) => const FocusScreen();
   static Widget _buildGroup(BuildContext _) => const GroupScreen();
   static Widget _buildBlocks(BuildContext _) => const BlocksScreen();
-  static Widget _buildUsage(BuildContext _) => const UsageStatsScreen();
-  static Widget _buildInsights(BuildContext _) => const InsightsScreen();
+  static Widget _buildProgress(BuildContext _) => const ProgressScreen();
 
   @override
   Widget build(BuildContext context) {
+    // A tab can ask the shell to switch (e.g. Home -> Blocks).
+    ref.listen<int?>(homeTabRequestProvider, (_, tab) {
+      if (tab == null) return;
+      setState(() => _selectedIndex = tab);
+      ref.read(homeTabRequestProvider.notifier).clear();
+    });
+
     _screens[_selectedIndex] ??= _screenBuilders[_selectedIndex](context);
+    final palette = context.palette;
 
     return Scaffold(
+      // The near-black behind the content shows through the content's rounded
+      // bottom corners, which is what makes the nav bar read as a separate bar.
+      backgroundColor: palette.ink,
       // Keyboard viewInsets are a single global window value - every
       // Scaffold in the tree reacts to them by default, not just the one
       // actually hosting the focused field. Modal sheets opened above this
@@ -44,61 +81,29 @@ class _HomeScreenState extends State<HomeScreen> {
       // keyboard inset manually, so this base Scaffold reacting too was
       // redundant - it made the tab behind the sheet visibly shift/resize
       // whenever a text field inside the sheet got focus. Tabs that do need
-      // resize-avoidance for their own inline fields (UsageStatsScreen) have
-      // their own nested Scaffold, so they're unaffected by this.
+      // resize-avoidance for their own inline fields have their own nested
+      // Scaffold, so they're unaffected by this.
       resizeToAvoidBottomInset: false,
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          for (var i = 0; i < _screens.length; i++)
-            _screens[i] ?? const SizedBox.shrink(),
-        ],
+      body: ClipRRect(
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(AppRadius.card),
+        ),
+        child: ColoredBox(
+          color: palette.canvas,
+          child: IndexedStack(
+            index: _selectedIndex,
+            children: [
+              for (var i = 0; i < _screens.length; i++)
+                _screens[i] ?? const SizedBox.shrink(),
+            ],
+          ),
+        ),
       ),
 
-      // USING MATERIAL 3 NAVIGATION BAR
-      // This matches the 'navigationBarTheme' in your AppTheme file
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: Colors.transparent,
-        indicatorColor: Colors.transparent, // 🔥 removes shine
-        surfaceTintColor: Colors.transparent, // 🔥 removes overlay tint
+      bottomNavigationBar: BlackBottomNav(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        destinations: const [
-          // Index 0
-          NavigationDestination(
-            icon: Icon(Icons.center_focus_strong_outlined),
-            selectedIcon: Icon(Icons.center_focus_strong),
-            label: 'Focus',
-          ),
-          // Index 1
-          NavigationDestination(
-            icon: Icon(Icons.group_outlined),
-            selectedIcon: Icon(Icons.group),
-            label: 'Groups',
-          ),
-          // Index 2
-          NavigationDestination(
-            icon: Icon(Icons.block_outlined),
-            selectedIcon: Icon(Icons.block),
-            label: 'Blocks',
-          ),
-          // Index 3
-          NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            selectedIcon: Icon(Icons.bar_chart),
-            label: 'Usage',
-          ),
-          // Index 4
-          NavigationDestination(
-            icon: Icon(Icons.insights_outlined),
-            selectedIcon: Icon(Icons.insights),
-            label: 'Insights',
-          ),
-        ],
+        onSelected: (index) => setState(() => _selectedIndex = index),
+        items: _navItems,
       ),
     );
   }

@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pace/core/constants/images.dart';
-import 'package:pace/core/router/app_router.dart' show profileRoute , activeSessionRoute;
-import 'package:pace/models/focus_time_bottom_model.dart';
-import 'package:pace/models/model_manager.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/presentation/providers/focus_session_provider.dart';
-import 'package:pace/presentation/providers/blocked_content_provider.dart';
-import 'package:pace/presentation/providers/settings_provider.dart';
-import 'package:pace/presentation/providers/background_image_provider.dart';
-import 'package:pace/presentation/providers/usage_stats_provider.dart';
-import 'package:pace/widgets/focus_timer_widget.dart';
-import 'package:pace/widgets/lumo_mascot_widget.dart';
-import 'package:pace/widgets/background_image_selector.dart';
-import 'dart:math';
+import 'package:staylit/core/router/app_router.dart'
+    show profileRoute, activeSessionRoute;
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/data/models/user_model.dart';
+import 'package:staylit/data/models/user_settings_model.dart';
+import 'package:staylit/models/focus_time_bottom_model.dart';
+import 'package:staylit/models/model_manager.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/presentation/providers/blocked_content_provider.dart';
+import 'package:staylit/presentation/providers/daily_stats_provider.dart';
+import 'package:staylit/presentation/providers/focus_session_provider.dart';
+import 'package:staylit/presentation/providers/home_tab_provider.dart';
+import 'package:staylit/presentation/providers/permission_provider.dart';
+import 'package:staylit/presentation/providers/settings_provider.dart';
+import 'package:staylit/presentation/providers/usage_stats_provider.dart';
+import 'package:staylit/presentation/screens/focus/focus_home_data.dart';
+import 'package:staylit/presentation/screens/focus/focus_home_view.dart';
+import 'package:staylit/presentation/screens/focus/today_buckets.dart';
+import 'package:staylit/presentation/widgets/goal_sheet.dart';
+import 'package:staylit/presentation/widgets/scroll_damage_sheet.dart';
 
 class FocusScreen extends ConsumerStatefulWidget {
   const FocusScreen({super.key});
@@ -24,31 +30,6 @@ class FocusScreen extends ConsumerStatefulWidget {
 }
 
 class _FocusScreenState extends ConsumerState<FocusScreen> {
-  // List of motivational quotes
-  final List<String> _quotes = [
-    "Stay committed to your decisions, but stay flexible in your approach.",
-    "Concentrate all your thoughts upon the work in hand.",
-    "The successful warrior is the average man, with laser-like focus.",
-    "Lack of direction, not lack of time, is the problem.",
-    "Focus on being productive instead of busy.",
-    "The ability to focus is the key skill of the 21st century.",
-    "Success demands singleness of purpose.",
-  ];
-
-  int _currentQuoteIndex = -1;
-  final Random _random = Random();
-
-  // Function to change quotes when Lumo is tapped
-  void _changeQuote() {
-    setState(() {
-      int newIndex;
-      do {
-        newIndex = _random.nextInt(_quotes.length);
-      } while (newIndex == _currentQuoteIndex && _quotes.length > 1);
-      _currentQuoteIndex = newIndex;
-    });
-  }
-
   // Show focus mode modal and handle session creation
   void _showFocusModeModal() {
     BottomSheetManager.show(
@@ -59,15 +40,6 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
           await _startFocusSession();
         },
       ),
-    );
-  }
-
-  // Show background image selector modal
-  void _showBackgroundSelector() {
-    BottomSheetManager.show(
-      context: context,
-      height: MediaQuery.of(context).size.height * 0.8,
-      child: const BackgroundImageSelector(),
     );
   }
 
@@ -129,11 +101,126 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to start focus session: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: context.palette.error,
           ),
         );
       }
     }
+  }
+
+  /// Explains Scroll damage and saves the on/off choice to the user's settings.
+  void _showScrollDamageSheet(String userId, UserSettingsModel? settings) {
+    final accessibilityGranted = ref
+        .read(permissionProvider)
+        .accessibilityPermission;
+
+    Future<void> save(bool enabled) async {
+      if (settings == null) return;
+      try {
+        await ref
+            .read(settingsRepositoryProvider)
+            .updateSettings(
+              userId,
+              settings.copyWith(scrollDamageEnabled: enabled),
+            );
+      } catch (e) {
+        debugPrint('Error saving scroll damage setting: $e');
+      }
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => ScrollDamageSheet(
+        enabled: settings?.scrollDamageEnabled ?? false,
+        accessibilityGranted: accessibilityGranted,
+        onClose: () => Navigator.pop(sheetContext),
+        onTurnOn: () {
+          Navigator.pop(sheetContext);
+          save(true);
+        },
+        onTurnOff: () {
+          Navigator.pop(sheetContext);
+          save(false);
+        },
+        onAllowAccessibility: () async {
+          Navigator.pop(sheetContext);
+          await ref
+              .read(permissionProvider.notifier)
+              .requestAccessibilityPermission();
+        },
+      ),
+    );
+  }
+
+  /// Opens the goal picker and saves the choice to the user's settings.
+  Future<void> _editGoal(String userId, UserSettingsModel? settings) async {
+    final chosen = await showGoalSheet(
+      context,
+      initialMinutes:
+          settings?.dailyGoalMinutes ??
+          UserSettingsModel.defaultDailyGoalMinutes,
+    );
+    if (chosen == null || settings == null) return;
+    try {
+      await ref
+          .read(settingsRepositoryProvider)
+          .updateSettings(userId, settings.copyWith(dailyGoalMinutes: chosen));
+    } catch (e) {
+      debugPrint('Error saving daily goal: $e');
+    }
+  }
+
+  static String _modeLabel(String mode) => switch (mode) {
+    'timer' => 'Timer',
+    'stopwatch' => 'Stopwatch',
+    'pomodoro' => 'Pomodoro',
+    _ =>
+      mode.isEmpty ? 'Timer' : '${mode[0].toUpperCase()}${mode.substring(1)}',
+  };
+
+  FocusHomeData _homeData(UserModel user) {
+    final settings = ref.watch(userSettingsProvider(user.uid)).value;
+    final week = ref.watch(weekStatsProvider(user.uid)).value;
+    final streak = ref.watch(streakProvider(user.uid)).value;
+    final sessions = ref.watch(todaySessionsProvider(user.uid)).value ?? [];
+    final blocked = ref.watch(blockedContentProvider(user.uid)).value;
+    final usage = ref.watch(todayUsageStatsProvider);
+
+    final todayMinutes = week != null && week.isNotEmpty
+        ? week.last.focusMinutes
+        : 0;
+    final blockedCount = blocked?.permanentlyBlockedApps.length ?? 0;
+    final duration = settings?.defaultDuration ?? 25;
+    final now = DateTime.now();
+
+    final apps = blockedCount == 0
+        ? 'No apps blocked'
+        : '$blockedCount ${blockedCount == 1 ? 'app' : 'apps'} blocked';
+
+    return FocusHomeData(
+      firstName: user.firstName,
+      photoUrl: user.photoURL,
+      usageText: usage.when(
+        data: (stats) => stats.formattedTotalTimeExcludingSelf,
+        loading: () => '...',
+        error: (_, _) => '0m',
+      ),
+      goalMinutes:
+          settings?.dailyGoalMinutes ??
+          UserSettingsModel.defaultDailyGoalMinutes,
+      todayMinutes: todayMinutes,
+      todayBuckets: bucketTodayMinutes([
+        for (final s in sessions)
+          if (s.actualDuration != null)
+            (start: s.startTime, minutes: s.actualDuration!),
+      ], day: now),
+      currentBucket: currentBucket(now),
+      setupLabel:
+          '${_modeLabel(settings?.timerMode ?? 'timer')} · $duration min · $apps',
+      streak: streak?.current ?? 0,
+      scrollEnabled: settings?.scrollDamageEnabled ?? false,
+    );
   }
 
   @override
@@ -146,294 +233,28 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
           return const Center(child: Text('Please login first'));
         }
 
-        return Stack(
-          children: [
-            // 1. Background Image Layer - Now using dynamic background
-            Positioned.fill(
-              child: Consumer(
-                builder: (context, ref, child) {
-                  final currentBackground = ref.watch(
-                    currentBackgroundImageProvider,
-                  );
-                  return Image.asset(
-                    currentBackground,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      // Fallback to default if image fails to load
-                      return Image.asset(
-                        kHomeBackgroundImage,
-                        fit: BoxFit.cover,
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-
-            // 2. Transparent InkWell & Column Layer
-            Positioned.fill(
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {},
-                  onLongPress: _showBackgroundSelector,
-                  splashColor: Colors.white.withAlpha(30),
-                  highlightColor: Colors.white.withAlpha(10),
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Custom Header
-                          _buildHeader(context, user),
-
-                          const SizedBox(height: 100),
-
-                          // Focus Timer Widget - now handles its own settings
-                          FocusTimerWidget(onTap: _showFocusModeModal),
-
-                          const Spacer(),
-
-                          // Quotation Card
-                          if (_currentQuoteIndex > -1) _buildQuoteCard(),
-
-                          const SizedBox(height: 10),
-
-                          // Lumo Mascot - Tap to change quote
-                          LumoMascotWidget(onTap: _changeQuote),
-
-                          const SizedBox(height: 50),
-
-                          // Start Focus Mode Button
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: _showFocusModeModal,
-                              style: ElevatedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(100),
-                                ),
-                              ),
-                              child: const Text('Start focus mode'),
-                            ),
-                          ),
-
-                          const SizedBox(height: 5),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+        return FocusHomeView(
+          data: _homeData(user),
+          onProfile: () => context.push(profileRoute),
+          onEditGoal: () => _editGoal(
+            user.uid,
+            ref.read(userSettingsProvider(user.uid)).value,
+          ),
+          onSetup: _showFocusModeModal,
+          onStart: _showFocusModeModal,
+          onScrollDamage: () => _showScrollDamageSheet(
+            user.uid,
+            ref.read(userSettingsProvider(user.uid)).value,
+          ),
+          onSeeAll: () => ref
+              .read(homeTabRequestProvider.notifier)
+              .request(HomeTab.progress),
         );
       },
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (_, _) =>
           const Scaffold(body: Center(child: Text('Error loading user data'))),
-    );
-  }
-
-  // Quotation Card Widget
-  Widget _buildQuoteCard() {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
-      transitionBuilder: (Widget child, Animation<double> animation) {
-        return FadeTransition(
-          opacity: animation,
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 0.1),
-              end: Offset.zero,
-            ).animate(animation),
-            child: child,
-          ),
-        );
-      },
-      child: Container(
-        key: ValueKey<int>(_currentQuoteIndex),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor.withAlpha(60),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.format_quote,
-              color: Colors.white.withValues(alpha: 0.6),
-              size: 24,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                _quotes[_currentQuoteIndex],
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: 14,
-                  fontStyle: FontStyle.italic,
-                  height: 1.4,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Icon(
-              Icons.format_quote,
-              color: Colors.white.withValues(alpha: 0.6),
-              size: 24,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context, user) {
-    return Row(
-      children: [
-        // User Profile Avatar
-        GestureDetector(
-          onTap: () => context.push(profileRoute),
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.3),
-                width: 1.5,
-              ),
-            ),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: Colors.white.withValues(alpha: 0.2),
-              backgroundImage: user.photoURL != null
-                  ? NetworkImage(user.photoURL!)
-                  : null,
-              child: user.photoURL == null
-                  ? Text(
-                      user.firstName[0].toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
-                  : null,
-            ),
-          ),
-        ),
-
-        const Spacer(),
-
-        // Usage Time Card - Using today's usage stats (excluding pace app)
-        Consumer(
-          builder: (context, ref, child) {
-            final todayUsageAsync = ref.watch(todayUsageStatsProvider);
-
-            return todayUsageAsync.when(
-              data: (usageStats) {
-                return _buildStatCard(
-                  label: 'Usage',
-                  value: usageStats.formattedTotalTimeExcludingSelf,
-                  backgroundColor: Colors.white.withValues(alpha: 0.15),
-                );
-              },
-              loading: () => _buildStatCard(
-                label: 'Usage',
-                value: '...',
-                backgroundColor: Colors.white.withValues(alpha: 0.15),
-              ),
-              error: (_, _) => _buildStatCard(
-                label: 'Usage',
-                value: '0m',
-                backgroundColor: Colors.white.withValues(alpha: 0.15),
-              ),
-            );
-          },
-        ),
-
-        const Spacer(),
-
-        // Streak/Action Icon
-        GestureDetector(
-          onTap: () {
-            // Open settings, notifications, or streak details
-          },
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Theme.of(context).focusColor,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.local_fire_department,
-                  color: Colors.white,
-                  size: 16,
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  '${user.currentStreak}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard({
-    required String label,
-    required String value,
-    required Color backgroundColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 5),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
-              fontSize: 9,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 1),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

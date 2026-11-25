@@ -1,21 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:pace/core/theme/app_theme.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/presentation/providers/app_limits_provider.dart';
-import 'package:pace/presentation/providers/blocked_content_provider.dart';
-import 'package:pace/presentation/providers/permission_provider.dart';
-import 'package:pace/presentation/providers/parental_control_provider.dart';
-import 'package:pace/data/models/blocked_content_model.dart';
-import 'package:pace/data/models/app_limit_model.dart';
-import 'package:pace/services/blocks_native_service.dart';
-import 'package:pace/services/app_limit_native_service.dart';
-import 'package:pace/services/native_service.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/presentation/providers/app_limits_provider.dart';
+import 'package:staylit/presentation/providers/blocked_content_provider.dart';
+import 'package:staylit/presentation/providers/permission_provider.dart';
+import 'package:staylit/presentation/providers/parental_control_provider.dart';
+import 'package:staylit/data/models/blocked_content_model.dart';
+import 'package:staylit/data/models/app_limit_model.dart';
+import 'package:staylit/services/blocks_native_service.dart';
+import 'package:staylit/services/app_limit_native_service.dart';
+import 'package:staylit/services/native_service.dart';
 import 'package:installed_apps/installed_apps.dart';
 import 'package:installed_apps/app_info.dart';
-import 'package:pace/widgets/parental_control_dialogs.dart';
+import 'package:staylit/widgets/parental_control_dialogs.dart';
+
 import 'dart:async';
+
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/core/constants/app_info.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/presentation/providers/app_management_provide.dart'
+    show appIconProvider;
+import 'package:staylit/presentation/widgets/design/app_icon_badge.dart';
+import 'package:staylit/presentation/widgets/design/app_limit_card.dart';
+import 'package:staylit/presentation/widgets/design/app_pill_button.dart';
+import 'package:staylit/presentation/widgets/design/icon_circle_button.dart';
+import 'package:staylit/presentation/widgets/design/limit_setup_sheet.dart';
 
 // Standalone permission check function accessible by all widgets
 Future<bool> _checkAndRequestPermissions(
@@ -37,18 +48,18 @@ Future<bool> _checkAndRequestPermissions(
       final shouldRequest = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: AppColors.surface,
+          backgroundColor: context.palette.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
-          title: const Text(
+          title: Text(
             'Accessibility Permission Required',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: context.palette.onCanvas),
           ),
-          content: const Text(
+          content: Text(
             'This feature requires Accessibility Service to block content.\n\n'
-            'Please enable "Pace" in Accessibility settings.',
-            style: TextStyle(color: Colors.white70),
+            'Please enable "$kAppName" in Accessibility settings.',
+            style: TextStyle(color: context.palette.onCanvasSecondary),
           ),
           actions: [
             TextButton(
@@ -56,16 +67,19 @@ Future<bool> _checkAndRequestPermissions(
                 debugPrint('🔐 User cancelled permission request');
                 Navigator.pop(context, false);
               },
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: context.palette.onCanvasMuted),
+              ),
             ),
             TextButton(
               onPressed: () {
                 debugPrint('🔐 User accepted - opening settings');
                 Navigator.pop(context, true);
               },
-              child: const Text(
+              child: Text(
                 'Open Settings',
-                style: TextStyle(color: AppColors.accent),
+                style: TextStyle(color: context.palette.accentText),
               ),
             ),
           ],
@@ -106,39 +120,50 @@ Future<bool> _checkAndRequestUsageStatsPermission(BuildContext context) async {
     final shouldRequest = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.access_time, color: AppColors.accent, size: 28),
+            Icon(
+              Icons.access_time,
+              color: context.palette.accentText,
+              size: 28,
+            ),
             SizedBox(width: 12),
             Expanded(
               child: Text(
                 'Usage Access Required',
-                style: TextStyle(color: Colors.white, fontSize: 18),
+                style: TextStyle(color: context.palette.onCanvas, fontSize: 18),
               ),
             ),
           ],
         ),
-        content: const Text(
+        content: Text(
           'App Limits require Usage Access permission to track how long you use apps.\n\n'
-          'This permission allows Pace to:\n'
+          'This permission allows $kAppName to:\n'
           '• Monitor app usage time\n'
           '• Enforce daily limits\n'
           '• Show accurate usage statistics\n\n'
           'Please grant "Usage Access" in the next screen.',
-          style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+          style: TextStyle(
+            color: context.palette.onCanvasSecondary,
+            fontSize: 14,
+            height: 1.5,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: context.palette.onCanvasMuted),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent,
-              foregroundColor: Colors.white,
+              backgroundColor: context.palette.accent,
+              foregroundColor: context.palette.onAccent,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -220,16 +245,16 @@ class _BlocksScreenState extends ConsumerState<BlocksScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Row(
           children: [
-            Icon(Icons.block, color: Colors.red, size: 32),
+            Icon(Icons.block, color: context.palette.error, size: 32),
             SizedBox(width: 12),
             Expanded(
               child: Text(
                 'Time Limit Reached',
-                style: TextStyle(color: Colors.white, fontSize: 20),
+                style: TextStyle(color: context.palette.onCanvas, fontSize: 20),
               ),
             ),
           ],
@@ -239,13 +264,16 @@ class _BlocksScreenState extends ConsumerState<BlocksScreen> {
           children: [
             Text(
               'You\'ve reached your daily time limit for this app.',
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+              style: TextStyle(
+                color: context.palette.onCanvasSecondary,
+                fontSize: 16,
+              ),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 16),
             Text(
               'Take a break and focus on your goals! 🎯',
-              style: TextStyle(color: AppColors.accent, fontSize: 14),
+              style: TextStyle(color: context.palette.accentText, fontSize: 14),
               textAlign: TextAlign.center,
             ),
           ],
@@ -255,7 +283,7 @@ class _BlocksScreenState extends ConsumerState<BlocksScreen> {
             onPressed: () => Navigator.pop(context),
             child: Text(
               'OK',
-              style: TextStyle(color: AppColors.accent, fontSize: 16),
+              style: TextStyle(color: context.palette.accentText, fontSize: 16),
             ),
           ),
         ],
@@ -296,30 +324,33 @@ class _BlocksScreenState extends ConsumerState<BlocksScreen> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.block, color: Colors.white),
+            Icon(Icons.block, color: context.palette.onCanvas),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     '🚫 Website Blocked',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: context.palette.onCanvas,
                     ),
                   ),
                   Text(
                     '$url in $appName',
-                    style: const TextStyle(fontSize: 12, color: Colors.white70),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.palette.onCanvasSecondary,
+                    ),
                   ),
                 ],
               ),
             ),
           ],
         ),
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -343,43 +374,32 @@ class _BlocksScreenState extends ConsumerState<BlocksScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            // Header
-            SliverAppBar(
-              floating: true,
-              pinned: true,
-              title: const Text(
-                'Blocks',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              surfaceTintColor: Colors.transparent,
-            ),
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            AppSpacing.lg,
+            AppSpacing.xl,
+            AppSpacing.xxxl,
+          ),
+          children: [
+            Text('Blocks', style: Theme.of(context).textTheme.displaySmall),
+            const SizedBox(height: AppSpacing.xl),
 
-            // Content
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  // 1. App Limits
-                  _AppLimitsSection(userId: user.uid),
-                  const SizedBox(height: 24),
+            // 1. App Limits
+            _AppLimitsSection(userId: user.uid),
+            const SizedBox(height: AppSpacing.xxxl),
 
-                  // 2. Short Form Content
-                  _ShortFormBlocksSection(userId: user.uid),
-                  const SizedBox(height: 24),
+            // 2. Short Form Content
+            _ShortFormBlocksSection(userId: user.uid),
+            const SizedBox(height: AppSpacing.xxxl),
 
-                  // 3. Website Blocking
-                  _WebsiteBlockingSection(userId: user.uid),
-                  const SizedBox(height: 24),
+            // 3. Website Blocking
+            _WebsiteBlockingSection(userId: user.uid),
+            const SizedBox(height: AppSpacing.xxxl),
 
-                  // 4. Notifications
-                  _NotificationBlockingSection(userId: user.uid),
-                  const SizedBox(height: 100), // Bottom padding for scrolling
-                ]),
-              ),
-            ),
+            // 4. Notifications
+            _NotificationBlockingSection(userId: user.uid),
           ],
         ),
       ),
@@ -442,11 +462,11 @@ class _AppLimitsSection extends ConsumerWidget {
     if (!hasUsagePermission) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
               '⚠️ Usage Access permission is required for app limits',
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: context.palette.error,
             duration: Duration(seconds: 3),
           ),
         );
@@ -455,8 +475,10 @@ class _AppLimitsSection extends ConsumerWidget {
     }
 
     if (!context.mounted) return;
-    await showDialog(
+    await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
       builder: (context) => const _AppSelectionDialog(),
     );
   }
@@ -474,7 +496,6 @@ class _AppLimitTile extends ConsumerStatefulWidget {
 
 class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
   int _currentUsage = 0;
-  bool _isLoadingUsage = false;
 
   @override
   void initState() {
@@ -510,185 +531,29 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
   Future<void> _loadUsage() async {
     if (!widget.limit.isActive) return;
 
-    setState(() => _isLoadingUsage = true);
     try {
       final nativeService = AppLimitNativeService();
       final usage = await nativeService.getTodayUsage(widget.limit.packageName);
       if (mounted) {
-        setState(() {
-          _currentUsage = usage;
-          _isLoadingUsage = false;
-        });
+        setState(() => _currentUsage = usage);
       }
     } catch (e) {
       debugPrint('Error loading usage: $e');
-      if (mounted) {
-        setState(() => _isLoadingUsage = false);
-      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final progress = widget.limit.dailyLimit > 0
-        ? (_currentUsage / widget.limit.dailyLimit).clamp(0.0, 1.0)
-        : 0.0;
-    final remainingMinutes = (widget.limit.dailyLimit - _currentUsage).clamp(
-      0,
-      widget.limit.dailyLimit,
-    );
-    final isNearLimit = progress >= 0.75;
-    final isExceeded = progress >= 1.0;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isExceeded
-              ? Colors.red.withValues(alpha: 0.3)
-              : isNearLimit
-              ? Colors.orange.withValues(alpha: 0.3)
-              : Colors.white.withValues(alpha: 0.05),
-        ),
-      ),
-      child: Column(
-        children: [
-          ListTile(
-            contentPadding: const EdgeInsets.fromLTRB(16, 8, 12, 4),
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isExceeded
-                    ? Colors.red.withValues(alpha: 0.1)
-                    : isNearLimit
-                    ? Colors.orange.withValues(alpha: 0.1)
-                    : Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                isExceeded ? Icons.block : Icons.timer,
-                color: isExceeded
-                    ? Colors.red
-                    : isNearLimit
-                    ? Colors.orange
-                    : Colors.white70,
-              ),
-            ),
-            title: Text(
-              widget.limit.appName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            subtitle: widget.limit.isActive
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text(
-                        isExceeded
-                            ? 'Limit exceeded'
-                            : '$remainingMinutes min remaining',
-                        style: TextStyle(
-                          color: isExceeded
-                              ? Colors.red
-                              : isNearLimit
-                              ? Colors.orange
-                              : Colors.white.withValues(alpha: 0.5),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  )
-                : Text(
-                    'Inactive',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
-                    ),
-                  ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (widget.limit.isActive) ...[
-                  IconButton(
-                    icon: Icon(
-                      Icons.refresh,
-                      color: Colors.white.withValues(alpha: 0.4),
-                      size: 20,
-                    ),
-                    onPressed: _isLoadingUsage ? null : _loadUsage,
-                  ),
-                ],
-                Transform.scale(
-                  scale: 0.8,
-                  child: Switch(
-                    value: widget.limit.isActive,
-                    activeThumbColor: AppColors.accent,
-                    activeTrackColor: const Color(
-                      0xFF82D65D,
-                    ).withValues(alpha: 0.3),
-                    inactiveTrackColor: Colors.grey.withValues(alpha: 0.2),
-                    onChanged: (value) => _handleToggle(value),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: Colors.white.withValues(alpha: 0.4),
-                  ),
-                  onPressed: () => _showOptionsMenu(context),
-                ),
-              ],
-            ),
-          ),
-          if (widget.limit.isActive) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '$_currentUsage min',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          fontSize: 11,
-                        ),
-                      ),
-                      Text(
-                        '${widget.limit.dailyLimit} min',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 6,
-                      backgroundColor: Colors.white.withValues(alpha: 0.1),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        isExceeded
-                            ? Colors.red
-                            : isNearLimit
-                            ? Colors.orange
-                            : AppColors.accent,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: AppLimitCard(
+        appName: widget.limit.appName,
+        usedMinutes: _currentUsage,
+        limitMinutes: widget.limit.dailyLimit,
+        isActive: widget.limit.isActive,
+        onToggle: _handleToggle,
+        onMenu: () => _showOptionsMenu(context),
+        icon: ref.watch(appIconProvider(widget.limit.packageName)).value,
       ),
     );
   }
@@ -733,9 +598,9 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
           if (verified != true) {
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                 content: Text('❌ Incorrect PIN or cancelled'),
-                backgroundColor: Colors.red,
+                backgroundColor: context.palette.error,
                 duration: Duration(seconds: 2),
               ),
             );
@@ -766,7 +631,7 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
                 ? '✅ ${widget.limit.appName} limit enabled'
                 : '🔓 ${widget.limit.appName} limit disabled',
           ),
-          backgroundColor: AppColors.surface,
+          backgroundColor: context.palette.surface,
           duration: const Duration(seconds: 2),
         ),
       );
@@ -774,9 +639,9 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
       debugPrint('Error toggling limit: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Failed to update limit'),
-          backgroundColor: Colors.red,
+          backgroundColor: context.palette.error,
         ),
       );
     }
@@ -785,7 +650,7 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
   void _showOptionsMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -794,10 +659,13 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.edit, color: Colors.white70),
-              title: const Text(
+              leading: Icon(
+                Icons.edit,
+                color: context.palette.onCanvasSecondary,
+              ),
+              title: Text(
                 'Edit Limit',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: context.palette.onCanvas),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -805,10 +673,10 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text(
+              leading: Icon(Icons.delete, color: context.palette.error),
+              title: Text(
                 'Remove Limit',
-                style: TextStyle(color: Colors.red),
+                style: TextStyle(color: context.palette.error),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -829,21 +697,23 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
           'Edit ${widget.limit.appName}',
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: context.palette.onCanvas),
         ),
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: context.palette.onCanvas),
           decoration: InputDecoration(
             labelText: 'Daily limit (minutes)',
-            labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+            labelStyle: TextStyle(
+              color: context.palette.onCanvas.withValues(alpha: 0.6),
+            ),
             filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.05),
+            fillColor: context.palette.onCanvas.withValues(alpha: 0.05),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -853,7 +723,10 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: context.palette.onCanvasMuted),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -875,9 +748,9 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
                         content: Text('✅ Limit updated'),
-                        backgroundColor: AppColors.surface,
+                        backgroundColor: context.palette.surface,
                       ),
                     );
                   }
@@ -886,10 +759,10 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
                 }
               }
             },
-            child: const Text(
+            child: Text(
               'Save',
               style: TextStyle(
-                color: AppColors.accent,
+                color: context.palette.accentText,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -903,20 +776,23 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text(
+        title: Text(
           'Remove Limit?',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: context.palette.onCanvas),
         ),
         content: Text(
           'Remove limit for ${widget.limit.appName}?',
-          style: const TextStyle(color: Colors.white70),
+          style: TextStyle(color: context.palette.onCanvasSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: context.palette.onCanvasMuted),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -934,7 +810,7 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('✅ ${widget.limit.appName} limit removed'),
-                      backgroundColor: AppColors.surface,
+                      backgroundColor: context.palette.surface,
                     ),
                   );
                 }
@@ -942,9 +818,12 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
                 debugPrint('Error removing limit: $e');
               }
             },
-            child: const Text(
+            child: Text(
               'Remove',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: context.palette.error,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -990,6 +869,7 @@ class _ShortFormBlocksSection extends ConsumerWidget {
                 title: 'YouTube Shorts',
                 subtitle: 'Block Shorts shelf & feed',
                 icon: Icons.play_circle_outline,
+                packages: const ['com.google.android.youtube'],
                 isBlocked: blocks['YouTube_Shorts']?.isBlocked ?? false,
                 onChanged: (value) => _updateBlock(
                   context,
@@ -1004,6 +884,7 @@ class _ShortFormBlocksSection extends ConsumerWidget {
                 title: 'Instagram Reels',
                 subtitle: 'Block Reels tab & feed',
                 icon: Icons.camera_alt_outlined,
+                packages: const ['com.instagram.android'],
                 isBlocked: blocks['Instagram_Reels']?.isBlocked ?? false,
                 onChanged: (value) => _updateBlock(
                   context,
@@ -1018,6 +899,10 @@ class _ShortFormBlocksSection extends ConsumerWidget {
                 title: 'TikTok',
                 subtitle: 'Block app entirely',
                 icon: Icons.music_note_outlined,
+                packages: const [
+                  'com.zhiliaoapp.musically',
+                  'com.ss.android.ugc.trill',
+                ],
                 isBlocked: blocks['TikTok_Videos']?.isBlocked ?? false,
                 onChanged: (value) => _updateBlock(
                   context,
@@ -1032,6 +917,7 @@ class _ShortFormBlocksSection extends ConsumerWidget {
                 title: 'Facebook Reels',
                 subtitle: 'Block Reels section',
                 icon: Icons.facebook_outlined,
+                packages: const ['com.facebook.katana', 'com.facebook.lite'],
                 isBlocked: blocks['Facebook_Reels']?.isBlocked ?? false,
                 onChanged: (value) => _updateBlock(
                   context,
@@ -1067,11 +953,11 @@ class _ShortFormBlocksSection extends ConsumerWidget {
         // Don't update if permissions not granted
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
                 '⚠️ Accessibility permission required to block content',
               ),
-              backgroundColor: Colors.orange,
+              backgroundColor: context.palette.warning,
               duration: Duration(seconds: 3),
             ),
           );
@@ -1121,9 +1007,9 @@ class _ShortFormBlocksSection extends ConsumerWidget {
           if (verified != true) {
             if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                 content: Text('❌ Incorrect PIN or cancelled'),
-                backgroundColor: Colors.red,
+                backgroundColor: context.palette.error,
                 duration: Duration(seconds: 2),
               ),
             );
@@ -1167,7 +1053,7 @@ class _ShortFormBlocksSection extends ConsumerWidget {
                   ? '🚫 $platform $feature blocked'
                   : '✅ $platform $feature unblocked',
             ),
-            backgroundColor: AppColors.surface,
+            backgroundColor: context.palette.surface,
             duration: const Duration(seconds: 2),
           ),
         );
@@ -1179,7 +1065,7 @@ class _ShortFormBlocksSection extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to update $platform $feature'),
-            backgroundColor: Colors.red,
+            backgroundColor: context.palette.error,
             duration: const Duration(seconds: 2),
           ),
         );
@@ -1195,10 +1081,14 @@ class _ShortFormToggle extends StatefulWidget {
   final bool isBlocked;
   final ValueChanged<bool> onChanged;
 
+  /// Android packages of the platform, used to show its real launcher icon.
+  final List<String> packages;
+
   const _ShortFormToggle({
     required this.title,
     required this.subtitle,
     required this.icon,
+    required this.packages,
     required this.isBlocked,
     required this.onChanged,
   });
@@ -1255,31 +1145,31 @@ class _ShortFormToggleState extends State<_ShortFormToggle> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        color: context.palette.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: SwitchListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        secondary: Icon(
-          widget.icon,
-          color: displayValue ? AppColors.accent : Colors.grey,
+        secondary: _PlatformIcon(
+          name: widget.title,
+          packages: widget.packages,
+          fallback: _RuleIcon(icon: widget.icon, active: displayValue),
+          dimmed: !displayValue,
         ),
         title: Text(
           widget.title,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: context.palette.onCanvas,
             fontWeight: FontWeight.w500,
           ),
         ),
         subtitle: Text(
           widget.subtitle,
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+          style: TextStyle(
+            color: context.palette.onCanvas.withValues(alpha: 0.5),
+          ),
         ),
         value: displayValue,
-        activeThumbColor: AppColors.accent,
-        activeTrackColor: AppColors.accent.withValues(alpha: 0.3),
-        inactiveTrackColor: Colors.grey.withValues(alpha: 0.2),
         onChanged: _isUpdating
             ? null
             : (value) {
@@ -1378,29 +1268,29 @@ class _WebsiteBlockingSection extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text(
+        title: Text(
           'Block Website',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: context.palette.onCanvas),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: context.palette.onCanvas),
               decoration: InputDecoration(
                 labelText: 'Website Name',
                 hintText: 'e.g. Facebook',
                 labelStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: context.palette.onCanvas.withValues(alpha: 0.6),
                 ),
                 hintStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.3),
+                  color: context.palette.onCanvas.withValues(alpha: 0.3),
                 ),
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
+                fillColor: context.palette.onCanvas.withValues(alpha: 0.05),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -1410,18 +1300,18 @@ class _WebsiteBlockingSection extends ConsumerWidget {
             const SizedBox(height: 12),
             TextField(
               controller: urlController,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: context.palette.onCanvas),
               decoration: InputDecoration(
                 labelText: 'Website URL',
                 hintText: 'e.g. facebook.com',
                 labelStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: context.palette.onCanvas.withValues(alpha: 0.6),
                 ),
                 hintStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.3),
+                  color: context.palette.onCanvas.withValues(alpha: 0.3),
                 ),
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
+                fillColor: context.palette.onCanvas.withValues(alpha: 0.05),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -1433,11 +1323,15 @@ class _WebsiteBlockingSection extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: context.palette.onCanvasMuted),
+            ),
           ),
           TextButton(
             onPressed: () async {
-              final url = urlController.text.trim();
+              // Native and Firestore both store the bare host.
+              final url = normalizeBlockedHost(urlController.text);
               final name = nameController.text.trim();
               if (url.isNotEmpty && name.isNotEmpty) {
                 // Check permissions first
@@ -1476,7 +1370,7 @@ class _WebsiteBlockingSection extends ConsumerWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('✅ $name blocked'),
-                        backgroundColor: AppColors.surface,
+                        backgroundColor: context.palette.surface,
                       ),
                     );
                   }
@@ -1484,19 +1378,19 @@ class _WebsiteBlockingSection extends ConsumerWidget {
                   debugPrint('❌ Error adding blocked website: $e');
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
                         content: Text('Failed to block website'),
-                        backgroundColor: Colors.red,
+                        backgroundColor: context.palette.error,
                       ),
                     );
                   }
                 }
               }
             },
-            child: const Text(
+            child: Text(
               'Block',
               style: TextStyle(
-                color: AppColors.accent,
+                color: context.palette.accentText,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1518,16 +1412,23 @@ class _WebsiteTile extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        color: context.palette.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: ListTile(
-        leading: const Icon(Icons.public_off, color: Colors.white70),
-        title: Text(website.url, style: const TextStyle(color: Colors.white)),
+        leading: _RuleIcon(
+          icon: Icons.public_off_rounded,
+          active: website.isActive,
+        ),
+        title: Text(
+          website.url,
+          style: TextStyle(color: context.palette.onCanvas),
+        ),
         subtitle: Text(
           website.name,
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+          style: TextStyle(
+            color: context.palette.onCanvas.withValues(alpha: 0.5),
+          ),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1536,11 +1437,6 @@ class _WebsiteTile extends ConsumerWidget {
               scale: 0.8,
               child: Switch(
                 value: website.isActive,
-                activeThumbColor: AppColors.accent,
-                activeTrackColor: const Color(
-                  0xFF82D65D,
-                ).withValues(alpha: 0.3),
-                inactiveTrackColor: Colors.grey.withValues(alpha: 0.2),
                 onChanged: (value) async {
                   // If enabling, check permissions first
                   if (value) {
@@ -1589,9 +1485,9 @@ class _WebsiteTile extends ConsumerWidget {
                         if (verified != true) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text('❌ Incorrect PIN or cancelled'),
-                                backgroundColor: Colors.red,
+                                backgroundColor: context.palette.error,
                                 duration: Duration(seconds: 2),
                               ),
                             );
@@ -1625,7 +1521,7 @@ class _WebsiteTile extends ConsumerWidget {
             IconButton(
               icon: Icon(
                 Icons.delete_outline,
-                color: Colors.white.withValues(alpha: 0.4),
+                color: context.palette.onCanvas.withValues(alpha: 0.4),
               ),
               onPressed: () async {
                 final nativeService = ref.read(blocksNativeServiceProvider);
@@ -1643,7 +1539,7 @@ class _WebsiteTile extends ConsumerWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('✅ ${website.name} unblocked'),
-                        backgroundColor: AppColors.surface,
+                        backgroundColor: context.palette.surface,
                       ),
                     );
                   }
@@ -1688,33 +1584,29 @@ class _NotificationBlockingSectionState
         children: [
           Container(
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              color: context.palette.surface,
+              borderRadius: BorderRadius.circular(AppRadius.card),
             ),
             child: SwitchListTile(
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 4,
               ),
-              secondary: Icon(
-                Icons.notifications_off,
-                color: _blockAllNotifications
-                    ? AppColors.accent
-                    : Colors.grey,
+              secondary: _RuleIcon(
+                icon: Icons.notifications_off_rounded,
+                active: _blockAllNotifications,
               ),
-              title: const Text(
+              title: Text(
                 'Block All Notifications',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: context.palette.onCanvas),
               ),
               subtitle: Text(
                 'Silence all app notifications',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                style: TextStyle(
+                  color: context.palette.onCanvas.withValues(alpha: 0.5),
+                ),
               ),
               value: _blockAllNotifications,
-              activeThumbColor: AppColors.accent,
-              activeTrackColor: AppColors.accent.withValues(alpha: 0.3),
-              inactiveTrackColor: Colors.grey.withValues(alpha: 0.2),
               onChanged: (value) {
                 setState(() => _blockAllNotifications = value);
                 // TODO: Save to backend via provider
@@ -1745,45 +1637,34 @@ class _BlockSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+                color: context.palette.surface,
+                shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: AppColors.accent, size: 24),
+              child: Icon(icon, color: context.palette.accentText, size: 20),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(
-                    description,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withValues(alpha: 0.5),
-                    ),
-                  ),
+                  Text(title, style: textTheme.headlineSmall),
+                  Text(description, style: textTheme.bodySmall),
                 ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.lg),
         child,
       ],
     );
@@ -1798,21 +1679,11 @@ class _DiagnosticsButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.accent,
-          side: const BorderSide(color: AppColors.accent),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-        ),
-        icon: const Icon(Icons.bug_report, size: 20),
-        label: const Text('Run Diagnostics'),
-      ),
+    return AppPillButton(
+      label: 'Run diagnostics',
+      icon: Icons.bug_report_outlined,
+      variant: PillButtonVariant.outline,
+      onPressed: onPressed,
     );
   }
 }
@@ -1851,7 +1722,7 @@ Future<void> _runWebsiteBlockingDiagnostics(
       result.writeln('');
       result.writeln('📋 Enable Steps:');
       result.writeln('1. Go to Android Settings');
-      result.writeln('2. Accessibility > Pace');
+      result.writeln('2. Accessibility > $kAppName');
       result.writeln('3. Toggle ON');
       result.writeln('');
     } else {
@@ -1916,19 +1787,19 @@ Future<void> _runWebsiteBlockingDiagnostics(
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: AppColors.surface,
+          backgroundColor: context.palette.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
-          title: const Text(
+          title: Text(
             'Diagnostics Report',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: context.palette.onCanvas),
           ),
           content: SingleChildScrollView(
             child: Text(
               result.toString(),
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: context.palette.onCanvas,
                 fontFamily: 'monospace',
                 fontSize: 12,
               ),
@@ -1937,9 +1808,9 @@ Future<void> _runWebsiteBlockingDiagnostics(
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
+              child: Text(
                 'Close',
-                style: TextStyle(color: AppColors.accent),
+                style: TextStyle(color: context.palette.accentText),
               ),
             ),
           ],
@@ -1952,24 +1823,80 @@ Future<void> _runWebsiteBlockingDiagnostics(
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: const Text('Error', style: TextStyle(color: Colors.white)),
+          backgroundColor: context.palette.surface,
+          title: Text(
+            'Error',
+            style: TextStyle(color: context.palette.onCanvas),
+          ),
           content: Text(
             'Failed to run diagnostics: $e',
-            style: const TextStyle(color: Colors.white70),
+            style: TextStyle(color: context.palette.onCanvasSecondary),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
+              child: Text(
                 'OK',
-                style: TextStyle(color: AppColors.accent),
+                style: TextStyle(color: context.palette.accentText),
               ),
             ),
           ],
         ),
       );
     }
+  }
+}
+
+/// The real launcher icon of the first installed app in [packages]; [fallback]
+/// while loading or when none is installed.
+class _PlatformIcon extends ConsumerWidget {
+  const _PlatformIcon({
+    required this.name,
+    required this.packages,
+    required this.fallback,
+    this.dimmed = false,
+  });
+
+  final String name;
+  final List<String> packages;
+  final Widget fallback;
+  final bool dimmed;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    for (final package in packages) {
+      final icon = ref.watch(appIconProvider(package)).value;
+      if (icon != null && icon.isNotEmpty) {
+        return AppIconBadge(name: name, icon: icon, size: 40, dimmed: dimmed);
+      }
+    }
+    return fallback;
+  }
+}
+
+/// Round icon badge leading a rule row; accent when the rule is on.
+class _RuleIcon extends StatelessWidget {
+  const _RuleIcon({required this.icon, required this.active});
+
+  final IconData icon;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: active ? palette.accentSoft : palette.surfaceTrack,
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        icon,
+        size: 20,
+        color: active ? palette.accentText : palette.onCanvasMuted,
+      ),
+    );
   }
 }
 
@@ -1990,22 +1917,21 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(AppSpacing.xxl),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        color: context.palette.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: Column(
         children: [
-          Icon(icon, size: 48, color: Colors.white.withValues(alpha: 0.2)),
-          const SizedBox(height: 16),
+          Icon(icon, size: 36, color: context.palette.onCanvasDisabled),
+          const SizedBox(height: AppSpacing.md),
           Text(
             message,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+            style: Theme.of(context).textTheme.bodyMedium,
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           _AddButton(label: actionLabel, onPressed: onAction),
         ],
       ),
@@ -2020,17 +1946,22 @@ class _ErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+        color: context.palette.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: Colors.red),
-          const SizedBox(width: 12),
-          Text(message, style: const TextStyle(color: Colors.red)),
+          Icon(Icons.error_outline_rounded, color: context.palette.error),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(
+              message,
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: context.palette.error),
+            ),
+          ),
         ],
       ),
     );
@@ -2045,21 +1976,11 @@ class _AddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-        ),
-        icon: const Icon(Icons.add, size: 20),
-        label: Text(label),
-      ),
+    return AppPillButton(
+      label: label,
+      icon: Icons.add_rounded,
+      variant: PillButtonVariant.outline,
+      onPressed: onPressed,
     );
   }
 }
@@ -2155,74 +2076,73 @@ class _AppSelectionDialogState extends ConsumerState<_AppSelectionDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        padding: const EdgeInsets.all(20),
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
+
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * 0.85,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.xl,
+          AppSpacing.lg,
+          AppSpacing.xl,
+          MediaQuery.viewInsetsOf(context).bottom,
+        ),
         child: Column(
           children: [
-            // Header
             Row(
               children: [
-                const Expanded(
-                  child: Text(
-                    'Select App',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                Expanded(
+                  child: Text('Choose an app', style: textTheme.titleLarge),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white70),
+                IconCircleButton(
+                  icon: Icons.close_rounded,
+                  semanticLabel: 'Close',
+                  size: 40,
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-
-            // Search bar
+            const SizedBox(height: AppSpacing.lg),
             TextField(
               controller: _searchController,
               onChanged: _filterApps,
-              style: const TextStyle(color: Colors.white),
+              textInputAction: TextInputAction.search,
+              style: textTheme.bodyLarge?.copyWith(color: palette.onCanvas),
               decoration: InputDecoration(
-                hintText: 'Search apps...',
-                hintStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.3),
-                ),
+                hintText: 'Search apps',
                 prefixIcon: Icon(
-                  Icons.search,
-                  color: Colors.white.withValues(alpha: 0.5),
+                  Icons.search_rounded,
+                  color: palette.onCanvasMuted,
                 ),
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
+                fillColor: palette.surface,
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: AppSpacing.md,
+                ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
                   borderSide: BorderSide.none,
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-
-            // App list
+            const SizedBox(height: AppSpacing.lg),
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _filteredApps.isEmpty
                   ? Center(
-                      child: Text(
-                        'No apps found',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                        ),
-                      ),
+                      child: Text('No apps found', style: textTheme.bodyMedium),
                     )
-                  : ListView.builder(
+                  : ListView.separated(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.xl),
                       itemCount: _filteredApps.length,
+                      separatorBuilder: (_, _) =>
+                          const SizedBox(height: AppSpacing.sm),
                       itemBuilder: (context, index) {
                         final app = _filteredApps[index];
                         return _AppListItem(
@@ -2239,112 +2159,22 @@ class _AppSelectionDialogState extends ConsumerState<_AppSelectionDialog> {
   }
 
   void _showLimitDialog(AppInfo app) {
-    final limitController = TextEditingController(text: '60');
-    String selectedAction = 'warn';
-
-    showDialog(
+    showModalBottomSheet<void>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          title: Text(
-            'Set limit for ${app.name}',
-            style: const TextStyle(color: Colors.white),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: limitController,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Daily limit (minutes)',
-                  labelStyle: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.05),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Action on exceed:',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 8),
-              RadioGroup<String>(
-                groupValue: selectedAction,
-                onChanged: (value) {
-                  setState(() => selectedAction = value!);
-                },
-                child: Column(
-                  children:
-                      [
-                            ('warn', 'Warn', 'Show warning, can dismiss'),
-                            ('block', 'Block', 'Hard block, cannot dismiss'),
-                            ('notify', 'Notify', 'Notification only'),
-                          ]
-                          .map(
-                            (option) => RadioListTile<String>(
-                              value: option.$1,
-                              title: Text(
-                                option.$2,
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                              subtitle: Text(
-                                option.$3,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                  fontSize: 12,
-                                ),
-                              ),
-                              activeColor: AppColors.accent,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          )
-                          .toList(),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-            ),
-            TextButton(
-              onPressed: () async {
-                final limit = int.tryParse(limitController.text);
-                if (limit != null && limit > 0) {
-                  await _addAppLimit(app, limit, selectedAction);
-                  if (context.mounted) {
-                    Navigator.pop(context); // Close limit dialog
-                    Navigator.pop(context); // Close app selection dialog
-                  }
-                }
-              },
-              child: const Text(
-                'Add Limit',
-                style: TextStyle(
-                  color: AppColors.accent,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) => LimitSetupSheet(
+        appName: app.name,
+        appIcon: AppIconBadge(name: app.name, icon: app.icon, size: 44),
+        onSubmit: (minutes, action) async {
+          await _addAppLimit(app, minutes, action);
+          if (sheetContext.mounted) {
+            Navigator.pop(sheetContext); // close the limit sheet
+          }
+          if (mounted) {
+            Navigator.pop(context); // close the app picker
+          }
+        },
       ),
     );
   }
@@ -2383,16 +2213,16 @@ class _AppSelectionDialogState extends ConsumerState<_AppSelectionDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('✅ Limit added for ${app.name}'),
-          backgroundColor: AppColors.surface,
+          backgroundColor: context.palette.surface,
         ),
       );
     } catch (e) {
       debugPrint('Error adding limit: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Failed to add limit'),
-          backgroundColor: Colors.red,
+          backgroundColor: context.palette.error,
         ),
       );
     }
@@ -2407,39 +2237,34 @@ class _AppListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: app.icon != null
-            ? Image.memory(app.icon!, width: 40, height: 40)
-            : Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.android, color: Colors.white70),
-              ),
-        title: Text(app.name, style: const TextStyle(color: Colors.white)),
-        subtitle: Text(
-          app.packageName,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.4),
-            fontSize: 11,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: Icon(
-          Icons.add_circle_outline,
-          color: Colors.white.withValues(alpha: 0.5),
-        ),
+    final palette = context.palette;
+    return Material(
+      color: palette.surface,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+          child: Row(
+            children: [
+              AppIconBadge(name: app.name, icon: app.icon, size: 40),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Text(
+                  app.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: palette.onCanvasMuted),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -2466,7 +2291,7 @@ class AppLimitExceededOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.black87,
+      color: context.palette.onAccent,
       child: SafeArea(
         child: Center(
           child: Padding(
@@ -2477,16 +2302,20 @@ class AppLimitExceededOverlay extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.2),
+                    color: context.palette.error.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.block, size: 80, color: Colors.red),
+                  child: Icon(
+                    Icons.block,
+                    size: 80,
+                    color: context.palette.error,
+                  ),
                 ),
                 const SizedBox(height: 32),
-                const Text(
+                Text(
                   'Time Limit Reached',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: context.palette.onCanvas,
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                   ),
@@ -2496,7 +2325,7 @@ class AppLimitExceededOverlay extends StatelessWidget {
                 Text(
                   'You\'ve used $usedMinutes minutes of $appName today.',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
+                    color: context.palette.onCanvas.withValues(alpha: 0.7),
                     fontSize: 16,
                   ),
                   textAlign: TextAlign.center,
@@ -2505,7 +2334,7 @@ class AppLimitExceededOverlay extends StatelessWidget {
                 Text(
                   'Daily limit: $limitMinutes minutes',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
+                    color: context.palette.onCanvas.withValues(alpha: 0.5),
                     fontSize: 14,
                   ),
                 ),
@@ -2514,8 +2343,8 @@ class AppLimitExceededOverlay extends StatelessWidget {
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accent,
-                      foregroundColor: Colors.black,
+                      backgroundColor: context.palette.accent,
+                      foregroundColor: context.palette.onAccent,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 48,
                         vertical: 16,
@@ -2535,12 +2364,14 @@ class AppLimitExceededOverlay extends StatelessWidget {
                 else
                   Column(
                     children: [
-                      const Icon(Icons.lock, color: Colors.red, size: 32),
+                      Icon(Icons.lock, color: context.palette.error, size: 32),
                       const SizedBox(height: 8),
                       Text(
                         'This app is blocked for today',
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
+                          color: context.palette.onCanvas.withValues(
+                            alpha: 0.5,
+                          ),
                           fontSize: 14,
                         ),
                       ),

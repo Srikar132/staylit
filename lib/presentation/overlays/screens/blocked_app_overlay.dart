@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart' hide OverlayState;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/core/theme/app_theme.dart';
-import 'package:pace/presentation/overlays/providers/overlay_provider.dart';
-import 'package:pace/presentation/overlays/widgets/actions_buttons.dart';
-import 'package:pace/presentation/overlays/widgets/focus_timer_widget.dart';
-import 'package:pace/presentation/overlays/widgets/motivational_message.dart';
-import 'package:pace/presentation/overlays/widgets/overlay_background.dart';
+import 'package:staylit/presentation/overlays/providers/overlay_provider.dart';
+import 'package:staylit/presentation/overlays/widgets/actions_buttons.dart';
+import 'package:staylit/presentation/overlays/widgets/focus_timer_widget.dart';
+import 'package:staylit/presentation/overlays/widgets/motivational_message.dart';
+import 'package:staylit/presentation/overlays/widgets/overlay_background.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/widgets/design/lit_badge.dart';
+import 'package:staylit/presentation/overlays/widgets/block_header.dart';
+import 'package:staylit/presentation/overlays/widgets/end_session_dialog.dart';
+
 //import 'package:lottie/lottie.dart';
 
 class BlockedAppOverlay extends ConsumerStatefulWidget {
@@ -58,16 +62,16 @@ class _BlockedAppOverlayState extends ConsumerState<BlockedAppOverlay>
 
     if (overlayState.error != null) {
       return Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: context.palette.ink,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error, color: Colors.red, size: 64),
+              Icon(Icons.error, color: context.palette.error, size: 64),
               const SizedBox(height: 16),
               Text(
                 'Error:  ${overlayState.error}',
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: context.palette.onInk),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -145,61 +149,17 @@ class _BlockedAppOverlayState extends ConsumerState<BlockedAppOverlay>
   Widget _buildBlockIcon() {
     return AnimatedBuilder(
       animation: _pulseController,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: 1.0 + (_pulseController.value * 0.1),
-          child: Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.red.withValues(alpha: 0.1),
-              border: Border.all(color: Colors.red, width: 3),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.red.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: const Icon(Icons.block, size: 60, color: Colors.red),
-          ),
-        );
-      },
+      builder: (context, child) => Transform.scale(
+        scale: 1.0 + (_pulseController.value * 0.05),
+        child: const LitBadge(size: 140),
+      ),
     );
   }
 
   Widget _buildBlockMessage(OverlayState state) {
-    return Column(
-      children: [
-        Text(
-          '${state.appName} is blocked',
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.orange.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
-          ),
-          child: const Text(
-            'Focus Mode Active',
-            style: TextStyle(
-              color: Colors.orange,
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-            ),
-          ),
-        ),
-      ],
+    return BlockHeader(
+      title: '${state.appName} is blocked',
+      chip: 'Focus mode active',
     );
   }
 
@@ -207,41 +167,6 @@ class _BlockedAppOverlayState extends ConsumerState<BlockedAppOverlay>
     BuildContext context,
     OverlayDataNotifier notifier,
   ) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'End Focus Session?',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          'Are you sure you want to end your focus session?  Your progress will be saved, but you\'ll lose your current momentum.',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Continue Focusing',
-              style: TextStyle(color: Colors.blue),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              notifier.endFocusSession();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('End Session'),
-          ),
-        ],
-      ),
-    );
+    showEndSessionDialog(context, onConfirm: notifier.endFocusSession);
   }
 }

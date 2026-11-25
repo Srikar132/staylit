@@ -1,30 +1,37 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pace/core/router/app_router.dart';
-import 'package:pace/core/theme/app_theme.dart';
-import 'package:pace/presentation/overlays/overlay_app.dart';
-import 'package:pace/services/native_service.dart';
+import 'package:staylit/core/constants/app_info.dart';
+import 'package:staylit/core/router/app_router.dart';
+import 'package:staylit/core/theme/app_theme.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/data/repositories/theme_repository.dart';
+import 'package:staylit/presentation/overlays/overlay_app.dart';
+import 'package:staylit/presentation/providers/theme_mode_provider.dart';
+import 'package:staylit/services/native_service.dart';
+import 'package:staylit/services/night_mode_bridge.dart';
 
 // Overlay entry point - separate from main app
 @pragma('vm:entry-point')
-void overlayMain() {
+Future<void> overlayMain() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Set system UI for overlay
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.light,
+  // The overlay is a separate engine/isolate with no shared providers, so it
+  // reads the user's saved theme mode itself (system bar styling is applied by
+  // OverlayApp from the resolved theme).
+  final themeMode = await SharedPreferencesThemeRepository().load();
+
+  runApp(
+    ProviderScope(
+      overrides: [initialThemeModeProvider.overrideWithValue(themeMode)],
+      child: const OverlayApp(),
     ),
   );
-
-  runApp(const ProviderScope(child: OverlayApp()));
 }
 
 void main() async {
@@ -36,16 +43,6 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Set system UI overlay style
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: AppColors.background,
-      systemNavigationBarIconBrightness: Brightness.light,
-    ),
-  );
-
   // Initialize Firebase
   await Firebase.initializeApp();
 
@@ -55,17 +52,31 @@ void main() async {
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
 
-  runApp(const ProviderScope(child: LockInApp()));
+  // Load the saved theme mode before the first frame so there is no flash of
+  // the wrong theme. System bar styling follows the resolved theme in
+  // StaylitApp's builder.
+  final themeMode = await SharedPreferencesThemeRepository().load();
+
+  // Keep Android's per-app night mode (the native splash) in sync with the saved
+  // choice, e.g. after an update. Never throws; no-op below Android 12.
+  unawaited(MethodChannelNightModeBridge().apply(themeMode));
+
+  runApp(
+    ProviderScope(
+      overrides: [initialThemeModeProvider.overrideWithValue(themeMode)],
+      child: const StaylitApp(),
+    ),
+  );
 }
 
-class LockInApp extends ConsumerStatefulWidget {
-  const LockInApp({super.key});
+class StaylitApp extends ConsumerStatefulWidget {
+  const StaylitApp({super.key});
 
   @override
-  ConsumerState<LockInApp> createState() => _LockInAppState();
+  ConsumerState<StaylitApp> createState() => _StaylitAppState();
 }
 
-class _LockInAppState extends ConsumerState<LockInApp> {
+class _StaylitAppState extends ConsumerState<StaylitApp> {
   @override
   void initState() {
     super.initState();
@@ -79,33 +90,38 @@ class _LockInAppState extends ConsumerState<LockInApp> {
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
-      title: 'Pace',
+      title: kAppName,
       debugShowCheckedModeBanner: false,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.dark,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeMode,
       routerConfig: router,
       builder: (context, child) {
         ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
           return Material(
             child: Container(
-              color: Colors.red,
+              color: context.palette.error,
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error, color: Colors.white, size: 48),
+                    Icon(Icons.error, color: context.palette.onError, size: 48),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'Navigation Error',
-                      style: TextStyle(color: Colors.white, fontSize: 20),
+                      style: TextStyle(
+                        color: context.palette.onError,
+                        fontSize: 20,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       errorDetails.exception.toString(),
-                      style: const TextStyle(
-                        color: Colors.white70,
+                      style: TextStyle(
+                        color: context.palette.onError.withValues(alpha: 0.8),
                         fontSize: 12,
                       ),
                       textAlign: TextAlign.center,
@@ -123,7 +139,15 @@ class _LockInAppState extends ConsumerState<LockInApp> {
             ),
           );
         };
-        return child ?? const SizedBox();
+        // System bars follow the resolved (not requested) brightness, so
+        // "System" mode is correct too.
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: AppTheme.overlayStyle(
+            palette: context.palette,
+            brightness: Theme.of(context).brightness,
+          ),
+          child: child ?? const SizedBox(),
+        );
       },
     );
   }

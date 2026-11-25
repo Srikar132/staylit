@@ -1,5 +1,5 @@
 import 'package:flutter/services.dart';
-import 'package:pace/data/models/app_limit_model.dart';
+import 'package:staylit/data/models/app_limit_model.dart';
 import 'package:flutter/foundation.dart';
 
 /// Native service for app limit management
@@ -8,8 +8,8 @@ import 'package:flutter/foundation.dart';
 /// - Kotlin handles all usage tracking and enforcement
 /// - Flutter only manages UI and pushes limits to native
 class AppLimitNativeService {
-  static const _limitsChannel = MethodChannel('lockin/app_limits');
-  static const _eventsChannel = MethodChannel('lockin/app_limits_events');
+  static const _limitsChannel = MethodChannel('com.staylit.app/app_limits');
+  static const _eventsChannel = MethodChannel('com.staylit.app/app_limits_events');
 
   /// Update limits in native (Kotlin)
   /// @param limits Map of packageName -> limitMinutes

@@ -1,5 +1,40 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Reduces a user-entered URL or host to a bare lowercase host
+/// (`https://www.YouTube.com/watch?v=1` -> `youtube.com`).
+String normalizeBlockedHost(String input) {
+  var host = input.trim().toLowerCase();
+  host = host.replaceFirst(RegExp(r'^[a-z][a-z0-9+.-]*://'), '');
+  host = host.split(RegExp(r'[/?#]')).first;
+  host = host.split('@').last; // drop user-info
+  host = host.split(':').first; // drop port
+  if (host.startsWith('www.')) host = host.substring(4);
+  return host;
+}
+
+/// Reads `blockedWebsites` from either the current shape (map keyed by
+/// normalized host) or the legacy shape (array of maps).
+List<BlockedWebsite> _websitesFrom(Object? raw) {
+  final Iterable<Object?> items = switch (raw) {
+    final List<dynamic> list => list,
+    final Map<dynamic, dynamic> map => map.values,
+    _ => const [],
+  };
+  final byHost = <String, BlockedWebsite>{};
+  for (final item in items) {
+    if (item is! Map) continue;
+    final site = BlockedWebsite.fromMap(Map<String, dynamic>.from(item));
+    final host = normalizeBlockedHost(site.url);
+    if (host.isEmpty) continue;
+    byHost[host] = BlockedWebsite(
+      url: host,
+      name: site.name,
+      isActive: site.isActive,
+    );
+  }
+  return byHost.values.toList()..sort((a, b) => a.name.compareTo(b.name));
+}
+
 class BlockedWebsite {
   final String url;
   final String name;
@@ -97,9 +132,12 @@ class BlockedContentModel {
   Map<String, dynamic> toFirestore() {
     return {
       'permanentlyBlockedApps': permanentlyBlockedApps,
-      'blockedWebsites': blockedWebsites
-          .map((website) => website.toMap())
-          .toList(),
+      // Map keyed by normalized host so single sites can be changed atomically.
+      'blockedWebsites': {
+        for (final website in blockedWebsites)
+          if (normalizeBlockedHost(website.url).isNotEmpty)
+            normalizeBlockedHost(website.url): website.toMap(),
+      },
       'shortFormBlocks': shortFormBlocks.map(
         (key, value) => MapEntry(key, value.toMap()),
       ),
@@ -115,14 +153,7 @@ class BlockedContentModel {
       permanentlyBlockedApps: data['permanentlyBlockedApps'] != null
           ? List<String>.from(data['permanentlyBlockedApps'])
           : [],
-      blockedWebsites: data['blockedWebsites'] != null
-          ? (data['blockedWebsites'] as List)
-                .map(
-                  (website) =>
-                      BlockedWebsite.fromMap(website as Map<String, dynamic>),
-                )
-                .toList()
-          : [],
+      blockedWebsites: _websitesFrom(data['blockedWebsites']),
       shortFormBlocks: data['shortFormBlocks'] != null
           ? (data['shortFormBlocks'] as Map<String, dynamic>).map(
               (key, value) => MapEntry(
@@ -142,14 +173,7 @@ class BlockedContentModel {
       permanentlyBlockedApps: data['permanentlyBlockedApps'] != null
           ? List<String>.from(data['permanentlyBlockedApps'])
           : [],
-      blockedWebsites: data['blockedWebsites'] != null
-          ? (data['blockedWebsites'] as List)
-                .map(
-                  (website) =>
-                      BlockedWebsite.fromMap(website as Map<String, dynamic>),
-                )
-                .toList()
-          : [],
+      blockedWebsites: _websitesFrom(data['blockedWebsites']),
       shortFormBlocks: data['shortFormBlocks'] != null
           ? (data['shortFormBlocks'] as Map<String, dynamic>).map(
               (key, value) => MapEntry(
@@ -188,9 +212,14 @@ class BlockedContentModel {
   }
 
   bool isWebsiteBlocked(String url) {
-    return blockedWebsites.any(
-      (website) => website.isActive && website.url.contains(url),
-    );
+    final host = normalizeBlockedHost(url);
+    if (host.isEmpty) return false;
+    return blockedWebsites.any((website) {
+      if (!website.isActive) return false;
+      final blocked = normalizeBlockedHost(website.url);
+      return blocked.isNotEmpty &&
+          (host == blocked || host.endsWith('.$blocked'));
+    });
   }
 
   bool isShortFormBlocked(String platform, String feature) {

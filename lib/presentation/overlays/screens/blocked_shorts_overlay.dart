@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/core/theme/app_theme.dart';
-import 'package:pace/presentation/overlays/providers/overlay_provider.dart';
-import 'package:pace/presentation/overlays/widgets/focus_timer_widget.dart';
-import 'package:pace/presentation/overlays/widgets/overlay_background.dart';
+import 'package:staylit/presentation/overlays/providers/overlay_provider.dart';
+import 'package:staylit/presentation/overlays/widgets/focus_timer_widget.dart';
+import 'package:staylit/presentation/overlays/widgets/overlay_background.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/widgets/design/lit_badge.dart';
+import 'package:staylit/presentation/overlays/widgets/block_header.dart';
+import 'package:staylit/presentation/overlays/widgets/actions_buttons.dart';
 
 class BlockedShortsOverlay extends ConsumerStatefulWidget {
   const BlockedShortsOverlay({super.key});
@@ -71,9 +74,11 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
     final overlayNotifier = ref.read(overlayDataProvider.notifier);
 
     if (overlayState.isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      return Scaffold(
+        backgroundColor: context.palette.ink,
+        body: Center(
+          child: CircularProgressIndicator(color: context.palette.onInk),
+        ),
       );
     }
 
@@ -86,7 +91,6 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
       canPop: false,
       child: Scaffold(
         body: OverlayBackground(
-          gradient: _getPlatformGradient(platform),
           child: SafeArea(
             child: ScaleTransition(
               scale: CurvedAnimation(
@@ -145,7 +149,7 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
                         title:  'Digital Wellness Tip',
                         message: educationalMessage,
                         icon: Icons.psychology,
-                        color: Colors.orange,
+                        color: context.palette.warning,
                       ),
                     ),*/
                     const SizedBox(height: 24),
@@ -192,9 +196,8 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: _getPlatformColor(
-                    platform,
-                  ).withValues(alpha: 0.3 - (_waveController.value * 0.3)),
+                  color: _getPlatformColor(platform)
+                      .withValues(alpha: 0.3 - (_waveController.value * 0.3)),
                   width: 2,
                 ),
               ),
@@ -212,9 +215,8 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: _getPlatformColor(
-                    platform,
-                  ).withValues(alpha: 0.5 - (_waveController.value * 0.5)),
+                  color: _getPlatformColor(platform)
+                      .withValues(alpha: 0.5 - (_waveController.value * 0.5)),
                   width: 3,
                 ),
               ),
@@ -222,154 +224,54 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
           },
         ),
 
-        // Center icon
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: _getPlatformColor(platform),
-            boxShadow: [
-              BoxShadow(
-                color: _getPlatformColor(platform).withValues(alpha: 0.6),
-                blurRadius: 20,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: Icon(
-            _getPlatformIcon(platform),
-            size: 40,
-            color: Colors.white,
-          ),
-        ),
+        // Center: Lit
+        const LitBadge(size: 110),
       ],
     );
   }
 
   Widget _buildBlockMessage(String contentType) {
-    return Column(
-      children: [
-        Text(
-          '$contentType Blocked! ',
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.red.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
-          ),
-          child: const Text(
-            'Addictive Content Detected',
-            style: TextStyle(
-              color: Colors.red,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ],
+    return BlockHeader(
+      title: '$contentType blocked',
+      chip: 'Addictive content detected',
+      danger: true,
     );
   }
 
   Widget _buildQuickActions(OverlayDataNotifier notifier) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildQuickActionButton(
-          icon: Icons.close,
+    return BlockActions(
+      primaryLabel: 'Go back',
+      primaryIcon: Icons.arrow_back_rounded,
+      onPrimary: notifier.goBack,
+      secondary: [
+        BlockAction(
           label: 'Continue',
-          color: Colors.green,
-          onPressed: () =>
-              notifier.closeOverlay(), // Close activity and return to YouTube
+          icon: Icons.close_rounded,
+          onPressed: notifier.closeOverlay,
         ),
-        _buildQuickActionButton(
-          icon: Icons.arrow_back,
-          label: 'Back',
-          color: Colors.blue,
-          onPressed: () => notifier.goBack(),
-        ),
-        _buildQuickActionButton(
-          icon: Icons.info_outline,
+        BlockAction(
           label: 'Learn',
-          color: Colors.purple,
+          icon: Icons.info_outline_rounded,
           onPressed: () => notifier.showEducationalContent('blocked_shorts'),
         ),
       ],
     );
   }
 
-  Widget _buildQuickActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 18),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color.withValues(alpha: 0.2),
-        foregroundColor: color,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: color.withValues(alpha: 0.5)),
-        ),
-      ),
-    );
-  }
-
-  LinearGradient _getPlatformGradient(String platform) {
-    // Same dark-green theme regardless of platform — the app's look, not the
-    // blocked app's branding.
-    return const LinearGradient(
-      colors: [AppColors.background, AppColors.surface],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    );
-  }
-
   Color _getPlatformColor(String platform) {
     switch (platform.toLowerCase()) {
       case 'youtube':
-        return Colors.red;
+        return context.palette.error;
       case 'instagram':
-        return Colors.purple;
+        return context.palette.chartAlt;
       case 'tiktok':
-        return Colors.pink;
+        return context.palette.badge;
       case 'facebook':
-        return Colors.blue;
+        return context.palette.info;
       case 'snapchat':
-        return Colors.yellow;
+        return context.palette.warning;
       default:
-        return Colors.orange;
-    }
-  }
-
-  IconData _getPlatformIcon(String platform) {
-    switch (platform.toLowerCase()) {
-      case 'youtube':
-        return Icons.play_circle_outline;
-      case 'instagram':
-        return Icons.camera_alt;
-      case 'tiktok':
-        return Icons.music_note;
-      case 'facebook':
-        return Icons.video_library;
-      case 'snapchat':
-        return Icons.photo_camera;
-      default:
-        return Icons.videocam_off;
+        return context.palette.warning;
     }
   }
 }

@@ -17,32 +17,32 @@ class AudioConstants {
   static const List<Audio> audioList = [
     Audio(
       songAssetUrl: 'sounds/song1.mp3',
-      image: 'assets/images/song-image1.png', // Using existing image as placeholder
+      image: 'assets/images/song-image1.webp', // Using existing image as placeholder
       name: 'Song 1',
     ),
     Audio(
       songAssetUrl: 'sounds/song2.mp3',
-      image: 'assets/images/song-image2.png', // Using existing image as placeholder
+      image: 'assets/images/song-image2.webp', // Using existing image as placeholder
       name: 'Song 2',
     ),
     Audio(
       songAssetUrl: 'sounds/song3.mp3',
-      image: 'assets/images/song-image3.jpeg', // Using existing image as placeholder
+      image: 'assets/images/song-image3.webp', // Using existing image as placeholder
       name: 'Song 3',
     ),
     Audio(
       songAssetUrl: 'sounds/song4.mp3',
-      image: 'assets/images/song-image4.jpeg', // Using existing image as placeholder
+      image: 'assets/images/song-image4.webp', // Using existing image as placeholder
       name: 'Song 4',
     ),
     Audio(
       songAssetUrl: 'sounds/song5.mp3',
-      image: 'assets/images/song-image5.jpeg', // Using existing image as placeholder
+      image: 'assets/images/song-image5.webp', // Using existing image as placeholder
       name: 'Song 5',
     ),
     Audio(
       songAssetUrl: 'sounds/song6.mp3',
-      image: 'assets/images/song-image6.jpeg', // Using existing image as placeholder
+      image: 'assets/images/song-image6.webp', // Using existing image as placeholder
       name: 'Song 6',
     ),
 

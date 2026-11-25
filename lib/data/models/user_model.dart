@@ -8,26 +8,25 @@ class UserModel {
   final DateTime createdAt;
   final DateTime lastLoginAt;
 
-
   // User status
   final bool hasCompletedOnboarding;
-  final bool hasGrantedPermissions;
-  
+
   // Onboarding data
-  final String? procrastinationLevel; 
-  final List<String>? distractions; 
-  final String? preferredStudyTime; 
+  final String? procrastinationLevel;
+  final List<String>? distractions;
+  final String? preferredStudyTime;
 
-
-    // === QUICK STATS (for dashboard) ===
-  final int totalFocusTime; // milliseconds
+  // === QUICK STATS (for dashboard) ===
+  /// Lifetime focus time in **minutes** (what `FocusSessionRepository.finishSession`
+  /// increments). The field name predates the unit decision; renaming it needs a
+  /// data migration and is tracked with the schema consolidation.
+  final int totalFocusTime;
   final int totalSessions;
   final int currentStreak;
   final int longestStreak;
   final DateTime? lastActiveDate;
 
-
-UserModel({
+  UserModel({
     required this.uid,
     required this.email,
     this.displayName,
@@ -35,7 +34,6 @@ UserModel({
     required this.createdAt,
     required this.lastLoginAt,
     this.hasCompletedOnboarding = false,
-    this.hasGrantedPermissions = false,
     this.procrastinationLevel,
     this.distractions,
     this.preferredStudyTime,
@@ -56,7 +54,6 @@ UserModel({
       'createdAt': Timestamp.fromDate(createdAt),
       'lastLoginAt': Timestamp.fromDate(lastLoginAt),
       'hasCompletedOnboarding': hasCompletedOnboarding,
-      'hasGrantedPermissions': hasGrantedPermissions,
       'procrastinationLevel': procrastinationLevel,
       'distractions': distractions,
       'preferredStudyTime': preferredStudyTime,
@@ -64,8 +61,8 @@ UserModel({
       'totalSessions': totalSessions,
       'currentStreak': currentStreak,
       'longestStreak': longestStreak,
-      'lastActiveDate': lastActiveDate != null 
-          ? Timestamp.fromDate(lastActiveDate!) 
+      'lastActiveDate': lastActiveDate != null
+          ? Timestamp.fromDate(lastActiveDate!)
           : null,
     };
   }
@@ -73,19 +70,19 @@ UserModel({
   // Create from Firestore document
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    
+
     return UserModel(
       uid: data['uid'] ?? '',
       email: data['email'] ?? '',
       displayName: data['displayName'],
       photoURL: data['photoURL'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      lastLoginAt: (data['lastLoginAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      lastLoginAt:
+          (data['lastLoginAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       hasCompletedOnboarding: data['hasCompletedOnboarding'] ?? false,
-      hasGrantedPermissions: data['hasGrantedPermissions'] ?? false,
       procrastinationLevel: data['procrastinationLevel'],
-      distractions: data['distractions'] != null 
-          ? List<String>.from(data['distractions']) 
+      distractions: data['distractions'] != null
+          ? List<String>.from(data['distractions'])
           : null,
       preferredStudyTime: data['preferredStudyTime'],
       totalFocusTime: data['totalFocusTime'] ?? 0,
@@ -107,7 +104,6 @@ UserModel({
     DateTime? createdAt,
     DateTime? lastLoginAt,
     bool? hasCompletedOnboarding,
-    bool? hasGrantedPermissions,
     String? procrastinationLevel,
     List<String>? distractions,
     String? preferredStudyTime,
@@ -124,8 +120,8 @@ UserModel({
       photoURL: photoURL ?? this.photoURL,
       createdAt: createdAt ?? this.createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
-      hasCompletedOnboarding: hasCompletedOnboarding ?? this.hasCompletedOnboarding,
-      hasGrantedPermissions: hasGrantedPermissions ?? this.hasGrantedPermissions,
+      hasCompletedOnboarding:
+          hasCompletedOnboarding ?? this.hasCompletedOnboarding,
       procrastinationLevel: procrastinationLevel ?? this.procrastinationLevel,
       distractions: distractions ?? this.distractions,
       preferredStudyTime: preferredStudyTime ?? this.preferredStudyTime,
@@ -139,16 +135,14 @@ UserModel({
 
   // Helper methods
   String get firstName => displayName?.split(' ').first ?? 'User';
-  
-  bool get isOnboardingComplete => hasCompletedOnboarding;
-  bool get isPermissionsGranted => hasGrantedPermissions;
-  bool get isSetupComplete => hasCompletedOnboarding && hasGrantedPermissions;
 
-  // Format total focus time
+  bool get isOnboardingComplete => hasCompletedOnboarding;
+
+  /// [totalFocusTime] as "2h 5m" or "45m".
   String get formattedTotalFocusTime {
-    final hours = totalFocusTime ~/ (1000 * 60 * 60);
-    final minutes = (totalFocusTime % (1000 * 60 * 60)) ~/ (1000 * 60);
-    
+    final hours = totalFocusTime ~/ 60;
+    final minutes = totalFocusTime % 60;
+
     if (hours > 0) {
       return '${hours}h ${minutes}m';
     }

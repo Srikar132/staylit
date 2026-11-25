@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/data/models/achievement_model.dart';
-import 'package:pace/data/models/profile_stats_model.dart';
-import 'package:pace/data/repositories/profile_repository.dart';
+import 'package:staylit/data/models/achievement_model.dart';
+import 'package:staylit/data/models/profile_stats_model.dart';
+import 'package:staylit/data/repositories/profile_repository.dart';
 
 // Profile Repository Provider
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {

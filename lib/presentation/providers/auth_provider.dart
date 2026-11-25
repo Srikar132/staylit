@@ -1,10 +1,10 @@
 // Clean Firebase-only authentication provider
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:pace/data/models/user_model.dart';
-import 'package:pace/data/repositories/auth_repository.dart';
-import 'package:pace/data/repositories/user_repository.dart';
-import 'package:pace/presentation/providers/permission_provider.dart';
+import 'package:staylit/data/models/user_model.dart';
+import 'package:staylit/data/repositories/auth_repository.dart';
+import 'package:staylit/data/repositories/user_repository.dart';
+import 'package:staylit/presentation/providers/permission_provider.dart';
 
 // Auth State for loading management
 class AuthState {
@@ -137,19 +137,6 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (e) {
       state = state.copyWith(
         error: 'Failed to complete onboarding: ${e.toString()}',
-      );
-      rethrow;
-    }
-  }
-
-  // Update permissions (Firebase streams automatically update UI)
-  Future<void> updatePermissionStatus(String userId, bool granted) async {
-    try {
-      await _userRepository.updatePermissionStatus(userId, granted);
-      // Firebase streams automatically update UI
-    } catch (e) {
-      state = state.copyWith(
-        error: 'Failed to update permissions: ${e.toString()}',
       );
       rethrow;
     }

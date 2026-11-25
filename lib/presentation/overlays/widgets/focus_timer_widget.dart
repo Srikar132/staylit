@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_theme.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/core/theme/theme_context.dart';
 
+/// "Focus time 12m" on a near-black pill.
 class FocusTimerWidget extends StatelessWidget {
   final int elapsedMinutes;
   final String sessionType;
@@ -15,77 +17,48 @@ class FocusTimerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
-      padding: EdgeInsets.all(compact ? 12 : 16),
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.xl,
+        vertical: compact ? AppSpacing.sm : AppSpacing.md,
+      ),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.accent, AppColors.accentMuted],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.accent.withValues(alpha: 0.3),
-            blurRadius: 15,
-            spreadRadius: 2,
-          ),
-        ],
+        color: palette.ink,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            _getTimerIcon(sessionType),
-            color: Colors.white,
-            size: compact ? 20 : 24,
+          Icon(_icon(sessionType), color: palette.onInk, size: 20),
+          const SizedBox(width: AppSpacing.sm),
+          Text(
+            'Focus time',
+            style: textTheme.bodyMedium?.copyWith(
+              color: palette.onInk.withValues(alpha: 0.7),
+            ),
           ),
-          const SizedBox(width: 8),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Focus Time',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: compact ? 12 : 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Text(
-                _formatTime(elapsedMinutes),
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: compact ? 18 : 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          const SizedBox(width: AppSpacing.md),
+          Text(
+            _format(elapsedMinutes),
+            style: textTheme.titleLarge?.copyWith(color: palette.onInk),
           ),
         ],
       ),
     );
   }
 
-  IconData _getTimerIcon(String sessionType) {
-    switch (sessionType.toLowerCase()) {
-      case 'timer':
-        return Icons.timer;
-      case 'stopwatch':
-        return Icons.access_time;
-      case 'pomodoro':
-        return Icons.schedule;
-      default:
-        return Icons.timer;
-    }
-  }
+  static IconData _icon(String sessionType) =>
+      switch (sessionType.toLowerCase()) {
+        'stopwatch' => Icons.access_time_rounded,
+        'pomodoro' => Icons.schedule_rounded,
+        _ => Icons.timer_outlined,
+      };
 
-  String _formatTime(int minutes) {
-    if (minutes < 60) {
-      return '${minutes}m';
-    } else {
-      final hours = minutes ~/ 60;
-      final mins = minutes % 60;
-      return '${hours}h ${mins}m';
-    }
+  static String _format(int minutes) {
+    if (minutes < 60) return '${minutes}m';
+    return '${minutes ~/ 60}h ${minutes % 60}m';
   }
 }

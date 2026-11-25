@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'pomodoro_settings.dart';
 
 class UserSettingsModel {
@@ -11,7 +12,16 @@ class UserSettingsModel {
   final bool autoStartBreaks;
   final bool soundEnabled;
   final bool vibrationEnabled;
-  final String theme;
+
+  /// Daily focus goal in minutes (Today's Goal card). Documents without the
+  /// field read as [defaultDailyGoalMinutes].
+  final int dailyGoalMinutes;
+
+  static const int defaultDailyGoalMinutes = 120;
+
+  /// The user turned Scroll damage on (the counter itself is native and
+  /// reads this). Off by default.
+  final bool scrollDamageEnabled;
 
   UserSettingsModel({
     required this.defaultDuration,
@@ -23,7 +33,8 @@ class UserSettingsModel {
     required this.autoStartBreaks,
     required this.soundEnabled,
     required this.vibrationEnabled,
-    required this.theme,
+    this.dailyGoalMinutes = defaultDailyGoalMinutes,
+    this.scrollDamageEnabled = false,
   });
 
   factory UserSettingsModel.fromFirestore(DocumentSnapshot doc) {
@@ -38,7 +49,10 @@ class UserSettingsModel {
       autoStartBreaks: data['autoStartBreaks'] ?? true,
       soundEnabled: data['soundEnabled'] ?? true,
       vibrationEnabled: data['vibrationEnabled'] ?? true,
-      theme: data['theme'] ?? 'dark',
+      dailyGoalMinutes:
+          (data['dailyGoalMinutes'] as num?)?.toInt() ??
+          defaultDailyGoalMinutes,
+      scrollDamageEnabled: data['scrollDamageEnabled'] as bool? ?? false,
     );
   }
 
@@ -53,7 +67,8 @@ class UserSettingsModel {
       'autoStartBreaks': autoStartBreaks,
       'soundEnabled': soundEnabled,
       'vibrationEnabled': vibrationEnabled,
-      'theme': theme,
+      'dailyGoalMinutes': dailyGoalMinutes,
+      'scrollDamageEnabled': scrollDamageEnabled,
     };
   }
 
@@ -68,7 +83,8 @@ class UserSettingsModel {
     bool? autoStartBreaks,
     bool? soundEnabled,
     bool? vibrationEnabled,
-    String? theme,
+    int? dailyGoalMinutes,
+    bool? scrollDamageEnabled,
   }) {
     return UserSettingsModel(
       defaultDuration: defaultDuration ?? this.defaultDuration,
@@ -80,7 +96,8 @@ class UserSettingsModel {
       autoStartBreaks: autoStartBreaks ?? this.autoStartBreaks,
       soundEnabled: soundEnabled ?? this.soundEnabled,
       vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
-      theme: theme ?? this.theme,
+      dailyGoalMinutes: dailyGoalMinutes ?? this.dailyGoalMinutes,
+      scrollDamageEnabled: scrollDamageEnabled ?? this.scrollDamageEnabled,
     );
   }
 }

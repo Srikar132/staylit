@@ -1,24 +1,14 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
 /// Enum for different audio types
-enum AudioType {
-  sound,
-  song,
-  notification,
-  background,
-}
+enum AudioType { sound, song, notification, background }
 
 /// Enum for player state
-enum AudioPlayerState {
-  stopped,
-  playing,
-  paused,
-  loading,
-  error,
-}
+enum AudioPlayerState { stopped, playing, paused, loading, error }
 
 /// Audio track model
 class AudioTrack {
@@ -148,7 +138,7 @@ class AudioService extends ChangeNotifier {
       await _backgroundPlayer.setPlaybackRate(_playbackSpeed);
 
       _setupEventListeners();
-      
+
       if (kDebugMode) {
         print('🎵 Audio Service initialized successfully');
       }
@@ -162,12 +152,16 @@ class AudioService extends ChangeNotifier {
   /// Setup event listeners for audio players
   void _setupEventListeners() {
     // Sound player listeners
-    _soundPositionSubscription = _soundPlayer.onPositionChanged.listen((position) {
+    _soundPositionSubscription = _soundPlayer.onPositionChanged.listen((
+      position,
+    ) {
       _soundPosition = position;
       notifyListeners();
     });
 
-    _soundDurationSubscription = _soundPlayer.onDurationChanged.listen((duration) {
+    _soundDurationSubscription = _soundPlayer.onDurationChanged.listen((
+      duration,
+    ) {
       _soundDuration = duration;
       notifyListeners();
     });
@@ -178,12 +172,16 @@ class AudioService extends ChangeNotifier {
     });
 
     // Music player listeners
-    _musicPositionSubscription = _musicPlayer.onPositionChanged.listen((position) {
+    _musicPositionSubscription = _musicPlayer.onPositionChanged.listen((
+      position,
+    ) {
       _musicPosition = position;
       notifyListeners();
     });
 
-    _musicDurationSubscription = _musicPlayer.onDurationChanged.listen((duration) {
+    _musicDurationSubscription = _musicPlayer.onDurationChanged.listen((
+      duration,
+    ) {
       _musicDuration = duration;
       notifyListeners();
     });
@@ -194,20 +192,23 @@ class AudioService extends ChangeNotifier {
     });
 
     // Background player listeners
-    _backgroundPositionSubscription = _backgroundPlayer.onPositionChanged.listen((position) {
-      _backgroundPosition = position;
-      notifyListeners();
-    });
+    _backgroundPositionSubscription = _backgroundPlayer.onPositionChanged
+        .listen((position) {
+          _backgroundPosition = position;
+          notifyListeners();
+        });
 
-    _backgroundDurationSubscription = _backgroundPlayer.onDurationChanged.listen((duration) {
-      _backgroundDuration = duration;
-      notifyListeners();
-    });
+    _backgroundDurationSubscription = _backgroundPlayer.onDurationChanged
+        .listen((duration) {
+          _backgroundDuration = duration;
+          notifyListeners();
+        });
 
-    _backgroundStateSubscription = _backgroundPlayer.onPlayerStateChanged.listen((state) {
-      _backgroundState = _mapPlayerState(state);
-      notifyListeners();
-    });
+    _backgroundStateSubscription = _backgroundPlayer.onPlayerStateChanged
+        .listen((state) {
+          _backgroundState = _mapPlayerState(state);
+          notifyListeners();
+        });
   }
 
   /// Map AudioPlayers PlayerState to our AudioPlayerState
@@ -452,7 +453,7 @@ class AudioService extends ChangeNotifier {
     try {
       volume = volume.clamp(0.0, 1.0);
       final player = _getPlayerForType(type);
-      
+
       if (!_isMuted) {
         await player.setVolume(volume);
       }
@@ -511,7 +512,7 @@ class AudioService extends ChangeNotifier {
   /// Toggle mute/unmute
   Future<void> toggleMute() async {
     _isMuted = !_isMuted;
-    
+
     if (_isMuted) {
       await Future.wait([
         _soundPlayer.setVolume(0),
@@ -548,7 +549,7 @@ class AudioService extends ChangeNotifier {
 
   /// Play notification sound
   Future<void> playNotificationSound([String? customPath]) async {
-    final path = customPath ?? 'sounds/lumo-sound.wav';
+    final path = customPath ?? 'sounds/focus-cue.wav';
     await playAsset(
       assetPath: path,
       type: AudioType.notification,
@@ -560,7 +561,7 @@ class AudioService extends ChangeNotifier {
   Future<void> playSuccessSound() async {
     // You can add a success sound file to assets
     await playAsset(
-      assetPath: 'sounds/lumo-sound.wav', // Replace with actual success sound
+      assetPath: 'sounds/focus-cue.wav', // Replace with actual success sound
       type: AudioType.sound,
       trackName: 'Success Sound',
     );
@@ -570,7 +571,7 @@ class AudioService extends ChangeNotifier {
   Future<void> playErrorSound() async {
     // You can add an error sound file to assets
     await playAsset(
-      assetPath: 'sounds/lumo-sound.wav', // Replace with actual error sound
+      assetPath: 'sounds/focus-cue.wav', // Replace with actual error sound
       type: AudioType.sound,
       trackName: 'Error Sound',
     );
@@ -579,7 +580,7 @@ class AudioService extends ChangeNotifier {
   /// Play focus session start sound
   Future<void> playFocusStartSound() async {
     await playAsset(
-      assetPath: 'sounds/lumo-sound.wav',
+      assetPath: 'sounds/focus-cue.wav',
       type: AudioType.sound,
       trackName: 'Focus Start',
     );
@@ -588,7 +589,7 @@ class AudioService extends ChangeNotifier {
   /// Play focus session end sound
   Future<void> playFocusEndSound() async {
     await playAsset(
-      assetPath: 'sounds/lumo-sound.wav',
+      assetPath: 'sounds/focus-cue.wav',
       type: AudioType.sound,
       trackName: 'Focus End',
     );
@@ -610,8 +611,8 @@ class AudioService extends ChangeNotifier {
   /// Check if any audio is playing
   bool get isAnyPlaying {
     return _soundState == AudioPlayerState.playing ||
-           _musicState == AudioPlayerState.playing ||
-           _backgroundState == AudioPlayerState.playing;
+        _musicState == AudioPlayerState.playing ||
+        _backgroundState == AudioPlayerState.playing;
   }
 
   /// Check if specific type is playing
@@ -658,11 +659,11 @@ class AudioService extends ChangeNotifier {
     _soundPositionSubscription.cancel();
     _musicPositionSubscription.cancel();
     _backgroundPositionSubscription.cancel();
-    
+
     _soundDurationSubscription.cancel();
     _musicDurationSubscription.cancel();
     _backgroundDurationSubscription.cancel();
-    
+
     _soundStateSubscription.cancel();
     _musicStateSubscription.cancel();
     _backgroundStateSubscription.cancel();

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/presentation/providers/focus_session_provider.dart';
-import 'package:pace/presentation/providers/permission_provider.dart';
-import 'package:pace/services/native_service.dart';
+import 'package:staylit/presentation/providers/focus_session_provider.dart';
+import 'package:staylit/presentation/providers/permission_provider.dart';
+import 'package:staylit/services/native_service.dart';
 
 /// One-shot app-launch bootstrap:
 /// - checks whether a focus session was already running natively (e.g. the
