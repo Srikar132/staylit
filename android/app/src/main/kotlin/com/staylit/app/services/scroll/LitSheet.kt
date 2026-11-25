@@ -3,6 +3,7 @@ package com.staylit.app.services.scroll
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -67,6 +68,7 @@ class LitSheet(private val service: AccessibilityService) {
      */
     fun show(spec: SheetSpec, litRes: Int, autoDismissMs: Long, onResult: (Result) -> Unit): Boolean {
         if (root != null) return false
+        colors = themedContext()
         return try {
             val card = buildCard(spec, litRes)
             val view = if (spec.modal) buildModalRoot(card) else card
@@ -173,7 +175,26 @@ class LitSheet(private val service: AccessibilityService) {
         Typeface.DEFAULT
     }
 
-    private fun color(res: Int) = service.getColor(res)
+    /** Resources resolved for the app's own Appearance (Light / Dark), not necessarily the system theme. */
+    private var colors: Context = service
+
+    private fun themedContext(): Context {
+        val mode = service.getSharedPreferences("app_appearance", Context.MODE_PRIVATE).getString("mode", "system")
+        val night = when (mode) {
+            "light" -> Configuration.UI_MODE_NIGHT_NO
+            "dark" -> Configuration.UI_MODE_NIGHT_YES
+            else -> return service // "System": follow the phone
+        }
+        return try {
+            val config = Configuration(service.resources.configuration)
+            config.uiMode = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or night
+            service.createConfigurationContext(config)
+        } catch (e: Exception) {
+            service
+        }
+    }
+
+    private fun color(res: Int) = colors.getColor(res)
 
     private fun pill(fill: Int, radiusDp: Int = 28): GradientDrawable = GradientDrawable().apply {
         setColor(fill)
@@ -218,7 +239,7 @@ class LitSheet(private val service: AccessibilityService) {
             text = spec.title
             typeface = bold
             setTextColor(color(R.color.lit_text))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
             gravity = Gravity.CENTER
         }
         val body = TextView(service).apply {

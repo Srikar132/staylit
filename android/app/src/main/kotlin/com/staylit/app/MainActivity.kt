@@ -328,6 +328,9 @@ class MainActivity: FlutterActivity() {
      * [mode] is "light", "dark" or "system" (follow the phone).
      */
     private fun applyNightMode(mode: String?): Boolean {
+        // Remember the in-app Appearance ("light" / "dark" / "system") so native overlays (the Lit sheet) match
+        // the app instead of the system theme. Saved before the API check: it is needed on every Android version.
+        getSharedPreferences("app_appearance", MODE_PRIVATE).edit().putString("mode", mode ?: "system").apply()
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
         val nightMode = when (mode) {
             "light" -> UiModeManager.MODE_NIGHT_NO
