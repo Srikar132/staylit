@@ -15,8 +15,12 @@ data class ScrollEvent(
     val pkg: String,
     val sessionCount: Int,
     val threshold: Int,
-    /** [OfferResponse.wire] */
+    /** [OfferResponse.wire], or `go_back`, `start`, `expired`, `ended_early`. */
     val response: String,
+    /** `offer` (sheet answer), `island` (answer from the island card), `blocked` (block sheet), `pass`. */
+    val kind: String = "offer",
+    /** Pass length in minutes for `pass` rows, else 0. */
+    val minutes: Int = 0,
 ) {
     fun toMap(): Map<String, Any> = mapOf(
         "ts" to ts,
@@ -26,6 +30,8 @@ data class ScrollEvent(
         "sessionCount" to sessionCount,
         "threshold" to threshold,
         "response" to response,
+        "kind" to kind,
+        "minutes" to minutes,
     )
 }
 
@@ -62,7 +68,9 @@ class ScrollEventLog(private val max: Int = 200) {
                     .put("pkg", e.pkg)
                     .put("n", e.sessionCount)
                     .put("t", e.threshold)
-                    .put("r", e.response),
+                    .put("r", e.response)
+                    .put("k", e.kind)
+                    .put("m", e.minutes),
             )
         }
         return arr.toString()
@@ -86,6 +94,8 @@ class ScrollEventLog(private val max: Int = 200) {
                             sessionCount = o.optInt("n", 0),
                             threshold = o.optInt("t", 0),
                             response = o.optString("r", ""),
+                            kind = o.optString("k", "offer"),
+                            minutes = o.optInt("m", 0),
                         ),
                     )
                 }

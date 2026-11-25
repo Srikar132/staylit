@@ -206,7 +206,7 @@ class ScrollEventLogTest {
     @Test
     fun `map matches the channel contract`() {
         assertEquals(
-            setOf("ts", "day", "tzOffsetMinutes", "pkg", "sessionCount", "threshold", "response"),
+            setOf("ts", "day", "tzOffsetMinutes", "pkg", "sessionCount", "threshold", "response", "kind", "minutes"),
             e(1).toMap().keys,
         )
     }

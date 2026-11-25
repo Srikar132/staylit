@@ -18,14 +18,15 @@ class IslandPolicy(
     private var lastActivityMs = Long.MIN_VALUE
 
     /** An item was counted. [sessionCount] includes it; [newSession] means it opened a new session. */
-    fun onCounted(sessionCount: Int, newSession: Boolean, nowMs: Long): Action {
+    fun onCounted(sessionCount: Int, newSession: Boolean, nowMs: Long, alwaysShow: Boolean = false): Action {
         lastActivityMs = nowMs
         if (newSession && visible) {
             // A new session starts from zero: hide, then wait for [minItems] again.
             visible = false
-            return Action.HIDE
+            if (!alwaysShow) return Action.HIDE
         }
-        if (sessionCount < minItems) return Action.NONE
+        // During a break pass the pill (with its countdown) shows from the first item.
+        if (!alwaysShow && sessionCount < minItems) return Action.NONE
         return if (visible) {
             Action.UPDATE
         } else {
