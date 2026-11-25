@@ -45,6 +45,11 @@ service cloud.firestore {
       allow read, write: if isOwner(uid);
     }
 
+    // Answers to the Scroll damage break offer (behaviour log, no screen content).
+    match /scrollEvents/{uid}/items/{id} {
+      allow read, write: if isOwner(uid);
+    }
+
     match /parental_controls/{uid} {
       allow read, write: if isOwner(uid);
     }
