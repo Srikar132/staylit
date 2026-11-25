@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:pace/core/theme/app_dimens.dart';
-import 'package:pace/core/theme/theme_context.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/core/theme/theme_context.dart';
 
 /// Rounded `surface` card with a title and a muted body, used for short
 /// messages. With a [leading] widget the text is left-aligned beside it,

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/data/models/daily_stat.dart';
-import 'package:pace/data/repositories/daily_stats_repository.dart';
+import 'package:staylit/data/models/daily_stat.dart';
+import 'package:staylit/data/repositories/daily_stats_repository.dart';
 
 final dailyStatsRepositoryProvider = Provider<DailyStatsRepository>(
   (ref) => DailyStatsRepository(),

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/models/usage_stats_models.dart';
-import 'package:pace/services/native_service.dart';
+import 'package:staylit/models/usage_stats_models.dart';
+import 'package:staylit/services/native_service.dart';
 
 /// State class for usage stats view
 class UsageStatsState {

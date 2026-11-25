@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:pace/data/models/focus_session_model.dart';
+import 'package:staylit/data/models/focus_session_model.dart';
 
 /// One row of "Today's sessions".
 @immutable

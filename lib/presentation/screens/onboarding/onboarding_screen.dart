@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/presentation/providers/onboarding_provider.dart';
-import 'package:pace/presentation/screens/onboarding/welcome_back_screen.dart';
-import 'package:pace/presentation/screens/onboarding/distraction_question_screen.dart';
-import 'package:pace/presentation/screens/onboarding/study_time_screen.dart';
-import 'package:pace/presentation/screens/onboarding/procrastination_screen.dart';
-import 'package:pace/core/theme/theme_context.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/presentation/providers/onboarding_provider.dart';
+import 'package:staylit/presentation/screens/onboarding/distraction_question_screen.dart';
+import 'package:staylit/presentation/screens/onboarding/procrastination_screen.dart';
+import 'package:staylit/presentation/screens/onboarding/study_time_screen.dart';
+import 'package:staylit/presentation/screens/onboarding/welcome_back_screen.dart';
+import 'package:staylit/presentation/widgets/design/step_progress_bar.dart';
 
 class OnboardingScreen extends ConsumerWidget {
   const OnboardingScreen({super.key});
@@ -30,35 +31,29 @@ class OnboardingScreen extends ConsumerWidget {
     ];
 
     return Scaffold(
-      body: Stack(
-        children: [
-          // Background
-          Positioned.fill(child: Container(color: context.palette.canvas)),
-
-          // Progress bar
-          SafeArea(
-            child: Column(
-              children: [
-                LinearProgressIndicator(
-                  value: (onboardingState.currentPage + 1) / screens.length,
-                  backgroundColor: context.palette.onCanvas.withValues(
-                    alpha: 0.1,
-                  ),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Theme.of(context).colorScheme.primary,
-                  ),
-                  minHeight: 4,
-                ),
-                Expanded(
-                  child: IndexedStack(
-                    index: onboardingState.currentPage,
-                    children: screens,
-                  ),
-                ),
-              ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.lg,
+                AppSpacing.xl,
+                0,
+              ),
+              child: StepProgressBar(
+                currentStep: onboardingState.currentPage,
+                stepCount: screens.length,
+              ),
             ),
-          ),
-        ],
+            Expanded(
+              child: IndexedStack(
+                index: onboardingState.currentPage,
+                children: screens,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

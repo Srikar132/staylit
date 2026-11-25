@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/presentation/widgets/design/scalloped.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/widgets/design/scalloped.dart';
 
 /// Accent panel with a scalloped bottom edge: the hero block of the welcome
 /// screen. Put the illustration (or any content) in [child].

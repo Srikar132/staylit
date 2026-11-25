@@ -1,15 +1,15 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:pace/core/theme/app_dimens.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/presentation/widgets/design/control_dock.dart';
-import 'package:pace/presentation/widgets/design/focus_ring_timer.dart';
-import 'package:pace/presentation/widgets/design/icon_circle_button.dart';
-import 'package:pace/presentation/widgets/design/message_card.dart';
-import 'package:pace/presentation/widgets/design/pill_chip.dart';
-import 'package:pace/presentation/widgets/design/scalloped.dart';
-import 'package:pace/presentation/widgets/design/lit_badge.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/widgets/design/control_dock.dart';
+import 'package:staylit/presentation/widgets/design/focus_ring_timer.dart';
+import 'package:staylit/presentation/widgets/design/icon_circle_button.dart';
+import 'package:staylit/presentation/widgets/design/message_card.dart';
+import 'package:staylit/presentation/widgets/design/pill_chip.dart';
+import 'package:staylit/presentation/widgets/design/scalloped.dart';
+import 'package:staylit/presentation/widgets/design/lit_badge.dart';
 
 /// Short encouragements shown under the timer.
 abstract final class SessionMessages {

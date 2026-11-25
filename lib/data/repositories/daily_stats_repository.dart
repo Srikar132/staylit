@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:pace/data/models/daily_stat.dart';
+import 'package:staylit/data/models/daily_stat.dart';
 
 /// Reads the per-day focus totals written by `FocusSessionRepository`.
 class DailyStatsRepository {

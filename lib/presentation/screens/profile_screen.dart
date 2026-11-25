@@ -2,17 +2,17 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/presentation/providers/parental_control_provider.dart';
-import 'package:pace/presentation/providers/profile_provider.dart';
-import 'package:pace/presentation/screens/debug/design_gallery_screen.dart';
-import 'package:pace/presentation/widgets/appearance_sheet.dart';
-import 'package:pace/data/models/achievement_model.dart';
-import 'package:pace/models/parental_control.dart';
-import 'package:pace/widgets/parental_control_dialogs.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/presentation/providers/parental_control_provider.dart';
+import 'package:staylit/presentation/providers/profile_provider.dart';
+import 'package:staylit/presentation/screens/debug/design_gallery_screen.dart';
+import 'package:staylit/presentation/widgets/appearance_sheet.dart';
+import 'package:staylit/data/models/achievement_model.dart';
+import 'package:staylit/models/parental_control.dart';
+import 'package:staylit/widgets/parental_control_dialogs.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/core/constants/app_info.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/core/constants/app_info.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});

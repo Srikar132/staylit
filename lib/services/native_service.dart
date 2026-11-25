@@ -1,15 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/data/models/installed_app_model.dart';
-import 'package:pace/presentation/providers/focus_session_provider.dart';
+import 'package:staylit/data/models/installed_app_model.dart';
+import 'package:staylit/presentation/providers/focus_session_provider.dart';
 
 /// Service class to handle all native Android permissions required by the app.
 /// This service communicates with the native Android side through method channels
 /// to request and check various permissions needed for the app to function properly.
 class NativeService {
-  static const _platform = MethodChannel('com.lockin.focus/native');
-  static const _eventChannel = EventChannel('com.lockin.focus/events');
+  static const _platform = MethodChannel('com.staylit.app/native');
+  static const _eventChannel = EventChannel('com.staylit.app/events');
 
   /// Initialize method handler to listen for native-initiated calls
   static void initializeMethodHandler(WidgetRef ref) {

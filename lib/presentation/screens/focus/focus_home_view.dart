@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:pace/core/theme/app_dimens.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/presentation/screens/focus/focus_home_data.dart';
-import 'package:pace/presentation/widgets/design/app_pill_button.dart';
-import 'package:pace/presentation/widgets/design/goal_card.dart';
-import 'package:pace/presentation/widgets/design/message_card.dart';
-import 'package:pace/presentation/widgets/design/pill_chip.dart';
-import 'package:pace/presentation/widgets/design/session_card.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/screens/focus/focus_home_data.dart';
+import 'package:staylit/presentation/widgets/design/app_pill_button.dart';
+import 'package:staylit/presentation/widgets/design/goal_card.dart';
+import 'package:staylit/presentation/widgets/design/message_card.dart';
+import 'package:staylit/presentation/widgets/design/pill_chip.dart';
+import 'package:staylit/presentation/widgets/design/session_card.dart';
 
 /// The Focus (home) tab: greeting, today's goal, session setup, today's
 /// sessions and the start button. Pure presentation: all data and

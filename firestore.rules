@@ -1,0 +1,112 @@
+rules_version = '2';
+
+// Staylit Firestore rules. Default is deny; every path below is owner-only
+// except groups (members + public discovery).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // ---- Per-user data -------------------------------------------------
+
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      // profile/stats, profile/achievements, ...
+      match /{document=**} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    match /appLimits/{uid}/apps/{pkg} {
+      allow read, write: if isOwner(uid);
+    }
+
+    match /blockedContent/{uid} {
+      allow read, write: if isOwner(uid);
+    }
+
+    match /dailyStats/{uid}/days/{date} {
+      allow read, write: if isOwner(uid);
+    }
+
+    match /parental_controls/{uid} {
+      allow read, write: if isOwner(uid);
+    }
+
+    match /focusSessions/{sessionId} {
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow read, delete: if signedIn() && resource.data.userId == request.auth.uid;
+      // userId can never change hands.
+      allow update: if signedIn()
+                    && resource.data.userId == request.auth.uid
+                    && request.resource.data.userId == resource.data.userId;
+    }
+
+    // ---- Accountability groups ----------------------------------------
+
+    match /groups/{groupId} {
+      function isMember() {
+        return signedIn() && request.auth.uid in resource.data.memberIds;
+      }
+
+      // Joining: a public group may gain exactly one member (the caller).
+      function isSelfJoin() {
+        return signedIn()
+            && resource.data.settings.isPublic == true
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['memberIds', 'memberFocusTime'])
+            && request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1
+            && request.resource.data.memberIds.hasAll(resource.data.memberIds)
+            && request.auth.uid in request.resource.data.memberIds;
+      }
+
+      // Queries are `memberIds array-contains uid` or `settings.isPublic == true`,
+      // both of which satisfy this condition.
+      allow read: if signedIn()
+                  && (resource.data.settings.isPublic == true
+                      || request.auth.uid in resource.data.memberIds);
+
+      allow create: if signedIn()
+                    && request.resource.data.creatorId == request.auth.uid
+                    && request.resource.data.memberIds == [request.auth.uid];
+
+      allow update: if isMember() || isSelfJoin();
+
+      allow delete: if signedIn() && request.auth.uid in resource.data.adminIds;
+
+      match /members/{memberId} {
+        function parentGroup() {
+          return get(/databases/$(database)/documents/groups/$(groupId)).data;
+        }
+
+        function isGroupMember() {
+          return signedIn() && request.auth.uid in parentGroup().memberIds;
+        }
+
+        function isGroupAdmin() {
+          return signedIn() && request.auth.uid in parentGroup().adminIds;
+        }
+
+        allow read: if isGroupMember();
+
+        // Own member doc is created on join (the group doc is updated in the
+        // same batch, so membership is not yet visible here).
+        allow create: if isOwner(memberId);
+
+        // Own doc, or any member refreshing the rank field after a session.
+        allow update: if isOwner(memberId)
+                      || (isGroupMember()
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rank']));
+
+        allow delete: if isOwner(memberId) || isGroupAdmin();
+      }
+    }
+  }
+}

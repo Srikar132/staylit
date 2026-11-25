@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:pace/core/theme/app_dimens.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/presentation/screens/blocks_screen.dart';
-import 'package:pace/presentation/screens/focus_screen.dart';
-import 'package:pace/presentation/screens/group_screen.dart';
-import 'package:pace/presentation/screens/usage_stats_screen.dart';
-import 'package:pace/presentation/widgets/design/black_bottom_nav.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/screens/blocks_screen.dart';
+import 'package:staylit/presentation/screens/focus_screen.dart';
+import 'package:staylit/presentation/screens/group_screen.dart';
+import 'package:staylit/presentation/screens/usage_stats_screen.dart';
+import 'package:staylit/presentation/widgets/design/black_bottom_nav.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

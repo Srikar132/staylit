@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/presentation/providers/group_provider.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/presentation/screens/group_detail_screen.dart';
-import 'package:pace/presentation/screens/create_group_screen.dart';
-import 'package:pace/core/theme/theme_context.dart';
+import 'package:staylit/presentation/providers/group_provider.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/presentation/screens/group_detail_screen.dart';
+import 'package:staylit/presentation/screens/create_group_screen.dart';
+import 'package:staylit/core/theme/theme_context.dart';
 
 /// Main Groups screen showing user's groups and search functionality
 class GroupScreen extends ConsumerWidget {

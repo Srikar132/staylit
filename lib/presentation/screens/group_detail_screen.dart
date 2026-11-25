@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/data/models/group_memeber_model.dart';
-import 'package:pace/data/models/group_model.dart';
-import 'package:pace/presentation/providers/group_provider.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
+import 'package:staylit/data/models/group_memeber_model.dart';
+import 'package:staylit/data/models/group_model.dart';
+import 'package:staylit/presentation/providers/group_provider.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/core/constants/app_info.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/core/constants/app_info.dart';
 
 /// Detailed view of a specific group with members and leaderboard
 class GroupDetailScreen extends ConsumerStatefulWidget {

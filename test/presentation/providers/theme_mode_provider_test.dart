@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pace/data/repositories/theme_repository.dart';
-import 'package:pace/presentation/providers/theme_mode_provider.dart';
-import 'package:pace/services/night_mode_bridge.dart';
+import 'package:staylit/data/repositories/theme_repository.dart';
+import 'package:staylit/presentation/providers/theme_mode_provider.dart';
+import 'package:staylit/services/night_mode_bridge.dart';
 
 class FakeThemeRepository implements ThemeRepository {
   FakeThemeRepository({

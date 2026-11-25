@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pace/core/theme/app_palette.dart';
-import 'package:pace/core/theme/app_theme.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/data/repositories/theme_repository.dart';
-import 'package:pace/presentation/providers/theme_mode_provider.dart';
-import 'package:pace/presentation/widgets/appearance_sheet.dart';
+import 'package:staylit/core/theme/app_palette.dart';
+import 'package:staylit/core/theme/app_theme.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/data/repositories/theme_repository.dart';
+import 'package:staylit/presentation/providers/theme_mode_provider.dart';
+import 'package:staylit/presentation/widgets/appearance_sheet.dart';
 
 class _MemoryThemeRepository implements ThemeRepository {
   ThemeMode stored = ThemeMode.system;
@@ -18,7 +18,7 @@ class _MemoryThemeRepository implements ThemeRepository {
   Future<void> save(ThemeMode mode) async => stored = mode;
 }
 
-/// Mirrors how `LockInApp` wires the theme, around a probe widget.
+/// Mirrors how `StaylitApp` wires the theme, around a probe widget.
 class _TestApp extends ConsumerWidget {
   const _TestApp();
 

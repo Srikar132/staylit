@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:pace/core/theme/app_dimens.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/presentation/widgets/design/duration_text.dart';
-import 'package:pace/presentation/widgets/design/week_bar_chart.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/widgets/design/duration_text.dart';
+import 'package:staylit/presentation/widgets/design/week_bar_chart.dart';
 
 /// "Today's Goal" card: goal, a 7-day bar chart with today highlighted, and how
 /// much of the goal is done.

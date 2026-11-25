@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/core/constants/images.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/widgets/bottom_sheet_darg_handler.dart';
-import 'package:pace/core/constants/app_info.dart';
+import 'package:staylit/core/constants/images.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/widgets/bottom_sheet_darg_handler.dart';
+import 'package:staylit/core/constants/app_info.dart';
 
 class AuthActionsBottomModel extends ConsumerWidget {
   const AuthActionsBottomModel({super.key});

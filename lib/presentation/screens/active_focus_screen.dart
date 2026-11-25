@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pace/core/router/app_router.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/models/audio_bottom_model.dart';
-import 'package:pace/models/end_session_bottom_sheet.dart';
-import 'package:pace/models/model_manager.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/presentation/providers/focus_session_provider.dart';
-import 'package:pace/presentation/screens/active_session/active_session_view.dart';
-import 'package:pace/services/audio_service.dart';
-import 'package:pace/widgets/allowed_apps_drawer.dart';
+import 'package:staylit/core/router/app_router.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/models/audio_bottom_model.dart';
+import 'package:staylit/models/end_session_bottom_sheet.dart';
+import 'package:staylit/models/model_manager.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/presentation/providers/focus_session_provider.dart';
+import 'package:staylit/presentation/screens/active_session/active_session_view.dart';
+import 'package:staylit/services/audio_service.dart';
+import 'package:staylit/widgets/allowed_apps_drawer.dart';
 
 class ActiveFocusScreen extends ConsumerStatefulWidget {
   const ActiveFocusScreen({super.key});

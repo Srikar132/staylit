@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:pace/core/theme/app_dimens.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/presentation/widgets/design/duration_text.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/widgets/design/duration_text.dart';
 
 /// One focus session in a list: icon, title (its tag), subtitle (time and
 /// result) and the focused duration.

@@ -2,9 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:pace/core/theme/app_dimens.dart';
-import 'package:pace/core/theme/app_palette.dart';
-import 'package:pace/core/theme/app_typography.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/core/theme/app_palette.dart';
+import 'package:staylit/core/theme/app_typography.dart';
 
 /// Warm Focus themes.
 ///
@@ -324,65 +324,5 @@ abstract final class AppTheme {
         selectionHandleColor: p.accent,
       ),
     );
-  }
-}
-
-// File: lib/core/theme/app_colors.dart
-//
-// LEGACY (Obsidian x Ice/Silver, dark-only). Static constants cannot follow the
-// theme mode, so this class is being removed: Phase 2 of
-// prompts/ui-redesign-warm-focus.md migrates every reference to
-// `context.palette` (AppPalette) and deletes it. Do not use it in new code.
-class AppColors {
-  // Accent (PACE Silver / Ice)
-  static const accent = Color(0xFFB8C0C8); // PACE Silver
-  static const accentHighlight = Color(0xFFD7DCE1); // Silver Highlight
-  static const accentMuted = Color(0xFF626870); // Deeper, muted accent
-
-  // Background Colors
-  static const background = Color(0xFF090A0C); // Obsidian
-  static const surface = Color(0xFF121417);
-  static const surfaceElevated = Color(0xFF181B1F); // Elevated
-
-  // Text Colors
-  static const textPrimary = Color(0xFFF4F5F6);
-  static const textSecondary = Color(0xFF9298A0);
-  static const textMuted = Color(0xFF626870);
-  static const textDisabled = Color(0xFF626870);
-
-  // Border & Divider — translucent accent hairlines, not a flat gray
-  static const border = Color(0x1FB8C0C8); // ~12% alpha
-  static const divider = Color(0x14B8C0C8); // ~8% alpha
-
-  // Status Colors — used only when semantically necessary
-  static const error = Color(0xFFF06A6A);
-  static const success = Color(0xFF4ADE80);
-  static const warning = Color(0xFFF5B942);
-  static const info = Color(0xFFD7DCE1); // Silver Highlight
-
-  // Special
-  static const activeIndicator = Color(0xFFB8C0C8); // "focusing now" dot
-  static const buttonFill = Color(0xFFD7DCE1); // solid primary-button fill
-  static const premium = Color(0xFFFFD700); // PRO badge — kept distinct
-
-  // Cycled palette for identifying items by index (group member avatars, etc.)
-  static const avatarColors = [
-    accent,
-    accentHighlight,
-    accentMuted,
-    success,
-    warning,
-    error,
-    premium,
-    textSecondary,
-  ];
-
-  /// Consistent color for a group/user, derived from its name.
-  static Color groupColor(String name) {
-    int hash = 0;
-    for (int i = 0; i < name.length; i++) {
-      hash = name.codeUnitAt(i) + ((hash << 5) - hash);
-    }
-    return avatarColors[hash.abs() % avatarColors.length];
   }
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pace/core/theme/theme_context.dart';
+import 'package:staylit/core/theme/theme_context.dart';
 
 /// The Staylit wordmark: "stay" in the text color and "lit" in the accent,
 /// set in the app font (Space Grotesk Bold). Drawn in code, so it is always

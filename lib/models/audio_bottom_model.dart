@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/core/constants/audios.dart';
-import 'package:pace/presentation/providers/audio_providers.dart';
-import 'package:pace/services/audio_service.dart';
-import 'package:pace/core/theme/theme_context.dart';
+import 'package:staylit/core/constants/audios.dart';
+import 'package:staylit/presentation/providers/audio_providers.dart';
+import 'package:staylit/services/audio_service.dart';
+import 'package:staylit/core/theme/theme_context.dart';
 
 class AudioBottomSheet extends ConsumerStatefulWidget {
   const AudioBottomSheet({super.key});

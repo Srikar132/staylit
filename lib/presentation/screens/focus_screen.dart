@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pace/core/router/app_router.dart'
+import 'package:staylit/core/router/app_router.dart'
     show profileRoute, activeSessionRoute;
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/data/models/user_model.dart';
-import 'package:pace/data/models/user_settings_model.dart';
-import 'package:pace/models/focus_time_bottom_model.dart';
-import 'package:pace/models/model_manager.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/presentation/providers/blocked_content_provider.dart';
-import 'package:pace/presentation/providers/daily_stats_provider.dart';
-import 'package:pace/presentation/providers/focus_session_provider.dart';
-import 'package:pace/presentation/providers/settings_provider.dart';
-import 'package:pace/presentation/providers/usage_stats_provider.dart';
-import 'package:pace/presentation/screens/focus/focus_home_data.dart';
-import 'package:pace/presentation/screens/focus/focus_home_view.dart';
-import 'package:pace/presentation/widgets/goal_sheet.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/data/models/user_model.dart';
+import 'package:staylit/data/models/user_settings_model.dart';
+import 'package:staylit/models/focus_time_bottom_model.dart';
+import 'package:staylit/models/model_manager.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/presentation/providers/blocked_content_provider.dart';
+import 'package:staylit/presentation/providers/daily_stats_provider.dart';
+import 'package:staylit/presentation/providers/focus_session_provider.dart';
+import 'package:staylit/presentation/providers/settings_provider.dart';
+import 'package:staylit/presentation/providers/usage_stats_provider.dart';
+import 'package:staylit/presentation/screens/focus/focus_home_data.dart';
+import 'package:staylit/presentation/screens/focus/focus_home_view.dart';
+import 'package:staylit/presentation/widgets/goal_sheet.dart';
 
 class FocusScreen extends ConsumerStatefulWidget {
   const FocusScreen({super.key});

@@ -50,7 +50,7 @@ class OverlayState {
 
 class OverlayService {
   static const EventChannel _eventChannel =
-  EventChannel('com.lockin.focus/overlay_events');
+  EventChannel('com.staylit.app/overlay_events');
 
   Stream<Map<String, dynamic>> get eventStream {
     return _eventChannel
@@ -65,7 +65,7 @@ class OverlayService {
 
 class OverlayDataNotifier extends Notifier<OverlayState> {
   static const MethodChannel _methodChannel =
-  MethodChannel('com.lockin.focus/overlay_actions');
+  MethodChannel('com.staylit.app/overlay_actions');
 
   @override
   OverlayState build() {

@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/overlay_provider.dart';
 import '../widgets/overlay_background.dart';
 
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/presentation/widgets/design/lit_badge.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/widgets/design/lit_badge.dart';
 
 class AppLimitOverlay extends ConsumerStatefulWidget {
   const AppLimitOverlay({super.key});

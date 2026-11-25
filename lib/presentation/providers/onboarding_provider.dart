@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-// import 'package:pace/data/local/hive_service.dart'; // Removed - Firebase-only
-import 'package:pace/data/repositories/user_repository.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+// import 'package:staylit/data/local/hive_service.dart'; // Removed - Firebase-only
+import 'package:staylit/data/repositories/user_repository.dart';
 
 // Onboarding state
 class OnboardingState {

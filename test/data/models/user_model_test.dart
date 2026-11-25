@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pace/data/models/user_model.dart';
+import 'package:staylit/data/models/user_model.dart';
 
 UserModel userWith(int totalFocusMinutes) => UserModel(
   uid: 'u1',

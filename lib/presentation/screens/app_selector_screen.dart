@@ -30,7 +30,7 @@ class _AppSelectorScreenState extends State<AppSelectorScreen> {
   Future<void> _loadInstalledApps() async {
     try {
       final apps = await InstalledApps.getInstalledApps(true, true);
-      apps.removeWhere((app) => app.packageName == 'com.example.pace');
+      apps.removeWhere((app) => app.packageName == 'com.staylit.app');
       apps.sort((a, b) => a.name.compareTo(b.name));
       if (mounted) {
         setState(() {

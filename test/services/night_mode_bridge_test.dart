@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pace/services/night_mode_bridge.dart';
+import 'package:staylit/services/night_mode_bridge.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

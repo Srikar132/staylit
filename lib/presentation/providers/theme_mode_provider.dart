@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/data/repositories/theme_repository.dart';
-import 'package:pace/services/night_mode_bridge.dart';
+import 'package:staylit/data/repositories/theme_repository.dart';
+import 'package:staylit/services/night_mode_bridge.dart';
 
 /// The theme mode loaded before `runApp`, so the very first frame already uses
 /// the right theme (no flash). Must be overridden in the root `ProviderScope`.

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:pace/data/models/group_model.dart';
-import 'package:pace/presentation/providers/group_provider.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/core/constants/app_info.dart';
+import 'package:staylit/data/models/group_model.dart';
+import 'package:staylit/presentation/providers/group_provider.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/core/constants/app_info.dart';
 
 /// Screen for creating a new group
 class CreateGroupScreen extends ConsumerStatefulWidget {

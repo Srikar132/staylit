@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/data/models/app_limit_model.dart';
-import 'package:pace/presentation/providers/app_limits_provider.dart';
-import 'package:pace/presentation/screens/app_selector_screen.dart';
-import 'package:pace/services/app_limit_native_service.dart';
-import 'package:pace/core/theme/theme_context.dart';
+import 'package:staylit/data/models/app_limit_model.dart';
+import 'package:staylit/presentation/providers/app_limits_provider.dart';
+import 'package:staylit/presentation/screens/app_selector_screen.dart';
+import 'package:staylit/services/app_limit_native_service.dart';
+import 'package:staylit/core/theme/theme_context.dart';
 
 class AddAppLimitScreen extends ConsumerStatefulWidget {
   final String userId;

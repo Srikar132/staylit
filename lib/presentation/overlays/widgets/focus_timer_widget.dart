@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:pace/core/theme/theme_context.dart';
+import 'package:staylit/core/theme/theme_context.dart';
 
 class FocusTimerWidget extends StatelessWidget {
   final int elapsedMinutes;

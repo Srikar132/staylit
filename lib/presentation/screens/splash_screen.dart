@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/core/theme/theme_context.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/core/theme/theme_context.dart';
 
 /// Pure loading/error gate. All routing decisions (auth, onboarding,
 /// permissions, active-session) live in `appRouterProvider`'s `redirect`

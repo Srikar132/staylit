@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pace/data/models/focus_session_model.dart';
-import 'package:pace/data/repositories/focus_session_repository.dart';
+import 'package:staylit/data/models/focus_session_model.dart';
+import 'package:staylit/data/repositories/focus_session_repository.dart';
 
 SessionFinishPlan plan({
   String status = SessionStatus.completed,

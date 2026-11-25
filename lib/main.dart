@@ -6,15 +6,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pace/core/constants/app_info.dart';
-import 'package:pace/core/router/app_router.dart';
-import 'package:pace/core/theme/app_theme.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/data/repositories/theme_repository.dart';
-import 'package:pace/presentation/overlays/overlay_app.dart';
-import 'package:pace/presentation/providers/theme_mode_provider.dart';
-import 'package:pace/services/native_service.dart';
-import 'package:pace/services/night_mode_bridge.dart';
+import 'package:staylit/core/constants/app_info.dart';
+import 'package:staylit/core/router/app_router.dart';
+import 'package:staylit/core/theme/app_theme.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/data/repositories/theme_repository.dart';
+import 'package:staylit/presentation/overlays/overlay_app.dart';
+import 'package:staylit/presentation/providers/theme_mode_provider.dart';
+import 'package:staylit/services/native_service.dart';
+import 'package:staylit/services/night_mode_bridge.dart';
 
 // Overlay entry point - separate from main app
 @pragma('vm:entry-point')
@@ -54,7 +54,7 @@ void main() async {
 
   // Load the saved theme mode before the first frame so there is no flash of
   // the wrong theme. System bar styling follows the resolved theme in
-  // LockInApp's builder.
+  // StaylitApp's builder.
   final themeMode = await SharedPreferencesThemeRepository().load();
 
   // Keep Android's per-app night mode (the native splash) in sync with the saved
@@ -64,19 +64,19 @@ void main() async {
   runApp(
     ProviderScope(
       overrides: [initialThemeModeProvider.overrideWithValue(themeMode)],
-      child: const LockInApp(),
+      child: const StaylitApp(),
     ),
   );
 }
 
-class LockInApp extends ConsumerStatefulWidget {
-  const LockInApp({super.key});
+class StaylitApp extends ConsumerStatefulWidget {
+  const StaylitApp({super.key});
 
   @override
-  ConsumerState<LockInApp> createState() => _LockInAppState();
+  ConsumerState<StaylitApp> createState() => _StaylitAppState();
 }
 
-class _LockInAppState extends ConsumerState<LockInApp> {
+class _StaylitAppState extends ConsumerState<StaylitApp> {
   @override
   void initState() {
     super.initState();

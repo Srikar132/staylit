@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pace/core/theme/theme_context.dart';
+import 'package:staylit/core/theme/theme_context.dart';
 
 /// One destination of a [BlackBottomNav].
 @immutable

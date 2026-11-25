@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/data/models/focus_session_model.dart';
-import 'package:pace/services/native_service.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/data/repositories/focus_session_repository.dart';
+import 'package:staylit/data/models/focus_session_model.dart';
+import 'package:staylit/services/native_service.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/data/repositories/focus_session_repository.dart';
 
 final sessionRepositoryProvider = Provider<FocusSessionRepository>((ref) {
   return FocusSessionRepository();

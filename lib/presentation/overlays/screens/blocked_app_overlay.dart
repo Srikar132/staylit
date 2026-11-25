@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart' hide OverlayState;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/presentation/overlays/providers/overlay_provider.dart';
-import 'package:pace/presentation/overlays/widgets/actions_buttons.dart';
-import 'package:pace/presentation/overlays/widgets/focus_timer_widget.dart';
-import 'package:pace/presentation/overlays/widgets/motivational_message.dart';
-import 'package:pace/presentation/overlays/widgets/overlay_background.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/presentation/widgets/design/lit_badge.dart';
+import 'package:staylit/presentation/overlays/providers/overlay_provider.dart';
+import 'package:staylit/presentation/overlays/widgets/actions_buttons.dart';
+import 'package:staylit/presentation/overlays/widgets/focus_timer_widget.dart';
+import 'package:staylit/presentation/overlays/widgets/motivational_message.dart';
+import 'package:staylit/presentation/overlays/widgets/overlay_background.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/widgets/design/lit_badge.dart';
 
 //import 'package:lottie/lottie.dart';
 

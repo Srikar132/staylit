@@ -81,7 +81,7 @@
 
         <!-- Accessibility Service for app blocking -->
         <service
-            android:name=".services.LockInAccessibilityService"
+            android:name=".services.StaylitAccessibilityService"
             android:exported="false"
             android:foregroundServiceType="specialUse"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">

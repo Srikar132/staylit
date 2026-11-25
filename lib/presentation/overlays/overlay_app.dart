@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/core/constants/app_info.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/presentation/providers/theme_mode_provider.dart';
+import 'package:staylit/core/constants/app_info.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/providers/theme_mode_provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import 'overlay_router.dart';

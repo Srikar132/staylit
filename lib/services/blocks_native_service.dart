@@ -7,8 +7,8 @@ import 'package:flutter/foundation.dart';
 /// This service communicates with the native Android Kotlin code to enforce
 /// blocks at the OS level, not just in the Flutter app.
 class BlocksNativeService {
-  static const _methodChannel = MethodChannel('com.lockin.focus/native');
-  static const _eventChannel = EventChannel('com.lockin.focus/events');
+  static const _methodChannel = MethodChannel('com.staylit.app/native');
+  static const _eventChannel = EventChannel('com.staylit.app/events');
 
   /// Stream of blocking events from native Android service
   Stream<Map<String, dynamic>> get blockingEventsStream {

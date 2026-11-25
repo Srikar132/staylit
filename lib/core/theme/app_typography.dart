@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pace/core/theme/app_palette.dart';
+import 'package:staylit/core/theme/app_palette.dart';
 
 /// Typography of the Warm Focus design system: Space Grotesk (OFL), bundled in
 /// `assets/fonts` in Regular 400, Medium 500 and Bold 700 (no runtime fetch).

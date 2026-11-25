@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pace/core/theme/app_theme.dart';
-import 'package:pace/presentation/screens/active_session/active_session_view.dart';
-import 'package:pace/presentation/widgets/design/black_bottom_nav.dart';
-import 'package:pace/presentation/widgets/design/duration_text.dart';
-import 'package:pace/presentation/widgets/design/goal_card.dart';
-import 'package:pace/presentation/widgets/goal_sheet.dart';
+import 'package:staylit/core/theme/app_theme.dart';
+import 'package:staylit/presentation/screens/active_session/active_session_view.dart';
+import 'package:staylit/presentation/widgets/design/black_bottom_nav.dart';
+import 'package:staylit/presentation/widgets/design/duration_text.dart';
+import 'package:staylit/presentation/widgets/design/goal_card.dart';
+import 'package:staylit/presentation/widgets/goal_sheet.dart';
 
 Widget host(Widget child) => MaterialApp(
   theme: AppTheme.light,

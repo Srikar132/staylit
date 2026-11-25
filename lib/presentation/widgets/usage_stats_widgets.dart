@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:pace/models/usage_stats_models.dart';
+import 'package:staylit/models/usage_stats_models.dart';
 
 import 'dart:typed_data';
 
-import 'package:pace/core/theme/theme_context.dart';
+import 'package:staylit/core/theme/theme_context.dart';
 
 /// Widget for displaying individual app usage in a list tile
 class UsageAppListTile extends StatelessWidget {

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/models/usage_stats_models.dart';
-import 'package:pace/presentation/providers/usage_stats_provider.dart';
-import 'package:pace/presentation/widgets/usage_stats_widgets.dart';
-import 'package:pace/core/theme/theme_context.dart';
+import 'package:staylit/models/usage_stats_models.dart';
+import 'package:staylit/presentation/providers/usage_stats_provider.dart';
+import 'package:staylit/presentation/widgets/usage_stats_widgets.dart';
+import 'package:staylit/core/theme/theme_context.dart';
 
 class UsageStatsScreen extends ConsumerStatefulWidget {
   const UsageStatsScreen({super.key});
@@ -412,16 +412,16 @@ class _UsageStatsScreenState extends ConsumerState<UsageStatsScreen>
   }
 
   Widget _buildCategoryBreakdown(UsageStatsResponse data, ThemeData theme) {
-    // Filter out pace app from all categories
+    // Filter out staylit app from all categories
     final filteredApps = data.apps
         .where(
           (app) =>
-              !app.packageName.contains('pace') &&
-              app.packageName != 'com.example.pace',
+              !app.packageName.contains('staylit') &&
+              app.packageName != 'com.staylit.app',
         )
         .toList();
 
-    // Calculate category times excluding pace
+    // Calculate category times excluding staylit
     final distractingTime = filteredApps
         .where((app) => app.category == AppCategory.distracting)
         .fold(0, (sum, app) => sum + app.totalUsageMinutes);
@@ -538,12 +538,12 @@ class _UsageStatsScreenState extends ConsumerState<UsageStatsScreen>
   }
 
   List<AppUsageStats> _getFilteredApps(UsageStatsResponse data) {
-    // First filter out the pace app itself
+    // First filter out the staylit app itself
     var apps = data.apps
         .where(
           (app) =>
-              !app.packageName.contains('pace') &&
-              app.packageName != 'com.example.pace',
+              !app.packageName.contains('staylit') &&
+              app.packageName != 'com.staylit.app',
         )
         .toList();
 

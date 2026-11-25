@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pace/data/models/focus_session_model.dart';
+import 'package:staylit/data/models/focus_session_model.dart';
 
 Map<String, dynamic> baseDoc() => {
   'userId': 'u1',

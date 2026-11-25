@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/data/models/installed_app_model.dart';
-import 'package:pace/models/block_app_bottom_model.dart';
-import 'package:pace/models/model_manager.dart';
-import 'package:pace/presentation/providers/app_management_provide.dart';
-import 'package:pace/presentation/providers/blocked_content_provider.dart';
-import 'package:pace/widgets/bottom_sheet_darg_handler.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/presentation/providers/settings_provider.dart';
-import 'package:pace/core/theme/theme_context.dart';
+import 'package:staylit/data/models/installed_app_model.dart';
+import 'package:staylit/models/block_app_bottom_model.dart';
+import 'package:staylit/models/model_manager.dart';
+import 'package:staylit/presentation/providers/app_management_provide.dart';
+import 'package:staylit/presentation/providers/blocked_content_provider.dart';
+import 'package:staylit/widgets/bottom_sheet_darg_handler.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/presentation/providers/settings_provider.dart';
+import 'package:staylit/core/theme/theme_context.dart';
 
 // ============================================================================
 // OPTIMIZED: Extracted BlockedAppsSection to prevent unnecessary rebuilds

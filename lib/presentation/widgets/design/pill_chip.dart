@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:pace/core/theme/app_dimens.dart';
-import 'package:pace/core/theme/theme_context.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/core/theme/theme_context.dart';
 
 /// `surface` pill with an optional leading icon and trailing chevron, e.g. the
 /// session-type chip in the session top bar.

@@ -9,12 +9,12 @@ abstract interface class NightModeBridge {
   Future<bool> apply(ThemeMode mode);
 }
 
-/// [NightModeBridge] over the existing `com.lockin.focus/native` channel.
+/// [NightModeBridge] over the existing `com.staylit.app/native` channel.
 class MethodChannelNightModeBridge implements NightModeBridge {
   MethodChannelNightModeBridge([MethodChannel? channel])
     : _channel = channel ?? const MethodChannel(channelName);
 
-  static const String channelName = 'com.lockin.focus/native';
+  static const String channelName = 'com.staylit.app/native';
   static const String methodName = 'setNightMode';
 
   final MethodChannel _channel;

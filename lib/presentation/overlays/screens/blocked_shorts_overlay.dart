@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/presentation/overlays/providers/overlay_provider.dart';
-import 'package:pace/presentation/overlays/widgets/focus_timer_widget.dart';
-import 'package:pace/presentation/overlays/widgets/overlay_background.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/presentation/widgets/design/lit_badge.dart';
+import 'package:staylit/presentation/overlays/providers/overlay_provider.dart';
+import 'package:staylit/presentation/overlays/widgets/focus_timer_widget.dart';
+import 'package:staylit/presentation/overlays/widgets/overlay_background.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/widgets/design/lit_badge.dart';
 
 class BlockedShortsOverlay extends ConsumerStatefulWidget {
   const BlockedShortsOverlay({super.key});

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pace/data/models/focus_session_model.dart';
-import 'package:pace/data/models/user_settings_model.dart';
-import 'package:pace/data/models/pomodoro_settings.dart';
-import 'package:pace/presentation/screens/active_session/active_session_view.dart';
-import 'package:pace/presentation/screens/focus/focus_home_data.dart';
+import 'package:staylit/data/models/focus_session_model.dart';
+import 'package:staylit/data/models/user_settings_model.dart';
+import 'package:staylit/data/models/pomodoro_settings.dart';
+import 'package:staylit/presentation/screens/active_session/active_session_view.dart';
+import 'package:staylit/presentation/screens/focus/focus_home_data.dart';
 
 FocusSessionModel session({
   String status = SessionStatus.completed,

@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/presentation/providers/app_limits_provider.dart';
-import 'package:pace/presentation/providers/blocked_content_provider.dart';
-import 'package:pace/presentation/providers/permission_provider.dart';
-import 'package:pace/presentation/providers/parental_control_provider.dart';
-import 'package:pace/data/models/blocked_content_model.dart';
-import 'package:pace/data/models/app_limit_model.dart';
-import 'package:pace/services/blocks_native_service.dart';
-import 'package:pace/services/app_limit_native_service.dart';
-import 'package:pace/services/native_service.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/presentation/providers/app_limits_provider.dart';
+import 'package:staylit/presentation/providers/blocked_content_provider.dart';
+import 'package:staylit/presentation/providers/permission_provider.dart';
+import 'package:staylit/presentation/providers/parental_control_provider.dart';
+import 'package:staylit/data/models/blocked_content_model.dart';
+import 'package:staylit/data/models/app_limit_model.dart';
+import 'package:staylit/services/blocks_native_service.dart';
+import 'package:staylit/services/app_limit_native_service.dart';
+import 'package:staylit/services/native_service.dart';
 import 'package:installed_apps/installed_apps.dart';
 import 'package:installed_apps/app_info.dart';
-import 'package:pace/widgets/parental_control_dialogs.dart';
+import 'package:staylit/widgets/parental_control_dialogs.dart';
 
 import 'dart:async';
 
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/core/constants/app_info.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/core/constants/app_info.dart';
 
 // Standalone permission check function accessible by all widgets
 Future<bool> _checkAndRequestPermissions(

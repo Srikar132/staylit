@@ -1,57 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/presentation/providers/onboarding_provider.dart';
-import 'package:pace/core/theme/theme_context.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/presentation/providers/onboarding_provider.dart';
+import 'package:staylit/presentation/widgets/design/app_pill_button.dart';
 
 class WelcomeBackScreen extends ConsumerWidget {
   const WelcomeBackScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final textTheme = Theme.of(context).textTheme;
     final currentUser = ref.watch(currentUserProvider).value;
     final displayName = currentUser?.displayName?.split(' ').first ?? 'there';
 
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Spacer(),
-
-          // Welcome message
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              'Welcome back $displayName!',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                color: context.palette.onCanvas,
-              ),
-              textAlign: TextAlign.center,
-            ),
+          Text(
+            'Welcome back, $displayName!',
+            style: textTheme.displaySmall,
+            textAlign: TextAlign.center,
           ),
-
-          const SizedBox(height: 40),
-
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            "Let's finish setting up so Staylit fits you.",
+            style: textTheme.bodyLarge,
+            textAlign: TextAlign.center,
+          ),
           const Spacer(),
-
-          // Continue button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                ref.read(onboardingProvider.notifier).nextPage();
-              },
-              child: const Text('Continue'),
-            ),
+          AppPillButton(
+            label: 'Continue',
+            onPressed: ref.read(onboardingProvider.notifier).nextPage,
           ),
-
-          const SizedBox(height: 40),
+          const SizedBox(height: AppSpacing.md),
         ],
       ),
     );

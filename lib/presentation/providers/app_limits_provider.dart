@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pace/data/models/app_limit_model.dart';
-import 'package:pace/data/repositories/app_limit_repository.dart';
+import 'package:staylit/data/models/app_limit_model.dart';
+import 'package:staylit/data/repositories/app_limit_repository.dart';
 
 // ============================================================================
 // REPOSITORY PROVIDER

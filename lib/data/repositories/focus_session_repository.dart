@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:pace/data/models/focus_session_model.dart';
+import 'package:staylit/data/models/focus_session_model.dart';
 
 /// What to write when a session ends, computed without touching Firestore so
 /// the rules can be unit-tested.

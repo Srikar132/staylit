@@ -1,13 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pace/core/router/app_router.dart';
-import 'package:pace/presentation/providers/permission_provider.dart';
-import 'package:pace/presentation/providers/auth_provider.dart';
-import 'package:pace/widgets/permission_instruction_dialog.dart';
-import 'package:pace/models/model_manager.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/core/constants/app_info.dart';
+import 'package:staylit/core/router/app_router.dart';
+import 'package:staylit/presentation/providers/permission_provider.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/widgets/permission_instruction_dialog.dart';
+import 'package:staylit/models/model_manager.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/core/constants/app_info.dart';
 
 class PermissionScreen extends ConsumerStatefulWidget {
   const PermissionScreen({super.key});
@@ -390,11 +390,10 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
                           style: theme.textTheme.titleMedium,
                           children: [
                             const TextSpan(
-                              text:
-                                  'Almost there, allow these\npermissions to ',
+                              text: 'Almost there! Allow these permissions so Staylit can ',
                             ),
                             TextSpan(
-                              text: 'focus\nalongside 9566 people\nnow! ',
+                              text: 'keep you focused.',
                               style: TextStyle(
                                 color: theme.colorScheme.primary,
                                 fontWeight: FontWeight.bold,
@@ -563,15 +562,6 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
                         ],
                       ),
                     ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Trust badge
-                  Text(
-                    'Trusted by 2M+ students ❤️',
-                    style: theme.textTheme.bodySmall,
-                    textAlign: TextAlign.center,
                   ),
 
                   const SizedBox(height: 16),

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:pace/core/theme/app_dimens.dart';
-import 'package:pace/core/theme/theme_context.dart';
-import 'package:pace/models/auth_actions_bottom_model.dart';
-import 'package:pace/models/model_manager.dart';
-import 'package:pace/presentation/widgets/design/app_pill_button.dart';
-import 'package:pace/presentation/widgets/design/hero_panel.dart';
-import 'package:pace/presentation/widgets/design/staylit_wordmark.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/models/auth_actions_bottom_model.dart';
+import 'package:staylit/models/model_manager.dart';
+import 'package:staylit/presentation/widgets/design/app_pill_button.dart';
+import 'package:staylit/presentation/widgets/design/hero_panel.dart';
+import 'package:staylit/presentation/widgets/design/staylit_wordmark.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
