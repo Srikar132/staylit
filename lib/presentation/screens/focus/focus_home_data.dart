@@ -77,7 +77,7 @@ class FocusHomeData {
     required this.currentBucket,
     required this.setupLabel,
     required this.streak,
-    required this.streakWeek,
+    this.scrollEnabled = false,
     this.scrollDamage,
   });
 
@@ -101,9 +101,9 @@ class FocusHomeData {
   /// Current streak in days.
   final int streak;
 
-  /// Completed sessions per day for the last 7 days, oldest first.
-  final List<int> streakWeek;
+  /// The user turned Scroll damage on.
+  final bool scrollEnabled;
 
-  /// Null while Scroll Damage is not collecting data.
+  /// Numbers once the native counter reports them; null until then.
   final ScrollDamageData? scrollDamage;
 }

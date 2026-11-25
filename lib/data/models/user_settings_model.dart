@@ -19,6 +19,10 @@ class UserSettingsModel {
 
   static const int defaultDailyGoalMinutes = 120;
 
+  /// The user turned Scroll damage on (the counter itself is native and
+  /// reads this). Off by default.
+  final bool scrollDamageEnabled;
+
   UserSettingsModel({
     required this.defaultDuration,
     required this.timerMode,
@@ -30,6 +34,7 @@ class UserSettingsModel {
     required this.soundEnabled,
     required this.vibrationEnabled,
     this.dailyGoalMinutes = defaultDailyGoalMinutes,
+    this.scrollDamageEnabled = false,
   });
 
   factory UserSettingsModel.fromFirestore(DocumentSnapshot doc) {
@@ -47,6 +52,7 @@ class UserSettingsModel {
       dailyGoalMinutes:
           (data['dailyGoalMinutes'] as num?)?.toInt() ??
           defaultDailyGoalMinutes,
+      scrollDamageEnabled: data['scrollDamageEnabled'] as bool? ?? false,
     );
   }
 
@@ -62,6 +68,7 @@ class UserSettingsModel {
       'soundEnabled': soundEnabled,
       'vibrationEnabled': vibrationEnabled,
       'dailyGoalMinutes': dailyGoalMinutes,
+      'scrollDamageEnabled': scrollDamageEnabled,
     };
   }
 
@@ -77,6 +84,7 @@ class UserSettingsModel {
     bool? soundEnabled,
     bool? vibrationEnabled,
     int? dailyGoalMinutes,
+    bool? scrollDamageEnabled,
   }) {
     return UserSettingsModel(
       defaultDuration: defaultDuration ?? this.defaultDuration,
@@ -89,6 +97,7 @@ class UserSettingsModel {
       soundEnabled: soundEnabled ?? this.soundEnabled,
       vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
       dailyGoalMinutes: dailyGoalMinutes ?? this.dailyGoalMinutes,
+      scrollDamageEnabled: scrollDamageEnabled ?? this.scrollDamageEnabled,
     );
   }
 }

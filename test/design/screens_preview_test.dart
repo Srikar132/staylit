@@ -44,6 +44,7 @@ import 'package:staylit/presentation/screens/groups/groups_view.dart';
 import 'package:staylit/presentation/screens/permissions/permissions_view.dart';
 import 'package:staylit/presentation/screens/profile/profile_view.dart';
 import 'package:staylit/presentation/screens/progress/progress_view.dart';
+import 'package:staylit/presentation/widgets/scroll_damage_sheet.dart';
 import 'package:staylit/widgets/parental_control_dialogs.dart';
 import 'package:staylit/presentation/screens/save_session/save_session_view.dart';
 
@@ -719,6 +720,32 @@ void main() {
         ),
         brightness: b,
         logicalSize: const Size(360, 900),
+      );
+    }
+  }, skip: !enabled);
+
+  testWidgets('scroll damage sheet previews', (tester) async {
+    if (!enabled) return;
+    await tester.runAsync(_loadFonts);
+    for (final b in Brightness.values) {
+      await _snapshot(
+        tester,
+        name: 'scroll_sheet_${b.name}',
+        child: Scaffold(
+          body: Align(
+            alignment: Alignment.bottomCenter,
+            child: ScrollDamageSheet(
+              enabled: false,
+              accessibilityGranted: true,
+              onTurnOn: () {},
+              onTurnOff: () {},
+              onAllowAccessibility: () {},
+              onClose: () {},
+            ),
+          ),
+        ),
+        brightness: b,
+        logicalSize: const Size(360, 800),
       );
     }
   }, skip: !enabled);

@@ -13,12 +13,14 @@ import 'package:staylit/presentation/providers/blocked_content_provider.dart';
 import 'package:staylit/presentation/providers/daily_stats_provider.dart';
 import 'package:staylit/presentation/providers/focus_session_provider.dart';
 import 'package:staylit/presentation/providers/home_tab_provider.dart';
+import 'package:staylit/presentation/providers/permission_provider.dart';
 import 'package:staylit/presentation/providers/settings_provider.dart';
 import 'package:staylit/presentation/providers/usage_stats_provider.dart';
 import 'package:staylit/presentation/screens/focus/focus_home_data.dart';
 import 'package:staylit/presentation/screens/focus/focus_home_view.dart';
 import 'package:staylit/presentation/screens/focus/today_buckets.dart';
 import 'package:staylit/presentation/widgets/goal_sheet.dart';
+import 'package:staylit/presentation/widgets/scroll_damage_sheet.dart';
 
 class FocusScreen extends ConsumerStatefulWidget {
   const FocusScreen({super.key});
@@ -106,6 +108,51 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
     }
   }
 
+  /// Explains Scroll damage and saves the on/off choice to the user's settings.
+  void _showScrollDamageSheet(String userId, UserSettingsModel? settings) {
+    final accessibilityGranted = ref
+        .read(permissionProvider)
+        .accessibilityPermission;
+
+    Future<void> save(bool enabled) async {
+      if (settings == null) return;
+      try {
+        await ref
+            .read(settingsRepositoryProvider)
+            .updateSettings(
+              userId,
+              settings.copyWith(scrollDamageEnabled: enabled),
+            );
+      } catch (e) {
+        debugPrint('Error saving scroll damage setting: $e');
+      }
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => ScrollDamageSheet(
+        enabled: settings?.scrollDamageEnabled ?? false,
+        accessibilityGranted: accessibilityGranted,
+        onClose: () => Navigator.pop(sheetContext),
+        onTurnOn: () {
+          Navigator.pop(sheetContext);
+          save(true);
+        },
+        onTurnOff: () {
+          Navigator.pop(sheetContext);
+          save(false);
+        },
+        onAllowAccessibility: () async {
+          Navigator.pop(sheetContext);
+          await ref
+              .read(permissionProvider.notifier)
+              .requestAccessibilityPermission();
+        },
+      ),
+    );
+  }
+
   /// Opens the goal picker and saves the choice to the user's settings.
   Future<void> _editGoal(String userId, UserSettingsModel? settings) async {
     final chosen = await showGoalSheet(
@@ -172,9 +219,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
       setupLabel:
           '${_modeLabel(settings?.timerMode ?? 'timer')} · $duration min · $apps',
       streak: streak?.current ?? 0,
-      streakWeek: week != null
-          ? [for (final day in week) day.completedSessions]
-          : List<int>.filled(7, 0),
+      scrollEnabled: settings?.scrollDamageEnabled ?? false,
     );
   }
 
@@ -197,8 +242,10 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
           ),
           onSetup: _showFocusModeModal,
           onStart: _showFocusModeModal,
-          onScrollDamage: () =>
-              ref.read(homeTabRequestProvider.notifier).request(HomeTab.blocks),
+          onScrollDamage: () => _showScrollDamageSheet(
+            user.uid,
+            ref.read(userSettingsProvider(user.uid)).value,
+          ),
           onSeeAll: () => ref
               .read(homeTabRequestProvider.notifier)
               .request(HomeTab.progress),

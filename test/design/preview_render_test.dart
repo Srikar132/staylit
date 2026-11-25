@@ -263,7 +263,7 @@ Widget _focusHome({bool scrollOn = false}) => Scaffold(
       currentBucket: 8,
       setupLabel: 'Timer · 25 min · 5 apps blocked',
       streak: 4,
-      streakWeek: const [1, 0, 2, 1, 3, 1, 2],
+      scrollEnabled: scrollOn,
       scrollDamage: scrollOn
           ? const ScrollDamageData(
               todayCount: 87,

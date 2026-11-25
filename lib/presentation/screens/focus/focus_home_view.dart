@@ -5,7 +5,7 @@ import 'package:staylit/presentation/screens/focus/focus_home_data.dart';
 import 'package:staylit/presentation/widgets/design/app_pill_button.dart';
 import 'package:staylit/presentation/widgets/design/goal_card.dart';
 import 'package:staylit/presentation/widgets/design/duration_text.dart';
-import 'package:staylit/presentation/widgets/design/mini_stat_card.dart';
+import 'package:staylit/presentation/widgets/design/scroll_damage_card.dart';
 import 'package:staylit/presentation/widgets/design/pill_chip.dart';
 
 /// The Focus (home) tab: today at a glance and one big action. Pure
@@ -43,8 +43,6 @@ class FocusHomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final palette = context.palette;
     final bucketMinutes = data.currentBucket < data.todayBuckets.length
         ? data.todayBuckets[data.currentBucket]
         : 0;
@@ -63,7 +61,7 @@ class FocusHomeView extends StatelessWidget {
                 AppSpacing.xl,
               ),
               children: [
-                _Greeting(data: data, onProfile: onProfile),
+                _Greeting(data: data, onProfile: onProfile, onStreak: onSeeAll),
                 const SizedBox(height: AppSpacing.lg),
                 Align(
                   alignment: Alignment.centerLeft,
@@ -88,67 +86,14 @@ class FocusHomeView extends StatelessWidget {
                       '${DurationText.spoken(data.todayMinutes)} so far.',
                   onEditGoal: onEditGoal,
                 ),
-                const SizedBox(height: AppSpacing.xl),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Your numbers',
-                        style: textTheme.headlineSmall,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: onSeeAll,
-                      child: Text(
-                        'See all',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: palette.onCanvasSecondary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: scroll == null
-                            ? MiniStatCard(
-                                icon: Icons.swipe_vertical_rounded,
-                                label: 'Scroll damage',
-                                caption: 'Counts the shorts you scroll past',
-                                offLabel: 'Turn on',
-                                onTap: onScrollDamage,
-                              )
-                            : MiniStatCard(
-                                icon: Icons.swipe_vertical_rounded,
-                                label: 'Scroll damage',
-                                value: '${scroll.todayCount}',
-                                caption: 'items today',
-                                trendText: scroll.trendText,
-                                trendGood: scroll.trendGood,
-                                values: scroll.week,
-                                onTap: onScrollDamage,
-                              ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: MiniStatCard(
-                          icon: Icons.local_fire_department_rounded,
-                          label: 'Streak',
-                          value: '${data.streak}',
-                          caption: data.streak == 1 ? 'day' : 'days',
-                          trendText: data.streak == 0
-                              ? 'Finish a session today'
-                              : null,
-                          values: data.streakWeek,
-                          onTap: onSeeAll,
-                        ),
-                      ),
-                    ],
-                  ),
+                const SizedBox(height: AppSpacing.lg),
+                ScrollDamageCard(
+                  enabled: data.scrollEnabled,
+                  todayCount: scroll?.todayCount ?? 0,
+                  week: scroll?.week ?? const [],
+                  trendText: scroll?.trendText,
+                  trendGood: scroll?.trendGood ?? true,
+                  onTap: onScrollDamage,
                 ),
               ],
             ),
@@ -172,10 +117,15 @@ class FocusHomeView extends StatelessWidget {
 }
 
 class _Greeting extends StatelessWidget {
-  const _Greeting({required this.data, required this.onProfile});
+  const _Greeting({
+    required this.data,
+    required this.onProfile,
+    required this.onStreak,
+  });
 
   final FocusHomeData data;
   final VoidCallback onProfile;
+  final VoidCallback onStreak;
 
   @override
   Widget build(BuildContext context) {
@@ -225,6 +175,12 @@ class _Greeting extends StatelessWidget {
             ],
           ),
         ),
+        PillChip(
+          icon: Icons.local_fire_department_rounded,
+          label: '${data.streak}',
+          onTap: onStreak,
+        ),
+        const SizedBox(width: AppSpacing.sm),
         PillChip(icon: Icons.phone_android_rounded, label: data.usageText),
       ],
     );
