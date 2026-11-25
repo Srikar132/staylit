@@ -103,11 +103,7 @@ class _AppSelectorScreenState extends State<AppSelectorScreen> {
                       final app = _filteredApps[index];
                       return ListTile(
                         leading: app.icon != null
-                            ? Image.memory(
-                                app.icon!,
-                                width: 40,
-                                height: 40,
-                              )
+                            ? Image.memory(app.icon!, width: 40, height: 40)
                             : const Icon(Icons.android),
                         title: Text(app.name),
                         subtitle: Text(

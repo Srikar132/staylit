@@ -7,6 +7,8 @@ import 'package:staylit/presentation/overlays/widgets/motivational_message.dart'
 import 'package:staylit/presentation/overlays/widgets/overlay_background.dart';
 import 'package:staylit/core/theme/theme_context.dart';
 import 'package:staylit/presentation/widgets/design/lit_badge.dart';
+import 'package:staylit/presentation/overlays/widgets/block_header.dart';
+import 'package:staylit/presentation/overlays/widgets/end_session_dialog.dart';
 
 //import 'package:lottie/lottie.dart';
 
@@ -155,37 +157,9 @@ class _BlockedAppOverlayState extends ConsumerState<BlockedAppOverlay>
   }
 
   Widget _buildBlockMessage(OverlayState state) {
-    return Column(
-      children: [
-        Text(
-          '${state.appName} is blocked',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: context.palette.onCanvas,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: context.palette.warning.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: context.palette.warning.withValues(alpha: 0.5),
-            ),
-          ),
-          child: Text(
-            'Focus Mode Active',
-            style: TextStyle(
-              color: context.palette.warning,
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-            ),
-          ),
-        ),
-      ],
+    return BlockHeader(
+      title: '${state.appName} is blocked',
+      chip: 'Focus mode active',
     );
   }
 
@@ -193,44 +167,6 @@ class _BlockedAppOverlayState extends ConsumerState<BlockedAppOverlay>
     BuildContext context,
     OverlayDataNotifier notifier,
   ) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.palette.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'End Focus Session?',
-          style: TextStyle(
-            color: context.palette.onCanvas,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Text(
-          'Are you sure you want to end your focus session?  Your progress will be saved, but you\'ll lose your current momentum.',
-          style: TextStyle(color: context.palette.onCanvasSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Continue Focusing',
-              style: TextStyle(color: context.palette.info),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              notifier.endFocusSession();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: context.palette.error,
-              foregroundColor: context.palette.onError,
-            ),
-            child: const Text('End Session'),
-          ),
-        ],
-      ),
-    );
+    showEndSessionDialog(context, onConfirm: notifier.endFocusSession);
   }
 }

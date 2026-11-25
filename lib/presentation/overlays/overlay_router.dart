@@ -4,7 +4,6 @@ import 'package:staylit/presentation/overlays/screens/blocked_applimit_overlay.d
 import 'package:staylit/presentation/overlays/screens/blocked_shorts_overlay.dart';
 import 'package:staylit/presentation/overlays/screens/blocked_website_overlay.dart';
 
-
 class OverlayRouter {
   static final GoRouter router = GoRouter(
     initialLocation: '/blocked-app',
@@ -21,15 +20,15 @@ class OverlayRouter {
       ),
       GoRoute(
         path: '/blocked-website',
-        name:  'blocked-website',
-        builder:  (context, state) => const BlockedWebsiteOverlay(),
+        name: 'blocked-website',
+        builder: (context, state) => const BlockedWebsiteOverlay(),
       ),
       GoRoute(
         path: '/app-limit',
         name: 'app-limit',
         builder: (context, state) => const AppLimitOverlay(),
       ),
-/*      GoRoute(
+      /*      GoRoute(
         path: '/notification-block',
         name:  'notification-block',
         builder: (context, state) => const NotificationBlockOverlay(),

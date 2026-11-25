@@ -2,34 +2,22 @@ import 'package:flutter/material.dart';
 
 import 'package:staylit/core/theme/theme_context.dart';
 
+/// Flat canvas behind every block overlay (white in light, near-black in dark).
 class OverlayBackground extends StatelessWidget {
   final Widget child;
-  final Gradient? gradient;
   final Color? backgroundColor;
 
   const OverlayBackground({
     super.key,
     required this.child,
-    this.gradient,
     this.backgroundColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: BoxDecoration(
-        gradient:
-            gradient ??
-            LinearGradient(
-              colors: [context.palette.canvas, context.palette.surface],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-        color: backgroundColor,
-      ),
-      child: child,
+    return ColoredBox(
+      color: backgroundColor ?? context.palette.canvas,
+      child: SizedBox.expand(child: child),
     );
   }
 }

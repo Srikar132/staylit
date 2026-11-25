@@ -5,6 +5,9 @@ import 'package:staylit/presentation/overlays/widgets/focus_timer_widget.dart';
 import 'package:staylit/presentation/overlays/widgets/overlay_background.dart';
 import 'package:staylit/core/theme/theme_context.dart';
 import 'package:staylit/presentation/widgets/design/lit_badge.dart';
+import 'package:staylit/presentation/overlays/widgets/block_header.dart';
+import 'package:staylit/presentation/overlays/widgets/end_session_dialog.dart';
+import 'package:staylit/presentation/overlays/widgets/actions_buttons.dart';
 
 class BlockedWebsiteOverlay extends ConsumerStatefulWidget {
   const BlockedWebsiteOverlay({super.key});
@@ -79,11 +82,6 @@ class _BlockedWebsiteOverlayState extends ConsumerState<BlockedWebsiteOverlay>
       canPop: false,
       child: Scaffold(
         body: OverlayBackground(
-          gradient: LinearGradient(
-            colors: [context.palette.canvas, context.palette.surface],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
           child: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
@@ -197,116 +195,25 @@ class _BlockedWebsiteOverlayState extends ConsumerState<BlockedWebsiteOverlay>
   }
 
   Widget _buildBlockMessage(String domain) {
-    return Column(
-      children: [
-        Text(
-          'Website Blocked',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: context.palette.onCanvas,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: context.palette.info.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: context.palette.info.withValues(alpha: 0.5),
-            ),
-          ),
-          child: Text(
-            domain,
-            style: TextStyle(
-              color: context.palette.info,
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'This website is blocked during your focus session',
-          style: TextStyle(
-            color: context.palette.onCanvas.withValues(alpha: 0.8),
-            fontSize: 16,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+    return BlockHeader(
+      title: 'Website blocked',
+      chip: domain,
+      message: 'This website is blocked during your focus session.',
     );
   }
 
   Widget _buildActionButtons(OverlayDataNotifier notifier) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => notifier.goHome(),
-                icon: const Icon(Icons.home),
-                label: const Text('Go to Home'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: context.palette.success.withValues(
-                    alpha: 0.2,
-                  ),
-                  foregroundColor: context.palette.success,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: context.palette.success.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => notifier.goBack(),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Go Back'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: context.palette.warning.withValues(
-                    alpha: 0.2,
-                  ),
-                  foregroundColor: context.palette.warning,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: context.palette.warning.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () => _showEndSessionDialog(context, notifier),
-            icon: const Icon(Icons.stop_circle_outlined),
-            label: const Text('End Focus Session'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: context.palette.error,
-              side: BorderSide(
-                color: context.palette.error.withValues(alpha: 0.5),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
+    return BlockActions(
+      primaryLabel: 'Go home',
+      onPrimary: notifier.goHome,
+      secondary: [
+        BlockAction(
+          label: 'Go back',
+          icon: Icons.arrow_back_rounded,
+          onPressed: notifier.goBack,
         ),
       ],
+      onEndSession: () => _showEndSessionDialog(context, notifier),
     );
   }
 
@@ -371,44 +278,6 @@ class _BlockedWebsiteOverlayState extends ConsumerState<BlockedWebsiteOverlay>
     BuildContext context,
     OverlayDataNotifier notifier,
   ) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.palette.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'End Focus Session?',
-          style: TextStyle(
-            color: context.palette.onCanvas,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Text(
-          'Ending your session now will remove all website blocks. Are you sure? ',
-          style: TextStyle(color: context.palette.onCanvasSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Stay Focused',
-              style: TextStyle(color: context.palette.info),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              notifier.endFocusSession();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: context.palette.error,
-              foregroundColor: context.palette.onError,
-            ),
-            child: const Text('End Session'),
-          ),
-        ],
-      ),
-    );
+    showEndSessionDialog(context, onConfirm: notifier.endFocusSession);
   }
 }

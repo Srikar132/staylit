@@ -7,11 +7,9 @@ import 'package:staylit/core/theme/theme_context.dart';
 import 'package:staylit/models/audio_bottom_model.dart';
 import 'package:staylit/models/end_session_bottom_sheet.dart';
 import 'package:staylit/models/model_manager.dart';
-import 'package:staylit/presentation/providers/auth_provider.dart';
 import 'package:staylit/presentation/providers/focus_session_provider.dart';
 import 'package:staylit/presentation/screens/active_session/active_session_view.dart';
 import 'package:staylit/services/audio_service.dart';
-import 'package:staylit/widgets/allowed_apps_drawer.dart';
 
 class ActiveFocusScreen extends ConsumerStatefulWidget {
   const ActiveFocusScreen({super.key});
@@ -62,17 +60,6 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen> {
     } catch (e) {
       debugPrint('Error resuming session: $e');
       _showErrorSnackBar('Failed to resume session');
-    }
-  }
-
-  void _showAllowedAppsDrawer() {
-    final user = ref.read(currentUserProvider).value;
-    if (user != null) {
-      BottomSheetManager.show(
-        context: context,
-        height: MediaQuery.of(context).size.height * 0.75,
-        child: AllowedAppsDrawer(userId: user.uid),
-      );
     }
   }
 
@@ -267,7 +254,6 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen> {
           canControl: isActive || isPaused,
           messageTitle: messageTitle,
           messageBody: messageBody,
-          onApps: _showAllowedAppsDrawer,
           onAmbient: _showAudioBottomSheet,
           onPauseResume: isPaused ? _resumeSession : _pauseSession,
           onStop: _endSession,

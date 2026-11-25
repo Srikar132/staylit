@@ -184,7 +184,6 @@ void main() {
               canControl: canControl,
               messageTitle: 'Hi',
               messageBody: 'There',
-              onApps: () {},
               onAmbient: () {},
               onPauseResume: () {},
               onStop: onStop,

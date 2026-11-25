@@ -21,6 +21,12 @@ import 'package:staylit/data/models/pomodoro_settings.dart';
 import 'package:staylit/data/models/user_model.dart';
 import 'package:staylit/data/models/user_settings_model.dart';
 import 'package:staylit/models/focus_time_bottom_model.dart';
+import 'package:staylit/presentation/overlays/widgets/actions_buttons.dart';
+import 'package:staylit/presentation/overlays/widgets/block_header.dart';
+import 'package:staylit/presentation/overlays/widgets/focus_timer_widget.dart';
+import 'package:staylit/presentation/overlays/widgets/motivational_message.dart';
+import 'package:staylit/presentation/overlays/widgets/overlay_background.dart';
+import 'package:staylit/presentation/widgets/design/lit_badge.dart';
 import 'package:staylit/presentation/providers/settings_provider.dart';
 import 'package:staylit/presentation/providers/app_management_provide.dart'
     show appIconProvider;
@@ -400,6 +406,53 @@ void main() {
         ),
         brightness: b,
         overrides: overrides,
+      );
+    }
+  }, skip: !enabled);
+
+  testWidgets('overlay previews', (tester) async {
+    if (!enabled) return;
+    await tester.runAsync(_loadFonts);
+    for (final b in Brightness.values) {
+      await _snapshot(
+        tester,
+        name: 'overlay_${b.name}',
+        child: Scaffold(
+          body: OverlayBackground(
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const LitBadge(size: 140),
+                    const SizedBox(height: 28),
+                    const BlockHeader(
+                      title: 'Instagram is blocked',
+                      chip: 'Focus mode active',
+                    ),
+                    const SizedBox(height: 24),
+                    const FocusTimerWidget(
+                      elapsedMinutes: 42,
+                      sessionType: 'timer',
+                    ),
+                    const SizedBox(height: 24),
+                    const MotivationalMessage(
+                      message: 'Stay focused on what truly matters!',
+                    ),
+                    const SizedBox(height: 32),
+                    ActionButtons(
+                      onGoHome: () {},
+                      onEndSession: () {},
+                      onShowEducation: () {},
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        brightness: b,
       );
     }
   }, skip: !enabled);

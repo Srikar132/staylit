@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:staylit/presentation/overlays/widgets/block_header.dart';
+import 'package:staylit/presentation/overlays/widgets/actions_buttons.dart';
 
 import '../providers/overlay_provider.dart';
 import '../widgets/overlay_background.dart';
@@ -79,11 +81,6 @@ class _AppLimitOverlayState extends ConsumerState<AppLimitOverlay>
       canPop: false,
       child: Scaffold(
         body: OverlayBackground(
-          gradient: LinearGradient(
-            colors: [context.palette.canvas, context.palette.surface],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
@@ -168,109 +165,28 @@ class _AppLimitOverlayState extends ConsumerState<AppLimitOverlay>
   }
 
   Widget _buildLimitMessage(String appName, String limitType) {
-    return Column(
-      children: [
-        Text(
-          '${limitType.capitalize()} Limit Exceeded',
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: context.palette.onCanvas,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: context.palette.error.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: context.palette.error.withValues(alpha: 0.5),
-            ),
-          ),
-          child: Text(
-            appName,
-            style: TextStyle(
-              color: context.palette.error,
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-            ),
-          ),
-        ),
-      ],
+    return BlockHeader(
+      title: '${limitType.capitalize()} limit reached',
+      chip: appName,
+      danger: true,
     );
   }
 
   Widget _buildActionButtons(OverlayDataNotifier notifier, bool allowOverride) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => notifier.goHome(),
-                icon: const Icon(Icons.home),
-                label: const Text('Go Home'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: context.palette.success.withValues(
-                    alpha: 0.2,
-                  ),
-                  foregroundColor: context.palette.success,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: context.palette.success.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            if (!allowOverride) ...[
-              const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _showAlternativeApps(context),
-                  icon: const Icon(Icons.apps),
-                  label: const Text('Alternatives'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: context.palette.info.withValues(
-                      alpha: 0.2,
-                    ),
-                    foregroundColor: context.palette.info,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                        color: context.palette.info.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
+    return BlockActions(
+      primaryLabel: 'Go home',
+      onPrimary: notifier.goHome,
+      secondary: [
         if (!allowOverride) ...[
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _showUsageStats(context),
-              icon: const Icon(Icons.analytics_outlined),
-              label: const Text('View Usage Stats'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: context.palette.warning,
-                side: BorderSide(
-                  color: context.palette.warning.withValues(alpha: 0.5),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
+          BlockAction(
+            label: 'Alternatives',
+            icon: Icons.apps_rounded,
+            onPressed: () => _showAlternativeApps(context),
+          ),
+          BlockAction(
+            label: 'Usage',
+            icon: Icons.analytics_outlined,
+            onPressed: () => _showUsageStats(context),
           ),
         ],
       ],

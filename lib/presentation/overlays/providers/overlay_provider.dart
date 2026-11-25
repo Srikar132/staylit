@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'dart:async';
 
 // ============================================================================
@@ -34,7 +35,8 @@ class OverlayState {
   }
 
   // Convenience getters
-  String get overlayType => overlayData['overlayType'] as String? ?? 'blocked_app';
+  String get overlayType =>
+      overlayData['overlayType'] as String? ?? 'blocked_app';
   String get appName => overlayData['appName'] as String? ?? 'Unknown App';
   String get packageName => overlayData['packageName'] as String? ?? '';
   int get focusTimeMinutes => overlayData['focusTimeMinutes'] as int? ?? 0;
@@ -49,13 +51,14 @@ class OverlayState {
 // ============================================================================
 
 class OverlayService {
-  static const EventChannel _eventChannel =
-  EventChannel('com.staylit.app/overlay_events');
+  static const EventChannel _eventChannel = EventChannel(
+    'com.staylit.app/overlay_events',
+  );
 
   Stream<Map<String, dynamic>> get eventStream {
-    return _eventChannel
-        .receiveBroadcastStream()
-        .map((event) => Map<String, dynamic>.from(event as Map));
+    return _eventChannel.receiveBroadcastStream().map(
+      (event) => Map<String, dynamic>.from(event as Map),
+    );
   }
 }
 
@@ -64,8 +67,9 @@ class OverlayService {
 // ============================================================================
 
 class OverlayDataNotifier extends Notifier<OverlayState> {
-  static const MethodChannel _methodChannel =
-  MethodChannel('com.staylit.app/overlay_actions');
+  static const MethodChannel _methodChannel = MethodChannel(
+    'com.staylit.app/overlay_actions',
+  );
 
   @override
   OverlayState build() {
@@ -95,9 +99,7 @@ class OverlayDataNotifier extends Notifier<OverlayState> {
         sessionData: Map<String, dynamic>.from(sessionData ?? {}),
       );
     } catch (e) {
-      state = state.copyWith(
-        error: 'Failed to load overlay data: $e',
-      );
+      state = state.copyWith(error: 'Failed to load overlay data: $e');
     }
   }
 
@@ -200,8 +202,10 @@ class OverlayDataNotifier extends Notifier<OverlayState> {
     }
   }
 
-  Future<void> _reportInteraction(String type,
-      [Map<String, dynamic>? data]) async {
+  Future<void> _reportInteraction(
+    String type, [
+    Map<String, dynamic>? data,
+  ]) async {
     try {
       await _methodChannel.invokeMethod('reportInteraction', {
         'type': type,
@@ -222,9 +226,11 @@ class OverlayDataNotifier extends Notifier<OverlayState> {
 // ============================================================================
 
 // Overlay data provider
-final overlayDataProvider = NotifierProvider<OverlayDataNotifier, OverlayState>(() {
-  return OverlayDataNotifier();
-});
+final overlayDataProvider = NotifierProvider<OverlayDataNotifier, OverlayState>(
+  () {
+    return OverlayDataNotifier();
+  },
+);
 
 // Session data provider (Simple Provider for data)
 final sessionDataProvider = Provider<Map<String, dynamic>>((ref) {

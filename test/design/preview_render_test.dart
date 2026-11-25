@@ -331,7 +331,6 @@ Widget _session({required bool paused}) => Builder(
       messageBody: paused
           ? SessionMessages.paused.$2
           : SessionMessages.running.first.$2,
-      onApps: () {},
       onAmbient: () {},
       onPauseResume: () {},
       onStop: () {},

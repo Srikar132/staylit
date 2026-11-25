@@ -5,7 +5,6 @@ import 'package:staylit/core/theme/app_dimens.dart';
 import 'package:staylit/core/theme/theme_context.dart';
 import 'package:staylit/presentation/widgets/design/control_dock.dart';
 import 'package:staylit/presentation/widgets/design/focus_ring_timer.dart';
-import 'package:staylit/presentation/widgets/design/icon_circle_button.dart';
 import 'package:staylit/presentation/widgets/design/message_card.dart';
 import 'package:staylit/presentation/widgets/design/pill_chip.dart';
 import 'package:staylit/presentation/widgets/design/scalloped.dart';
@@ -54,7 +53,6 @@ class ActiveSessionView extends StatelessWidget {
     required this.canControl,
     required this.messageTitle,
     required this.messageBody,
-    required this.onApps,
     required this.onAmbient,
     required this.onPauseResume,
     required this.onStop,
@@ -79,7 +77,6 @@ class ActiveSessionView extends StatelessWidget {
   final bool canControl;
   final String messageTitle;
   final String messageBody;
-  final VoidCallback onApps;
   final VoidCallback onAmbient;
   final VoidCallback onPauseResume;
   final VoidCallback onStop;
@@ -108,19 +105,8 @@ class ActiveSessionView extends StatelessWidget {
               AppSpacing.xl,
               0,
             ),
-            child: Row(
-              children: [
-                IconCircleButton(
-                  icon: Icons.apps_rounded,
-                  semanticLabel: 'Allowed apps',
-                  onPressed: onApps,
-                ),
-                const Spacer(),
-                PillChip(label: typeLabel, icon: typeIcon),
-                const Spacer(),
-                // Keeps the chip centered.
-                const SizedBox(width: AppSizes.iconButton),
-              ],
+            child: Center(
+              child: PillChip(label: typeLabel, icon: typeIcon),
             ),
           ),
         );

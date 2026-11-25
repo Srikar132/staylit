@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
 import 'package:staylit/core/theme/theme_context.dart';
 
+/// A short encouraging line on a soft card.
 class MotivationalMessage extends StatelessWidget {
   final String message;
 
@@ -9,33 +11,16 @@ class MotivationalMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: context.palette.onCanvas.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: context.palette.onCanvas.withValues(alpha: 0.1),
-        ),
+        color: context.palette.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
       ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.lightbulb_outline,
-            color: context.palette.warning,
-            size: 32,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            style: TextStyle(
-              color: context.palette.onCanvas.withValues(alpha: 0.9),
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              height: 1.4,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+      child: Text(
+        message,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(height: 1.4),
+        textAlign: TextAlign.center,
       ),
     );
   }

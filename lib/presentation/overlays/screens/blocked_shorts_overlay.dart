@@ -5,6 +5,8 @@ import 'package:staylit/presentation/overlays/widgets/focus_timer_widget.dart';
 import 'package:staylit/presentation/overlays/widgets/overlay_background.dart';
 import 'package:staylit/core/theme/theme_context.dart';
 import 'package:staylit/presentation/widgets/design/lit_badge.dart';
+import 'package:staylit/presentation/overlays/widgets/block_header.dart';
+import 'package:staylit/presentation/overlays/widgets/actions_buttons.dart';
 
 class BlockedShortsOverlay extends ConsumerStatefulWidget {
   const BlockedShortsOverlay({super.key});
@@ -89,7 +91,6 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
       canPop: false,
       child: Scaffold(
         body: OverlayBackground(
-          gradient: _getPlatformGradient(platform),
           child: SafeArea(
             child: ScaleTransition(
               scale: CurvedAnimation(
@@ -230,96 +231,30 @@ class _BlockedShortsOverlayState extends ConsumerState<BlockedShortsOverlay>
   }
 
   Widget _buildBlockMessage(String contentType) {
-    return Column(
-      children: [
-        Text(
-          '$contentType Blocked! ',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: context.palette.onCanvas,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: context.palette.error.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: context.palette.error.withValues(alpha: 0.5),
-            ),
-          ),
-          child: Text(
-            'Addictive Content Detected',
-            style: TextStyle(
-              color: context.palette.error,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ],
+    return BlockHeader(
+      title: '$contentType blocked',
+      chip: 'Addictive content detected',
+      danger: true,
     );
   }
 
   Widget _buildQuickActions(OverlayDataNotifier notifier) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildQuickActionButton(
-          icon: Icons.close,
+    return BlockActions(
+      primaryLabel: 'Go back',
+      primaryIcon: Icons.arrow_back_rounded,
+      onPrimary: notifier.goBack,
+      secondary: [
+        BlockAction(
           label: 'Continue',
-          color: context.palette.success,
-          onPressed: () =>
-              notifier.closeOverlay(), // Close activity and return to YouTube
+          icon: Icons.close_rounded,
+          onPressed: notifier.closeOverlay,
         ),
-        _buildQuickActionButton(
-          icon: Icons.arrow_back,
-          label: 'Back',
-          color: context.palette.info,
-          onPressed: () => notifier.goBack(),
-        ),
-        _buildQuickActionButton(
-          icon: Icons.info_outline,
+        BlockAction(
           label: 'Learn',
-          color: context.palette.chartAlt,
+          icon: Icons.info_outline_rounded,
           onPressed: () => notifier.showEducationalContent('blocked_shorts'),
         ),
       ],
-    );
-  }
-
-  Widget _buildQuickActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 18),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color.withValues(alpha: 0.2),
-        foregroundColor: color,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: color.withValues(alpha: 0.5)),
-        ),
-      ),
-    );
-  }
-
-  LinearGradient _getPlatformGradient(String platform) {
-    // Same dark-green theme regardless of platform — the app's look, not the
-    // blocked app's branding.
-    return LinearGradient(
-      colors: [context.palette.canvas, context.palette.surface],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
     );
   }
 
