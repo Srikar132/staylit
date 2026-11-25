@@ -39,6 +39,7 @@ import 'package:staylit/presentation/providers/auth_provider.dart';
 import 'package:staylit/presentation/providers/blocked_content_provider.dart';
 import 'package:staylit/presentation/screens/blocks_screen.dart';
 import 'package:staylit/presentation/screens/focus/focus_home_data.dart';
+import 'package:staylit/presentation/screens/groups/group_detail_view.dart';
 import 'package:staylit/presentation/screens/groups/groups_view.dart';
 import 'package:staylit/presentation/screens/profile/profile_view.dart';
 import 'package:staylit/presentation/screens/progress/progress_view.dart';
@@ -596,6 +597,65 @@ void main() {
         ),
         brightness: b,
         overrides: overrides,
+      );
+    }
+  }, skip: !enabled);
+
+  testWidgets('group detail previews', (tester) async {
+    if (!enabled) return;
+    await tester.runAsync(_loadFonts);
+    const members = [
+      MemberTileData(
+        name: 'Asha',
+        focusText: '14h 20m',
+        isAdmin: true,
+        isMe: false,
+      ),
+      MemberTileData(
+        name: 'Srikar',
+        focusText: '12h 5m',
+        isAdmin: false,
+        isMe: true,
+      ),
+      MemberTileData(
+        name: 'Ravi',
+        focusText: '8h',
+        isAdmin: false,
+        isMe: false,
+      ),
+      MemberTileData(
+        name: 'Meera',
+        focusText: '3h 40m',
+        isAdmin: false,
+        isMe: false,
+      ),
+    ];
+    for (final b in Brightness.values) {
+      await _snapshot(
+        tester,
+        name: 'group_detail_${b.name}',
+        child: Scaffold(
+          body: GroupDetailView(
+            data: const GroupDetailData(
+              name: 'Study Squad',
+              description: 'Daily deep work sessions before exams.',
+              memberCount: 4,
+              totalFocusText: '38h',
+              goalText: '2h',
+              isPublic: true,
+              isMember: true,
+              isCreator: false,
+              showLeaderboard: true,
+              members: members,
+            ),
+            onBack: () {},
+            onShare: () {},
+            onDelete: () {},
+            onJoin: () {},
+            onLeave: () {},
+          ),
+        ),
+        brightness: b,
       );
     }
   }, skip: !enabled);
