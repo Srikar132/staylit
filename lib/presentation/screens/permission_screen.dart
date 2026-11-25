@@ -6,8 +6,11 @@ import 'package:staylit/presentation/providers/permission_provider.dart';
 import 'package:staylit/presentation/providers/auth_provider.dart';
 import 'package:staylit/widgets/permission_instruction_dialog.dart';
 import 'package:staylit/models/model_manager.dart';
-import 'package:staylit/core/theme/theme_context.dart';
 import 'package:staylit/core/constants/app_info.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/presentation/screens/permissions/permissions_view.dart';
+import 'package:staylit/presentation/widgets/design/app_pill_button.dart';
+import 'package:staylit/widgets/bottom_sheet_darg_handler.dart';
 
 class PermissionScreen extends ConsumerStatefulWidget {
   const PermissionScreen({super.key});
@@ -234,7 +237,6 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final permissionState = ref.watch(permissionProvider);
     final permissionNotifier = ref.read(permissionProvider.notifier);
     debugPrint('Permission State Changed: $permissionState');
@@ -256,7 +258,8 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
 
     final permissions = [
       {
-        'title': 'Usage permission',
+        'title': 'Usage access',
+        'icon': Icons.bar_chart_rounded,
         'description': 'This allows us to track your app usage.',
         'granted': permissionState.usagePermission,
         'onTap': () async {
@@ -269,7 +272,8 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
         },
       },
       {
-        'title': 'Background permission',
+        'title': 'Run in background',
+        'icon': Icons.battery_charging_full_rounded,
         'description':
             'Keep the app running in the background for continuous monitoring.',
         'granted': permissionState.backgroundPermission,
@@ -283,7 +287,8 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
         },
       },
       {
-        'title': 'Notification permission',
+        'title': 'Notifications',
+        'icon': Icons.notifications_none_rounded,
         'description': 'Allow the app to send you notifications.',
         'granted': permissionState.notificationPermission,
         'onTap': () async {
@@ -297,6 +302,7 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
       },
       {
         'title': 'Display over other apps',
+        'icon': Icons.layers_outlined,
         'description': 'Show blocking screens when you open distracting apps.',
         'granted': permissionState.overlayPermission,
         'onTap': () => _showPermissionInstructionDialog(
@@ -314,7 +320,8 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
         ),
       },
       {
-        'title': 'Display pop up permission',
+        'title': 'Pop-up windows',
+        'icon': Icons.web_asset_rounded,
         'description': 'Show focus reminders and motivational popups.',
         'granted': permissionState.displayPopupPermission,
         'onTap': () => _showPermissionInstructionDialog(
@@ -333,7 +340,8 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
         ),
       },
       {
-        'title': 'Accessibility Permission',
+        'title': 'Accessibility',
+        'icon': Icons.accessibility_new_rounded,
         'description': 'Enable advanced app blocking capabilities.',
         'granted': permissionState.accessibilityPermission,
         'onTap': () async {
@@ -347,467 +355,83 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen>
     ];
 
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+      body: PermissionsView(
+        items: [
+          for (final permission in permissions)
+            PermissionItem(
+              icon: permission['icon'] as IconData,
+              title: permission['title'] as String,
+              description: permission['description'] as String,
+              granted: permission['granted'] as bool,
+              onAllow: permission['onTap'] as Future<void> Function(),
+            ),
+        ],
+        onComplete: _showAllPermissionsConfirmationDialog,
+        onWhy: () => _showPermissionInfoSheet(context),
+      ),
+    );
+  }
+}
+
+/// Explains each permission in plain words, in a bottom sheet.
+void _showPermissionInfoSheet(BuildContext context) {
+  const entries = [
+    (
+      'Usage access',
+      'Shows which apps take your time, so limits and blocks fit you.',
+    ),
+    (
+      'Display over other apps',
+      'Lets $kAppName show a blocking screen when you open a blocked app.',
+    ),
+    ('Notifications', 'Focus reminders and session summaries.'),
+    (
+      'Accessibility',
+      'Detects blocked apps, websites and short-form feeds so they can be '
+          'stopped. $kAppName does not read or store what you type.',
+    ),
+    (
+      'Background',
+      'Keeps blocking running when the phone tries to save battery.',
+    ),
+    ('Pop-up windows', 'Lets focus reminders appear on top of other apps.'),
+  ];
+
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheetContext) {
+      final textTheme = Theme.of(sheetContext).textTheme;
+      return SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            0,
+            AppSpacing.xl,
+            AppSpacing.xl,
+          ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Progress bar at top
-              Container(
-                width: double.infinity,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.outline,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: 0.8,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: context.palette.onCanvas,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Message
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: RichText(
-                        text: TextSpan(
-                          style: theme.textTheme.titleMedium,
-                          children: [
-                            const TextSpan(
-                              text: 'Almost there! Allow these permissions so Staylit can ',
-                            ),
-                            TextSpan(
-                              text: 'keep you focused.',
-                              style: TextStyle(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
-              // // Debug Card - Permission Status
-              // Container(
-              //   margin: const EdgeInsets.only(bottom: 16),
-              //   padding: const EdgeInsets.all(16),
-              //   decoration: BoxDecoration(
-              //     color: theme.colorScheme.errorContainer.withValues(alpha: 0.3),
-              //     borderRadius: BorderRadius.circular(12),
-              //     border: Border.all(
-              //       color: theme.colorScheme.error.withValues(alpha: 0.5),
-              //       width: 1,
-              //     ),
-              //   ),
-              //   child: Column(
-              //     crossAxisAlignment: CrossAxisAlignment.start,
-              //     children: [
-              //       Row(
-              //         children: [
-              //           Icon(
-              //             Icons.bug_report,
-              //             color: theme.colorScheme.error,
-              //             size: 20,
-              //           ),
-              //           const SizedBox(width: 8),
-              //           Text(
-              //             'DEBUG: Permission Status',
-              //             style: theme.textTheme.titleSmall?.copyWith(
-              //               color: theme.colorScheme.error,
-              //               fontWeight: FontWeight.bold,
-              //             ),
-              //           ),
-              //         ],
-              //       ),
-              //       const SizedBox(height: 12),
-              //       _buildDebugPermissionRow(
-              //         'Usage Stats',
-              //         permissionState.usagePermission,
-              //         theme,
-              //       ),
-              //       _buildDebugPermissionRow(
-              //         'Accessibility',
-              //         permissionState.accessibilityPermission,
-              //         theme,
-              //       ),
-              //       _buildDebugPermissionRow(
-              //         'Background',
-              //         permissionState.backgroundPermission,
-              //         theme,
-              //       ),
-              //       _buildDebugPermissionRow(
-              //         'Overlay',
-              //         permissionState.overlayPermission,
-              //         theme,
-              //       ),
-              //       _buildDebugPermissionRow(
-              //         'Display Popup',
-              //         permissionState.displayPopupPermission,
-              //         theme,
-              //       ),
-              //       _buildDebugPermissionRow(
-              //         'Notification',
-              //         permissionState.notificationPermission,
-              //         theme,
-              //       ),
-              //       const SizedBox(height: 8),
-              //       Container(
-              //         padding: const EdgeInsets.symmetric(
-              //           horizontal: 8,
-              //           vertical: 4,
-              //         ),
-              //         decoration: BoxDecoration(
-              //           color: permissionState.allGranted
-              //               ? context.palette.success.withValues(alpha: 0.2)
-              //               : context.palette.warning.withValues(alpha: 0.2),
-              //           borderRadius: BorderRadius.circular(6),
-              //         ),
-              //         child: Text(
-              //           'All Granted: ${permissionState.allGranted ? "✅ YES" : "❌ NO"}',
-              //           style: theme.textTheme.bodySmall?.copyWith(
-              //             fontWeight: FontWeight.bold,
-              //             color: permissionState.allGranted
-              //                 ? context.palette.success
-              //                 : context.palette.warning,
-              //           ),
-              //         ),
-              //       ),
-              //     ],
-              //   ),
-              // ),
-
-              // Permission list
-              Expanded(
-                child: ListView.builder(
-                  itemCount: permissions.length,
-                  itemBuilder: (context, index) {
-                    final permission = permissions[index];
-                    return _PermissionTile(
-                      title: permission['title'] as String,
-                      description: permission['description'] as String,
-                      granted: permission['granted'] as bool,
-                      onTap: permission['onTap'] as Future<void> Function(),
-                      isFirst: index == 0,
-                    );
-                  },
-                ),
-              ),
-
-              Column(
-                children: [
-                  const SizedBox(height: 8),
-
-                  // Info button
-                  GestureDetector(
-                    onTap: () {
-                      _showPermissionInfoDialog(context);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(3),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.question_mark,
-                              color: context.palette.onAccent,
-                              size: 14,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Why should I give this permission?',
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                          ),
-                          Icon(
-                            Icons.chevron_right,
-                            color: theme.textTheme.bodyMedium?.color,
-                            size: 18,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Complete Setup Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        await _showAllPermissionsConfirmationDialog();
-                      },
-                      child: const Text('Complete Setup'),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-                ],
+              const Center(child: BottomSheetDragHandle()),
+              const SizedBox(height: AppSpacing.lg),
+              Text('Why these permissions?', style: textTheme.displaySmall),
+              const SizedBox(height: AppSpacing.xl),
+              for (final entry in entries) ...[
+                Text(entry.$1, style: textTheme.titleMedium),
+                const SizedBox(height: 2),
+                Text(entry.$2, style: textTheme.bodyMedium),
+                const SizedBox(height: AppSpacing.lg),
+              ],
+              AppPillButton(
+                label: 'Got it',
+                onPressed: () => Navigator.pop(sheetContext),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  // Widget _buildDebugPermissionRow(String name, bool granted, ThemeData theme) {
-  //   return Padding(
-  //     padding: const EdgeInsets.symmetric(vertical: 2),
-  //     child: Row(
-  //       children: [
-  //         Container(
-  //           width: 16,
-  //           height: 16,
-  //           decoration: BoxDecoration(
-  //             color: granted ? context.palette.success : context.palette.error,
-  //             borderRadius: BorderRadius.circular(8),
-  //           ),
-  //           child: Icon(
-  //             granted ? Icons.check : Icons.close,
-  //             size: 12,
-  //             color: context.palette.onCanvas,
-  //           ),
-  //         ),
-  //         const SizedBox(width: 8),
-  //         Expanded(
-  //           child: Text(
-  //             name,
-  //             style: theme.textTheme.bodySmall?.copyWith(
-  //               fontWeight: FontWeight.w500,
-  //               color: granted ? context.palette.success : context.palette.error,
-  //             ),
-  //           ),
-  //         ),
-  //         Text(
-  //           granted ? 'GRANTED' : 'DENIED',
-  //           style: theme.textTheme.bodySmall?.copyWith(
-  //             fontWeight: FontWeight.bold,
-  //             fontSize: 10,
-  //             color: granted ? context.palette.success : context.palette.error,
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-}
-
-class _PermissionTile extends StatefulWidget {
-  final String title;
-  final String description;
-  final bool granted;
-  final Future<void> Function() onTap;
-  final bool isFirst;
-
-  const _PermissionTile({
-    required this.title,
-    required this.description,
-    required this.granted,
-    required this.onTap,
-    this.isFirst = false,
-  });
-
-  @override
-  State<_PermissionTile> createState() => _PermissionTileState();
-}
-
-class _PermissionTileState extends State<_PermissionTile> {
-  bool _isLoading = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: widget.granted
-                        ? theme.textTheme.bodySmall?.color
-                        : null,
-                    decoration: widget.granted
-                        ? TextDecoration.lineThrough
-                        : null,
-                  ),
-                ),
-                if (widget.isFirst && !widget.granted) ...[
-                  const SizedBox(height: 2),
-                  Text(widget.description, style: theme.textTheme.bodySmall),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          if (!widget.granted)
-            _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.palette.accent,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: GestureDetector(
-                      onTap: () async {
-                        if (mounted) {
-                          setState(() => _isLoading = true);
-                        }
-                        try {
-                          await widget.onTap();
-                        } finally {
-                          if (mounted) {
-                            setState(() => _isLoading = false);
-                          }
-                        }
-                      },
-                      child: Text(
-                        'Allow',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: context.palette.onAccent,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-        ],
-      ),
-    );
-  }
-}
-
-void _showPermissionInfoDialog(BuildContext context) {
-  final theme = Theme.of(context);
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text('Why these permissions?', style: theme.textTheme.titleLarge),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _PermissionInfo(
-              title: 'Usage Stats Permission',
-              description: 'Helps us understand which apps distract you most, so we can block them during focus sessions.',
-            ),
-            const SizedBox(height: 12),
-            _PermissionInfo(
-              title: 'Display Over Other Apps',
-              description: 'Allows us to show a blocking screen when you try to open distracting apps.',
-            ),
-            const SizedBox(height: 12),
-            _PermissionInfo(
-              title: 'Notification Permission',
-              description: 'Sends you focus reminders and session completion notifications.',
-            ),
-            const SizedBox(height: 12),
-            _PermissionInfo(
-              title: 'Accessibility Permission',
-              description:
-                  'Enables advanced app blocking to help you stay focused.',
-            ),
-            const SizedBox(height: 12),
-            _PermissionInfo(
-              title: 'Background Permission',
-              description: 'Keeps the app running in the background for continuous monitoring and blocking. This exempts the app from battery optimization.',
-            ),
-            const SizedBox(height: 12),
-            _PermissionInfo(
-              title: 'Display Popup Permission',
-              description: 'Shows focus reminders and motivational popups to keep you on track.',
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            }
-          },
-          child: const Text('Got it'),
-        ),
-      ],
-    ),
+      );
+    },
   );
-}
-
-class _PermissionInfo extends StatelessWidget {
-  final String title;
-  final String description;
-
-  const _PermissionInfo({required this.title, required this.description});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: theme.textTheme.titleSmall?.copyWith(
-            color: theme.colorScheme.primary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(description, style: theme.textTheme.bodySmall),
-      ],
-    );
-  }
 }

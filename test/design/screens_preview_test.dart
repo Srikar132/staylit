@@ -41,6 +41,7 @@ import 'package:staylit/presentation/screens/blocks_screen.dart';
 import 'package:staylit/presentation/screens/focus/focus_home_data.dart';
 import 'package:staylit/presentation/screens/groups/group_detail_view.dart';
 import 'package:staylit/presentation/screens/groups/groups_view.dart';
+import 'package:staylit/presentation/screens/permissions/permissions_view.dart';
 import 'package:staylit/presentation/screens/profile/profile_view.dart';
 import 'package:staylit/presentation/screens/progress/progress_view.dart';
 import 'package:staylit/widgets/parental_control_dialogs.dart';
@@ -656,6 +657,68 @@ void main() {
           ),
         ),
         brightness: b,
+      );
+    }
+  }, skip: !enabled);
+
+  testWidgets('permissions previews', (tester) async {
+    if (!enabled) return;
+    await tester.runAsync(_loadFonts);
+    PermissionItem item(IconData icon, String t, String d, bool g) =>
+        PermissionItem(
+          icon: icon,
+          title: t,
+          description: d,
+          granted: g,
+          onAllow: () async {},
+        );
+    final items = [
+      item(
+        Icons.bar_chart_rounded,
+        'Usage access',
+        'See which apps take your time.',
+        true,
+      ),
+      item(
+        Icons.battery_charging_full_rounded,
+        'Run in background',
+        'Keep blocking running.',
+        true,
+      ),
+      item(
+        Icons.notifications_none_rounded,
+        'Notifications',
+        'Focus reminders.',
+        false,
+      ),
+      item(
+        Icons.layers_outlined,
+        'Display over other apps',
+        'Show blocking screens.',
+        false,
+      ),
+      item(
+        Icons.web_asset_rounded,
+        'Pop-up windows',
+        'Show focus reminders.',
+        false,
+      ),
+      item(
+        Icons.accessibility_new_rounded,
+        'Accessibility',
+        'Detect blocked apps and sites.',
+        false,
+      ),
+    ];
+    for (final b in Brightness.values) {
+      await _snapshot(
+        tester,
+        name: 'permissions_${b.name}',
+        child: Scaffold(
+          body: PermissionsView(items: items, onComplete: () {}, onWhy: () {}),
+        ),
+        brightness: b,
+        logicalSize: const Size(360, 900),
       );
     }
   }, skip: !enabled);

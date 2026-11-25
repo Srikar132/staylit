@@ -8,17 +8,24 @@ class StepProgressBar extends StatelessWidget {
     super.key,
     required this.currentStep,
     required this.stepCount,
+    this.filledCount,
   }) : assert(stepCount > 0);
 
   final int currentStep;
   final int stepCount;
+
+  /// When set, exactly this many segments are filled (0 fills none) and
+  /// [currentStep] is ignored.
+  final int? filledCount;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     final step = currentStep.clamp(0, stepCount - 1);
     return Semantics(
-      label: 'Step ${step + 1} of $stepCount',
+      label: filledCount != null
+          ? '$filledCount of $stepCount'
+          : 'Step ${step + 1} of $stepCount',
       excludeSemantics: true,
       child: Row(
         children: [
@@ -29,7 +36,9 @@ class StepProgressBar extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 height: 6,
                 decoration: BoxDecoration(
-                  color: i <= step ? palette.accent : palette.surfaceTrack,
+                  color: (filledCount != null ? i < filledCount! : i <= step)
+                      ? palette.accent
+                      : palette.surfaceTrack,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
