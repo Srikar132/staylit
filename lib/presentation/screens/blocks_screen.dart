@@ -20,7 +20,8 @@ import 'dart:async';
 import 'package:staylit/core/theme/theme_context.dart';
 import 'package:staylit/core/constants/app_info.dart';
 import 'package:staylit/core/theme/app_dimens.dart';
-import 'package:staylit/presentation/providers/app_icon_provider.dart';
+import 'package:staylit/presentation/providers/app_management_provide.dart'
+    show appIconProvider;
 import 'package:staylit/presentation/widgets/design/app_icon_badge.dart';
 import 'package:staylit/presentation/widgets/design/app_limit_card.dart';
 import 'package:staylit/presentation/widgets/design/app_pill_button.dart';

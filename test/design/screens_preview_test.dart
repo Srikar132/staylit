@@ -17,8 +17,13 @@ import 'package:staylit/core/theme/app_theme.dart';
 import 'package:staylit/data/models/app_limit_model.dart';
 import 'package:staylit/data/models/blocked_content_model.dart';
 import 'package:staylit/data/models/focus_session_model.dart';
+import 'package:staylit/data/models/pomodoro_settings.dart';
 import 'package:staylit/data/models/user_model.dart';
-import 'package:staylit/presentation/providers/app_icon_provider.dart';
+import 'package:staylit/data/models/user_settings_model.dart';
+import 'package:staylit/models/focus_time_bottom_model.dart';
+import 'package:staylit/presentation/providers/settings_provider.dart';
+import 'package:staylit/presentation/providers/app_management_provide.dart'
+    show appIconProvider;
 import 'package:staylit/presentation/providers/app_limits_provider.dart';
 import 'package:staylit/presentation/widgets/design/app_icon_badge.dart';
 import 'package:staylit/presentation/widgets/design/limit_setup_sheet.dart';
@@ -353,6 +358,48 @@ void main() {
         ),
         brightness: b,
         logicalSize: const Size(360, 800),
+      );
+    }
+  }, skip: !enabled);
+
+  testWidgets('focus sheet previews', (tester) async {
+    if (!enabled) return;
+    await tester.runAsync(_loadFonts);
+    final user = UserModel(
+      uid: 'u1',
+      email: 'a@b.c',
+      createdAt: DateTime(2026),
+      lastLoginAt: DateTime(2026),
+    );
+    final settings = UserSettingsModel(
+      defaultDuration: 25,
+      timerMode: 'timer',
+      pomodoroSettings: PomodoroSettings.fromMap(null),
+      numberOfBreaks: 1,
+      blockPhoneHomeScreen: false,
+      strictMode: false,
+      autoStartBreaks: false,
+      soundEnabled: true,
+      vibrationEnabled: true,
+    );
+    final overrides = <Override>[
+      currentUserProvider.overrideWith((ref) => Stream.value(user)),
+      userSettingsProvider('u1').overrideWith((ref) => Stream.value(settings)),
+      blockedContentProvider('u1')
+          .overrideWith((ref) => Stream.value(BlockedContentModel())),
+    ];
+    for (final b in Brightness.values) {
+      await _snapshot(
+        tester,
+        name: 'focus_sheet_${b.name}',
+        child: Scaffold(
+          body: Align(
+            alignment: Alignment.bottomCenter,
+            child: FocusTimeBottomSheet(onSave: () {}),
+          ),
+        ),
+        brightness: b,
+        overrides: overrides,
       );
     }
   }, skip: !enabled);
