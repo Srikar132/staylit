@@ -14,6 +14,7 @@ import 'package:staylit/presentation/providers/daily_stats_provider.dart';
 import 'package:staylit/presentation/providers/focus_session_provider.dart';
 import 'package:staylit/presentation/providers/home_tab_provider.dart';
 import 'package:staylit/presentation/providers/permission_provider.dart';
+import 'package:staylit/presentation/providers/scroll_damage_provider.dart';
 import 'package:staylit/presentation/providers/settings_provider.dart';
 import 'package:staylit/presentation/providers/usage_stats_provider.dart';
 import 'package:staylit/presentation/screens/focus/focus_home_data.dart';
@@ -194,6 +195,12 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
     final duration = settings?.defaultDuration ?? 25;
     final now = DateTime.now();
 
+    final scrollEnabled = settings?.scrollDamageEnabled ?? false;
+    // Only read the counts while the feature is on.
+    final scrollDamage = scrollEnabled
+        ? ref.watch(scrollDamageProvider(user.uid)).value
+        : null;
+
     final apps = blockedCount == 0
         ? 'No apps blocked'
         : '$blockedCount ${blockedCount == 1 ? 'app' : 'apps'} blocked';
@@ -219,7 +226,8 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
       setupLabel:
           '${_modeLabel(settings?.timerMode ?? 'timer')} · $duration min · $apps',
       streak: streak?.current ?? 0,
-      scrollEnabled: settings?.scrollDamageEnabled ?? false,
+      scrollEnabled: scrollEnabled,
+      scrollDamage: scrollDamage,
     );
   }
 
