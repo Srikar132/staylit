@@ -57,6 +57,8 @@ class FocusWindowCover(
         var hostWidth: Int,
         var hostHeight: Int,
         val attached: Attached? = null,
+        /** When this cover was built; used to avoid rebuilding it several times a second. */
+        val builtAtMs: Long = android.os.SystemClock.elapsedRealtime(),
     )
 
     private val context: Context = service
@@ -67,6 +69,9 @@ class FocusWindowCover(
 
     private companion object {
         const val TAG = "FocusWindowCover"
+
+        /** A cover is not rebuilt (compact <-> full) more often than this, however the window is resized. */
+        const val MIN_REBUILD_MS = 700L
 
         /**
          * Android 14+ window-attached overlay: the cover is a layer inside the blocked window itself, so
@@ -96,7 +101,14 @@ class FocusWindowCover(
     ) {
         try {
             val canAttach = USE_ATTACHED_OVERLAY && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-            val compact = CoverLayoutPolicy.isCompact(bounds.width, bounds.height, density)
+            val previous = entries[windowId]
+            var compact = CoverLayoutPolicy.isCompactSticky(previous?.compact, bounds.width, bounds.height, density)
+            // A window being opened or resized must not rebuild its cover over and over: that is the flicker.
+            if (previous != null && previous.compact != compact &&
+                android.os.SystemClock.elapsedRealtime() - previous.builtAtMs < MIN_REBUILD_MS
+            ) {
+                compact = previous.compact
+            }
             // Attached covers live in the window's own (unscaled) coordinates; floating ones in screen pixels.
             val scale = if (canAttach) CoverLayoutPolicy.contentScale(bounds.width, localWidth) else 1f
             val hostW = if (canAttach && localWidth > 0) localWidth else bounds.width
@@ -144,7 +156,10 @@ class FocusWindowCover(
         // An attached cover already follows its window; its size is refreshed from full snapshots.
         if (entry.attached != null) return
         try {
-            if (CoverLayoutPolicy.isCompact(bounds.width, bounds.height, density) != entry.compact) {
+            val compactNow = CoverLayoutPolicy.isCompactSticky(entry.compact, bounds.width, bounds.height, density)
+            if (compactNow != entry.compact &&
+                android.os.SystemClock.elapsedRealtime() - entry.builtAtMs >= MIN_REBUILD_MS
+            ) {
                 show(windowId, entry.appName, bounds, entry.passTouches)
             } else {
                 applyBounds(entry, bounds, bounds.width, bounds.height)
