@@ -8,7 +8,6 @@ import 'package:staylit/presentation/providers/permission_provider.dart';
 import 'package:staylit/presentation/screens/active_focus_screen.dart';
 import 'package:staylit/presentation/screens/debug/design_gallery_screen.dart';
 import 'package:staylit/presentation/screens/home_screen.dart';
-import 'package:staylit/presentation/screens/manage_blocked_apps_screen.dart';
 import 'package:staylit/presentation/screens/onboarding/onboarding_screen.dart';
 import 'package:staylit/presentation/screens/permission_screen.dart';
 import 'package:staylit/presentation/screens/profile_screen.dart';
@@ -23,7 +22,6 @@ const permissionsRoute = '/permissions';
 const homeRoute = '/home';
 const activeSessionRoute = '/active-session';
 const saveSessionRoute = '/save-session';
-const manageBlockedAppsRoute = '/manage-blocked-apps';
 const profileRoute = '/profile';
 
 /// Bridges Riverpod state changes into go_router's `refreshListenable`, so
@@ -143,10 +141,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => SaveSessionScreen(
           sessionData: state.extra as Map<String, dynamic>? ?? const {},
         ),
-      ),
-      GoRoute(
-        path: manageBlockedAppsRoute,
-        builder: (context, state) => const ManageBlockedAppsScreen(),
       ),
       GoRoute(
         path: profileRoute,

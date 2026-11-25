@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
 import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/widgets/design/app_pill_button.dart';
+import 'package:staylit/widgets/bottom_sheet_darg_handler.dart';
 
-/// Custom bottom sheet widget for showing permission instructions
+/// Bottom sheet explaining how to grant a special Android permission, with a
+/// numbered list of steps and an Allow button.
 class PermissionInstructionDialog extends StatelessWidget {
   final String title;
   final String description;
@@ -20,109 +24,77 @@ class PermissionInstructionDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Handle bar
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.outline,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Title
-          Text(
-            title,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Description
-          Text(
-            description,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.textTheme.bodySmall?.color,
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Steps
-          ...steps.asMap().entries.map((entry) {
-            final index = entry.key;
-            final step = entry.value;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl,
+          0,
+          AppSpacing.xl,
+          AppSpacing.xl,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const BottomSheetDragHandle(),
+            const SizedBox(height: AppSpacing.lg),
+            Text(title, style: textTheme.displaySmall),
+            const SizedBox(height: AppSpacing.sm),
+            Text(description, style: textTheme.bodyLarge),
+            const SizedBox(height: AppSpacing.xl),
+            for (var i = 0; i < steps.length; i++) ...[
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 24,
-                    height: 24,
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
+                      color: palette.accentSoft,
                       shape: BoxShape.circle,
                     ),
-                    child: Center(
+                    child: Text(
+                      '${i + 1}',
+                      style: textTheme.labelMedium?.copyWith(
+                        color: palette.accentText,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 3),
                       child: Text(
-                        '${index + 1}',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: context.palette.ink,
-                          fontWeight: FontWeight.bold,
+                        steps[i],
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: palette.onCanvas,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(step, style: theme.textTheme.bodyMedium),
-                  ),
                 ],
               ),
-            );
-          }),
-
-          const SizedBox(height: 24),
-
-          // Buttons
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    onAllowPressed();
-                  },
-                  child: Text(allowButtonText),
-                ),
-              ),
+              const SizedBox(height: AppSpacing.md),
             ],
-          ),
-
-          // Add bottom padding for safe area
-          SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
-        ],
+            const SizedBox(height: AppSpacing.md),
+            AppPillButton(
+              label: allowButtonText,
+              onPressed: () {
+                Navigator.pop(context);
+                onAllowPressed();
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  /// Show the permission instruction dialog as a bottom sheet
+  /// Shows the sheet.
   static Future<void> show(
     BuildContext context, {
     required String title,
@@ -131,10 +103,9 @@ class PermissionInstructionDialog extends StatelessWidget {
     required VoidCallback onAllowPressed,
     String allowButtonText = 'Allow',
   }) {
-    return showModalBottomSheet(
+    return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => PermissionInstructionDialog(
         title: title,
         description: description,
