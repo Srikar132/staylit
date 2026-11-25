@@ -55,7 +55,8 @@ class ScrollDamageStore private constructor(context: Context) {
 
     /** A parent PIN protects the blocks: break passes must not be offered. Mirrored from Flutter. */
     @Volatile
-    private var parentalLocked = prefs.getBoolean(KEY_PARENTAL, false)
+    // Fails closed: until Flutter has told us at least once that no PIN protects the blocks, assume it does.
+    private var parentalLocked = prefs.getBoolean(KEY_PARENTAL, true)
 
     private var todayDay = prefs.getString(KEY_TODAY_DAY, "") ?: ""
     private var todayTotalValue = prefs.getInt(KEY_TODAY_TOTAL, 0)

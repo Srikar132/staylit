@@ -364,6 +364,8 @@ class MainActivity: FlutterActivity() {
                         val uid = args?.get("uid") as? String ?: ""
                         val parentalLocked = args?.get("parentalLocked") as? Boolean
                         ScrollDamageStore.getInstance(this@MainActivity).setEnabled(enabled, uid, parentalLocked)
+                        // A parent PIN switched on: end any running break pass right away.
+                        if (parentalLocked == true) ShortFormPassStore.getInstance(this@MainActivity).cancelAll()
                         StaylitAccessibilityService.getInstance()?.setScrollDamageEnabled(enabled)
                         result.success(true)
                     }

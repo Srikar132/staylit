@@ -2174,7 +2174,9 @@ class StaylitAccessibilityService : AccessibilityService() {
     /** A break pass is running for [pkg] (never during a focus session): the block lets it through. */
     private fun isShortFormPassActive(pkg: String): Boolean =
         ShortFormPassStore.getInstance(applicationContext).isActive(pkg) &&
-            !FocusSessionManager.getInstance(applicationContext).isSessionActive()
+            !FocusSessionManager.getInstance(applicationContext).isSessionActive() &&
+            // A parent PIN protects the blocks: a pass can never loosen one, even a leftover one.
+            !ScrollDamageStore.getInstance(applicationContext).isParentalLocked()
 
     /** Takes the user out of [pkg]'s short-form view: the app's Home tab, or the launcher. */
     private fun leaveShortFormView(pkg: String) {
