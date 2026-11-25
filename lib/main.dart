@@ -12,6 +12,8 @@ import 'package:staylit/core/theme/app_theme.dart';
 import 'package:staylit/core/theme/theme_context.dart';
 import 'package:staylit/data/repositories/theme_repository.dart';
 import 'package:staylit/presentation/overlays/overlay_app.dart';
+import 'package:staylit/presentation/providers/app_bootstrap_provider.dart'
+    show boundedStartupStep;
 import 'package:staylit/presentation/providers/theme_mode_provider.dart';
 import 'package:staylit/services/native_service.dart';
 import 'package:staylit/services/night_mode_bridge.dart';
@@ -36,26 +38,53 @@ Future<void> overlayMain() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('[boot] main started');
+
+  // Every step before runApp is time-boxed. If one never answers (seen once after the app was closed during
+  // a focus session and relaunched by the enforcer) the user must still get a first frame, not a white
+  // screen. The next step logs which one was skipped.
 
   // Set preferred orientations
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  await boundedStartupStep(
+    'orientation',
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]),
+    const Duration(seconds: 3),
+    null,
+  );
+  debugPrint('[boot] orientation done');
 
-  // Initialize Firebase
-  await Firebase.initializeApp();
+  // Initialize Firebase (already started natively in this process when the app was relaunched)
+  await boundedStartupStep(
+    'firebase init',
+    Firebase.initializeApp(),
+    const Duration(seconds: 10),
+    null,
+  );
+  debugPrint('[boot] firebase done');
 
   // Enable Firebase offline persistence
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-  );
+  try {
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+  } catch (e) {
+    debugPrint('[boot] firestore settings skipped: $e');
+  }
 
   // Load the saved theme mode before the first frame so there is no flash of
   // the wrong theme. System bar styling follows the resolved theme in
-  // StaylitApp's builder.
-  final themeMode = await SharedPreferencesThemeRepository().load();
+  // StaylitApp's builder. Falls back to "follow the system" if it cannot load.
+  final themeMode = await boundedStartupStep<ThemeMode>(
+    'theme load',
+    SharedPreferencesThemeRepository().load(),
+    const Duration(seconds: 3),
+    ThemeMode.system,
+  );
+  debugPrint('[boot] theme done, starting the UI');
 
   // Keep Android's per-app night mode (the native splash) in sync with the saved
   // choice, e.g. after an update. Never throws; no-op below Android 12.

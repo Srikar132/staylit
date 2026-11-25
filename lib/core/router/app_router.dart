@@ -35,7 +35,9 @@ class _RouterRefreshNotifier extends ChangeNotifier {
     ref.listen(authErrorProvider, (_, _) => notifyListeners());
     ref.listen(permissionProvider, (_, _) => notifyListeners());
     ref.listen(
-      focusSessionProvider.select((s) => s.isActive),
+      focusSessionProvider.select(
+        (s) => s.isActive || s.status == FocusSessionStatus.endingWithSave,
+      ),
       (_, _) => notifyListeners(),
     );
     ref.listen(appBootstrapProvider, (_, _) => notifyListeners());
@@ -109,7 +111,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       };
       if (gateLocations.contains(loc)) {
         final focusSession = ref.read(focusSessionProvider);
-        return focusSession.isActive ? activeSessionRoute : homeRoute;
+        // A session that just ended on its own still has to reach its Save screen, which is opened by
+        // the active-session screen.
+        final needsSessionScreen =
+            focusSession.isActive ||
+            focusSession.status == FocusSessionStatus.endingWithSave;
+        return needsSessionScreen ? activeSessionRoute : homeRoute;
       }
 
       return null;

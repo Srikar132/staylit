@@ -64,6 +64,12 @@ class MainActivity: FlutterActivity() {
 
     // Event sinks
     private var eventSink: EventChannel.EventSink? = null
+
+    // The Scroll damage "new counts" ping of THIS Activity (compared by identity so a late teardown of an
+    // older Activity cannot clear a newer one's listener).
+    private val scrollPingListener: (Map<String, Any>) -> Unit = { payload ->
+        sendEventToFlutter("scroll_damage_update", payload)
+    }
     private val eventQueue = ConcurrentHashMap<String, Any>()
 
     // SCOPE
@@ -185,9 +191,7 @@ class MainActivity: FlutterActivity() {
                 sessionManager.setEventSink(events)
 
                 // Scroll damage: tell Flutter when new counts exist (it pulls the numbers itself)
-                ScrollDamageNotifier.listener = { payload ->
-                    sendEventToFlutter("scroll_damage_update", payload)
-                }
+                ScrollDamageNotifier.listener = scrollPingListener
 
                 // Send queued events
                 eventQueue.forEach { (event, data) ->
@@ -199,9 +203,11 @@ class MainActivity: FlutterActivity() {
             }
 
             override fun onCancel(arguments: Any?) {
+                // Only let go of OUR sink: a newer Activity may already have registered its own.
+                sessionManager.detachSink(eventSink)
                 eventSink = null
-                sessionManager.setEventSink(null)
-                ScrollDamageNotifier.listener = null
+                // Only clear the Scroll damage ping if it is still ours (a newer Activity may have set its own).
+                if (ScrollDamageNotifier.listener === scrollPingListener) ScrollDamageNotifier.listener = null
                 Log.d(TAG, "Event channel disconnected")
             }
         })
@@ -480,8 +486,27 @@ class MainActivity: FlutterActivity() {
                     }
 
                     "getCurrentSessionStatus" -> {
+                        // A session whose time is up but whose timer was lost is completed here first.
+                        sessionManager.completeIfDue()
                         val status = sessionManager.getCurrentSessionStatus()
                         result.success(status)
+                    }
+
+                    // The completion of a timer session that ended on its own, until Flutter confirms it.
+                    "getPendingCompletion" -> {
+                        result.success(sessionManager.getPendingCompletion())
+                    }
+
+                    "ackCompletion" -> {
+                        val args = arguments as? Map<*, *>
+                        sessionManager.ackCompletion(args?.get("sessionId") as? String ?: "")
+                        result.success(true)
+                    }
+
+                    // Dart's countdown reached 0:00: make sure native ended the session, return its completion.
+                    "completeSessionIfDue" -> {
+                        sessionManager.completeIfDue()
+                        result.success(sessionManager.getPendingCompletion())
                     }
 
                     // =======================
@@ -910,12 +935,14 @@ class MainActivity: FlutterActivity() {
             // Cleanup
             scope.cancel()
 
-            ScrollDamageNotifier.listener = null
-                        eventSink = null
+            // The session manager is a process-wide singleton that keeps the session timer and its queued
+            // events alive without an Activity. Only detach this Activity's own sink.
+            sessionManager.detachSink(eventSink)
+            eventSink = null
+            if (ScrollDamageNotifier.listener === scrollPingListener) ScrollDamageNotifier.listener = null
             eventQueue.clear()
 
             // Cleanup managers
-            sessionManager.cleanup()
             permissionManager.cleanup()
             appLimitManager.cleanup()
 

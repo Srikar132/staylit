@@ -170,6 +170,39 @@ class NativeService {
     });
   }
 
+  /// The completion of a timer session that ended on its own while nothing was listening, or null.
+  /// Native keeps it until [ackCompletion], so a missed live event is never lost.
+  static Future<Map<String, dynamic>?> getPendingCompletion() async {
+    try {
+      final result = await _platform.invokeMethod('getPendingCompletion');
+      return result is Map ? Map<String, dynamic>.from(result) : null;
+    } catch (e) {
+      debugPrint('Error getting pending completion: $e');
+      return null;
+    }
+  }
+
+  /// Tells native this completion was handled (safe to repeat).
+  static Future<void> ackCompletion(String sessionId) async {
+    try {
+      await _platform.invokeMethod('ackCompletion', {'sessionId': sessionId});
+    } catch (e) {
+      debugPrint('Error confirming completion: $e');
+    }
+  }
+
+  /// Asks native to end the session if its time is up (safety net for a lost native timer) and
+  /// returns the completion, or null when nothing ended.
+  static Future<Map<String, dynamic>?> completeSessionIfDue() async {
+    try {
+      final result = await _platform.invokeMethod('completeSessionIfDue');
+      return result is Map ? Map<String, dynamic>.from(result) : null;
+    } catch (e) {
+      debugPrint('Error completing session: $e');
+      return null;
+    }
+  }
+
   /// Check if the app has usage stats permission.
   /// This permission is required to monitor app usage and identify distracting apps.
   static Future<bool> hasUsageStatsPermission() async {

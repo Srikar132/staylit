@@ -37,6 +37,8 @@ class FocusSessionManager private constructor(private val context: Context) {
         private const val KEY_PAUSED_TIME = "paused_elapsed_time"
         private const val KEY_IS_PAUSED = "is_paused"
         private const val KEY_IS_ACTIVE = "is_active"
+        // A timer session that ended on its own, kept until Flutter confirms it saw it.
+        private const val KEY_PENDING_COMPLETION = "pending_completion"
 
         @Volatile
         private var INSTANCE: FocusSessionManager? = null
@@ -105,6 +107,9 @@ class FocusSessionManager private constructor(private val context: Context) {
             pausedElapsedTime = 0
             isPaused = false
             isActive = true
+
+            // A new session replaces any completion Flutter never confirmed.
+            prefs.edit().remove(KEY_PENDING_COMPLETION).apply()
 
             // Persist to storage
             saveSessionToPreferences()
@@ -210,7 +215,14 @@ class FocusSessionManager private constructor(private val context: Context) {
     /**
      * End current session
      */
-    fun endSession(): Boolean {
+    fun endSession(): Boolean = finishSession(auto = false)
+
+    /**
+     * Ends the session. [auto] means the time ran out (the timer, or the [completeIfDue] safety net):
+     * the completion is then also kept in prefs until Flutter confirms it, because the live event is
+     * lost whenever no Activity is listening at that moment.
+     */
+    private fun finishSession(auto: Boolean): Boolean {
         return try {
             if (!isActive) {
                 Log.w(TAG, "⚠️ No active session to end")
@@ -230,14 +242,18 @@ class FocusSessionManager private constructor(private val context: Context) {
                 } else 100f
 
                 // Notify Flutter with final data
-                sendEvent("session_completed", mapOf(
+                val payload = mapOf(
                     "sessionId" to session.sessionId,
                     "actualDuration" to actualDuration,
                     "completionRate" to completionRate.coerceAtMost(100f),
                     "totalElapsed" to totalElapsed,
                     "interruptions" to session.interruptions.size,
-                    "status" to if (completionRate >= 100f) "completed" else "ended_early"
-                ))
+                    "status" to if (completionRate >= 100f) "completed" else "ended_early",
+                    "sessionType" to session.sessionType,
+                    "plannedDuration" to session.plannedDuration
+                )
+                if (auto) savePendingCompletion(payload)
+                sendEvent("session_completed", payload)
             }
 
             // Stop timer
@@ -262,6 +278,51 @@ class FocusSessionManager private constructor(private val context: Context) {
         }
     }
 
+    /**
+     * Safety net: if the session's time is up but nothing ended it (its timer was lost), end it now.
+     * Returns true if it completed the session.
+     */
+    fun completeIfDue(): Boolean {
+        val session = currentSession ?: return false
+        if (!isActive) return false
+        val elapsed = System.currentTimeMillis() - sessionStartTime
+        if (!SessionDue.isDue(session.sessionType, session.plannedDuration, elapsed, isPaused)) return false
+        Log.w(TAG, "⏰ Session was due but still running: completing it now")
+        return finishSession(auto = true)
+    }
+
+    // ==========================================
+    // PENDING COMPLETION (survives the Activity and the process)
+    // ==========================================
+
+    private fun savePendingCompletion(payload: Map<String, Any>) {
+        try {
+            prefs.edit().putString(KEY_PENDING_COMPLETION, JSONObject(payload).toString()).apply()
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error saving pending completion", e)
+        }
+    }
+
+    /** The completion of a session that ended on its own and was not confirmed yet, or null. */
+    fun getPendingCompletion(): Map<String, Any>? {
+        return try {
+            val json = prefs.getString(KEY_PENDING_COMPLETION, null) ?: return null
+            JSONObject(json).toMap()
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error reading pending completion", e)
+            prefs.edit().remove(KEY_PENDING_COMPLETION).apply()
+            null
+        }
+    }
+
+    /** Flutter has handled the completion of [sessionId] (blank = whatever is pending). Safe to repeat. */
+    fun ackCompletion(sessionId: String) {
+        val pending = getPendingCompletion() ?: return
+        if (sessionId.isBlank() || pending["sessionId"] == sessionId) {
+            prefs.edit().remove(KEY_PENDING_COMPLETION).apply()
+        }
+    }
+
     // ==========================================
     // TIMER MANAGEMENT
     // ==========================================
@@ -282,7 +343,7 @@ class FocusSessionManager private constructor(private val context: Context) {
                             if (remaining <= 0) {
                                 // Timer finished
                                 Log.d(TAG, "⏰ Timer completed")
-                                endSession()
+                                finishSession(auto = true)
                                 return
                             }
                         }
@@ -492,10 +553,13 @@ class FocusSessionManager private constructor(private val context: Context) {
         }
     }
 
-    fun cleanup() {
-        stopTimer()
-        eventSink = null
-        eventQueue.clear()
+    /**
+     * An Activity is going away. This manager is a process-wide singleton and must keep running the
+     * session timer and keep its queued events, so it only lets go of [sink] if that is still the one in
+     * use: an old Activity torn down late must not wipe the sink of a newer one.
+     */
+    fun detachSink(sink: EventChannel.EventSink?) {
+        if (sink != null && eventSink === sink) eventSink = null
     }
 }
 

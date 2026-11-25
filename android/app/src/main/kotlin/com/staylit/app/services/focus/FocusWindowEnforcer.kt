@@ -32,6 +32,21 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
         const val EJECT_RETRY_MS = 1500L
         const val FULLSCREEN_CONFIRM_MS = 400L
         const val HEALTHY_WITHIN_MS = 6000L
+
+        /** A covered window missing from a snapshot keeps its cover this long (stops the on / off flicker). */
+        const val COVER_GRACE_MS = 600L
+
+        /**
+         * A PiP window drops out of the window list while a cover is attached to it, so it is "missing" by design.
+         * Keep treating it as present for long enough that no new "app opened" interruption is recorded for it.
+         */
+        const val PIP_GRACE_MS = 8000L
+
+        /** Staylit is only "floating" after it has looked that way this long (a window opening has partial bounds). */
+        const val FLOATING_CONFIRM_MS = 1200L
+
+        /** The eject ladder starts over only after no full-screen blocked app was seen for this long. */
+        const val ATTEMPT_RESET_MS = 2000L
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -48,7 +63,15 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
     private val eventPackages = mutableMapOf<Int, String>() // windowId -> package, from window events
     private var lastEvaluationAt = 0L
     private var lastEjectAt = 0L
+
+    // How many eject actions were already tried for the full-screen blocked app that is still there.
+    private var ejectAttempts = 0
+    private var lastFullScreenSeenAt = 0L
+    private val coverGrace = MissingGrace<Int, Pair<WindowSnapshot, WindowResponse>>(COVER_GRACE_MS)
+    private val pipGrace = MissingGrace<Int, Pair<WindowSnapshot, WindowResponse>>(PIP_GRACE_MS)
+    private val floatingGate = StableFlag(FLOATING_CONFIRM_MS)
     private var lastSnapshotLog = ""
+    private var lastPipLog = ""
     private var running = false
     private var coverShowing = false
 
@@ -103,6 +126,11 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
         coverShowing = false
         evalPending = false
         tracking = false
+        ejectAttempts = 0
+        lastFullScreenSeenAt = 0L
+        coverGrace.reset()
+        pipGrace.reset()
+        floatingGate.reset()
     }
 
     /**
@@ -188,37 +216,80 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
             val raw = violations.map {
                 it to CoverPolicy.responseFor(it, metrics.widthPixels, metrics.heightPixels)
             }
+            // Bringing Staylit to the front does nothing when Staylit is itself a floating window, so each
+            // retry escalates: front -> Home -> cover the blocked window.
+            // Staylit only counts as floating once it has looked that way for a moment: a Staylit window
+            // that is just opening or closing has partial bounds and must not trigger Home or a cover.
+            val floating = floatingGate.update(
+                now,
+                EjectPolicy.isStaylitFloating(
+                    snapshots, service.applicationContext.packageName, metrics.widthPixels, metrics.heightPixels
+                ),
+            )
+            val fullScreenPresent = raw.any { it.second.eject }
+            if (fullScreenPresent) {
+                lastFullScreenSeenAt = now
+            } else if (now - lastFullScreenSeenAt > ATTEMPT_RESET_MS) {
+                // Gone for a while: the last eject worked. A blink in the window list does not reset the ladder.
+                ejectAttempts = 0
+            }
+            // One action at a time: the next step only after the last one had time to work.
+            val ejectCooledDown = ejectAttempts == 0 || now - lastEjectAt >= EJECT_RETRY_MS
+            val coverFullScreen = fullScreenPresent && ejectCooledDown &&
+                EjectPolicy.stepFor(ejectAttempts, floating) == EjectStep.COVER_FULL_SCREEN
             // "Full screen" is only believed after it has looked that way for a moment: a pane or PiP
             // animating in/out briefly has full-screen-looking bounds and must not be ejected.
             val lookingFull = raw.filter { it.second.eject }.mapNotNull { it.first.packageName }.toSet()
             val confirmedFull = fullScreenGate.update(now, lookingFull)
             val responses = raw.map { (v, r) ->
-                if (r.eject && v.packageName !in confirmedFull) {
-                    v to WindowResponse(cover = false, passTouches = false, eject = false)
-                } else v to r
+                when {
+                    r.eject && v.packageName !in confirmedFull ->
+                        v to WindowResponse(cover = false, passTouches = false, eject = false)
+                    // Last resort once front and Home failed: cover the blocked window until it leaves.
+                    r.eject && coverFullScreen ->
+                        v to WindowResponse(cover = true, passTouches = false, eject = false)
+                    else -> v to r
+                }
             }
             if (lookingFull.any { it !in confirmedFull }) scheduleRecheck()
 
             // Covers only for PiP / split pane / freeform. A normal full-screen app gets no cover.
-            val covered = responses.filter { it.second.cover }
+            // A covered window that is missing from one snapshot (the system drops it for a moment while the
+            // cover attaches, or while it animates) keeps its cover briefly instead of flickering off and on.
+            val coveredNow = responses.filter { it.second.cover }.associateBy { it.first.id }
+            val covered = (
+                coverGrace.update(now, coveredNow.filterValues { it.first.kind != WindowKind.PIP }) +
+                    pipGrace.update(now, coveredNow.filterValues { it.first.kind == WindowKind.PIP })
+                ).values.toList()
+            val effective = responses.filter { !it.second.cover } + covered
             covered.forEach { (v, r) ->
                 cover.show(
                     v.id, appName(v.packageName!!), v.bounds, passTouches = r.passTouches,
                     localWidth = v.localWidth, localHeight = v.localHeight,
                 )
             }
-            cover.retainOnly(covered.map { it.first.id }.toSet())
+            // Window-attached covers outlive a window that is missing from the list (see CoverRetention).
+            // A window that is in the list and clearly shows an allowed app is uncovered at once. A window whose
+            // package cannot be read (or reads as ours) is NOT treated as allowed: that is what a PiP looks like
+            // while a cover is attached to it.
+            val ownPkg = service.applicationContext.packageName
+            val allowedIds = snapshots
+                .filter { it.packageName != null && it.packageName != ownPkg && it.packageName !in blocked }
+                .map { it.id }
+                .toSet()
+            cover.retainOnly(covered.map { it.first.id }.toSet(), now, allowedIds)
+            // Only windows actually in the list are tracked: tracking a missing one would re-snapshot every 50 ms.
             coveredIds.clear()
-            coveredIds.addAll(covered.map { it.first.id })
-            coverShowing = coveredIds.isNotEmpty()
-            if (coverShowing) startTracking()
+            coveredIds.addAll(coveredNow.keys)
+            coverShowing = coveredIds.isNotEmpty() || cover.hasCovers()
+            if (coveredIds.isNotEmpty()) startTracking()
 
             // Stop the blocked apps' audio/video behind the scenes (media sessions only).
-            mediaPauser.pause(violations.mapNotNull { it.packageName }.toSet())
+            mediaPauser.pause(effective.mapNotNull { it.first.packageName }.toSet())
 
-            val result = attempts.update(responses)
+            val result = attempts.update(effective)
 
-            logSnapshotIfChanged(responses)
+            logSnapshotIfChanged(effective)
 
             // A blocked app is a new attempt when it first appears, and also when it later goes full
             // screen (expand from PiP / maximise a pane): that is a new eject even for the same package.
@@ -235,11 +306,17 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
             // left in place so the user keeps the system controls / the other pane. If a full-screen
             // blocked app is STILL there after the cooldown, the last eject did not work: try again.
             val fullScreenStillThere = responses.any { it.second.eject }
-            val shouldEject = result.newEjects.isNotEmpty() ||
-                (fullScreenStillThere && now - lastEjectAt >= EJECT_RETRY_MS)
+            val shouldEject = ejectCooledDown && (result.newEjects.isNotEmpty() || fullScreenStillThere)
             if (shouldEject) {
                 lastEjectAt = now
-                bringPaceToForeground()
+                val step = EjectPolicy.stepFor(ejectAttempts, floating)
+                Log.d(TAG, "Eject attempt $ejectAttempts: $step (staylitFloating=$floating)")
+                when (step) {
+                    EjectStep.BRING_STAYLIT_FRONT -> bringPaceToForeground()
+                    EjectStep.GO_HOME -> service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
+                    EjectStep.COVER_FULL_SCREEN -> Unit // drawn by the cover logic above
+                }
+                ejectAttempts++
             }
             lastEvaluationAt = now
         } catch (e: Exception) {
@@ -264,6 +341,11 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
         recordThrottle.reset()
         coveredIds.clear()
         coverShowing = false
+        ejectAttempts = 0
+        lastFullScreenSeenAt = 0L
+        coverGrace.reset()
+        pipGrace.reset()
+        floatingGate.reset()
     }
 
     private fun snapshotWindows(): List<WindowSnapshot> {
@@ -290,6 +372,14 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
             }
             @Suppress("DEPRECATION")
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) root?.recycle()
+            // Diagnostic (package names only): a PiP we cannot identify is what the cover-attach loop looks like.
+            if (kind == WindowKind.PIP) {
+                val line = "PiP window ${w.id}: package=${pkg ?: "unreadable"} rootReadable=${root != null}"
+                if (line != lastPipLog) {
+                    lastPipLog = line
+                    Log.d(TAG, line)
+                }
+            }
             WindowSnapshot(
                 id = w.id,
                 packageName = pkg,

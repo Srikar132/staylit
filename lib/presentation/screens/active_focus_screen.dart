@@ -30,6 +30,16 @@ class _ActiveFocusScreenState extends ConsumerState<ActiveFocusScreen> {
 
     // Play haptic vibration and sound when session starts
     _playSessionStartFeedback();
+
+    // Opened for a session that already ended (completed while the app was closed): the status
+    // listener below only reacts to a change, so go to the Save screen right away.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted &&
+          ref.read(focusSessionProvider).status ==
+              FocusSessionStatus.endingWithSave) {
+        _navigateToSaveScreen();
+      }
+    });
   }
 
   Future<void> _playSessionStartFeedback() async {

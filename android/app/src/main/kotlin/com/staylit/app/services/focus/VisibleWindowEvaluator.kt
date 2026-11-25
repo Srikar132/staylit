@@ -101,6 +101,23 @@ object CoverLayoutPolicy {
         if (density <= 0f) return false
         return heightPx / density < COMPACT_MAX_HEIGHT_DP || widthPx / density < COMPACT_MAX_WIDTH_DP
     }
+
+    /**
+     * Same decision with hysteresis. A floating window that is opening, closing or being resized passes the
+     * compact threshold many times; with a hard threshold the cover was rebuilt each time (the on / off
+     * flicker). Once compact it stays compact until the window is clearly bigger, and the other way round.
+     * [wasCompact] is null for a window with no cover yet.
+     */
+    fun isCompactSticky(wasCompact: Boolean?, widthPx: Int, heightPx: Int, density: Float): Boolean {
+        if (density <= 0f) return false
+        val h = heightPx / density
+        val w = widthPx / density
+        return when (wasCompact) {
+            null -> h < COMPACT_MAX_HEIGHT_DP || w < COMPACT_MAX_WIDTH_DP
+            true -> !(h >= COMPACT_MAX_HEIGHT_DP * 1.2f && w >= COMPACT_MAX_WIDTH_DP * 1.2f)
+            false -> h < COMPACT_MAX_HEIGHT_DP * 0.85f || w < COMPACT_MAX_WIDTH_DP * 0.85f
+        }
+    }
 }
 
 /**
