@@ -19,6 +19,9 @@ import 'dart:async';
 
 import 'package:staylit/core/theme/theme_context.dart';
 import 'package:staylit/core/constants/app_info.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/presentation/widgets/design/app_limit_card.dart';
+import 'package:staylit/presentation/widgets/design/app_pill_button.dart';
 
 // Standalone permission check function accessible by all widgets
 Future<bool> _checkAndRequestPermissions(
@@ -366,43 +369,32 @@ class _BlocksScreenState extends ConsumerState<BlocksScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            // Header
-            SliverAppBar(
-              floating: true,
-              pinned: true,
-              title: const Text(
-                'Blocks',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              surfaceTintColor: Colors.transparent,
-            ),
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            AppSpacing.lg,
+            AppSpacing.xl,
+            AppSpacing.xxxl,
+          ),
+          children: [
+            Text('Blocks', style: Theme.of(context).textTheme.displaySmall),
+            const SizedBox(height: AppSpacing.xl),
 
-            // Content
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  // 1. App Limits
-                  _AppLimitsSection(userId: user.uid),
-                  const SizedBox(height: 24),
+            // 1. App Limits
+            _AppLimitsSection(userId: user.uid),
+            const SizedBox(height: AppSpacing.xxxl),
 
-                  // 2. Short Form Content
-                  _ShortFormBlocksSection(userId: user.uid),
-                  const SizedBox(height: 24),
+            // 2. Short Form Content
+            _ShortFormBlocksSection(userId: user.uid),
+            const SizedBox(height: AppSpacing.xxxl),
 
-                  // 3. Website Blocking
-                  _WebsiteBlockingSection(userId: user.uid),
-                  const SizedBox(height: 24),
+            // 3. Website Blocking
+            _WebsiteBlockingSection(userId: user.uid),
+            const SizedBox(height: AppSpacing.xxxl),
 
-                  // 4. Notifications
-                  _NotificationBlockingSection(userId: user.uid),
-                  const SizedBox(height: 100), // Bottom padding for scrolling
-                ]),
-              ),
-            ),
+            // 4. Notifications
+            _NotificationBlockingSection(userId: user.uid),
           ],
         ),
       ),
@@ -497,7 +489,6 @@ class _AppLimitTile extends ConsumerStatefulWidget {
 
 class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
   int _currentUsage = 0;
-  bool _isLoadingUsage = false;
 
   @override
   void initState() {
@@ -533,192 +524,28 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
   Future<void> _loadUsage() async {
     if (!widget.limit.isActive) return;
 
-    setState(() => _isLoadingUsage = true);
     try {
       final nativeService = AppLimitNativeService();
       final usage = await nativeService.getTodayUsage(widget.limit.packageName);
       if (mounted) {
-        setState(() {
-          _currentUsage = usage;
-          _isLoadingUsage = false;
-        });
+        setState(() => _currentUsage = usage);
       }
     } catch (e) {
       debugPrint('Error loading usage: $e');
-      if (mounted) {
-        setState(() => _isLoadingUsage = false);
-      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final progress = widget.limit.dailyLimit > 0
-        ? (_currentUsage / widget.limit.dailyLimit).clamp(0.0, 1.0)
-        : 0.0;
-    final remainingMinutes = (widget.limit.dailyLimit - _currentUsage).clamp(
-      0,
-      widget.limit.dailyLimit,
-    );
-    final isNearLimit = progress >= 0.75;
-    final isExceeded = progress >= 1.0;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: context.palette.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isExceeded
-              ? context.palette.error.withValues(alpha: 0.3)
-              : isNearLimit
-              ? context.palette.warning.withValues(alpha: 0.3)
-              : context.palette.onCanvas.withValues(alpha: 0.05),
-        ),
-      ),
-      child: Column(
-        children: [
-          ListTile(
-            contentPadding: const EdgeInsets.fromLTRB(16, 8, 12, 4),
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isExceeded
-                    ? context.palette.error.withValues(alpha: 0.1)
-                    : isNearLimit
-                    ? context.palette.warning.withValues(alpha: 0.1)
-                    : context.palette.onCanvas.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                isExceeded ? Icons.block : Icons.timer,
-                color: isExceeded
-                    ? context.palette.error
-                    : isNearLimit
-                    ? context.palette.warning
-                    : context.palette.onCanvasSecondary,
-              ),
-            ),
-            title: Text(
-              widget.limit.appName,
-              style: TextStyle(
-                color: context.palette.onCanvas,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            subtitle: widget.limit.isActive
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text(
-                        isExceeded
-                            ? 'Limit exceeded'
-                            : '$remainingMinutes min remaining',
-                        style: TextStyle(
-                          color: isExceeded
-                              ? context.palette.error
-                              : isNearLimit
-                              ? context.palette.warning
-                              : context.palette.onCanvas.withValues(alpha: 0.5),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  )
-                : Text(
-                    'Inactive',
-                    style: TextStyle(
-                      color: context.palette.onCanvas.withValues(alpha: 0.5),
-                    ),
-                  ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (widget.limit.isActive) ...[
-                  IconButton(
-                    icon: Icon(
-                      Icons.refresh,
-                      color: context.palette.onCanvas.withValues(alpha: 0.4),
-                      size: 20,
-                    ),
-                    onPressed: _isLoadingUsage ? null : _loadUsage,
-                  ),
-                ],
-                Transform.scale(
-                  scale: 0.8,
-                  child: Switch(
-                    value: widget.limit.isActive,
-                    activeThumbColor: context.palette.accent,
-                    activeTrackColor: context.palette.accent.withValues(
-                      alpha: 0.3,
-                    ),
-                    inactiveTrackColor: context.palette.onCanvasMuted
-                        .withValues(alpha: 0.2),
-                    onChanged: (value) => _handleToggle(value),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: context.palette.onCanvas.withValues(alpha: 0.4),
-                  ),
-                  onPressed: () => _showOptionsMenu(context),
-                ),
-              ],
-            ),
-          ),
-          if (widget.limit.isActive) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '$_currentUsage min',
-                        style: TextStyle(
-                          color: context.palette.onCanvas.withValues(
-                            alpha: 0.5,
-                          ),
-                          fontSize: 11,
-                        ),
-                      ),
-                      Text(
-                        '${widget.limit.dailyLimit} min',
-                        style: TextStyle(
-                          color: context.palette.onCanvas.withValues(
-                            alpha: 0.5,
-                          ),
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 6,
-                      backgroundColor: context.palette.onCanvas.withValues(
-                        alpha: 0.1,
-                      ),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        isExceeded
-                            ? context.palette.error
-                            : isNearLimit
-                            ? context.palette.warning
-                            : context.palette.accent,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: AppLimitCard(
+        appName: widget.limit.appName,
+        usedMinutes: _currentUsage,
+        limitMinutes: widget.limit.dailyLimit,
+        isActive: widget.limit.isActive,
+        onToggle: _handleToggle,
+        onMenu: () => _showOptionsMenu(context),
       ),
     );
   }
@@ -1300,19 +1127,11 @@ class _ShortFormToggleState extends State<_ShortFormToggle> {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: context.palette.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: context.palette.onCanvas.withValues(alpha: 0.05),
-        ),
+        borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: SwitchListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        secondary: Icon(
-          widget.icon,
-          color: displayValue
-              ? context.palette.accentText
-              : context.palette.onCanvasMuted,
-        ),
+        secondary: _RuleIcon(icon: widget.icon, active: displayValue),
         title: Text(
           widget.title,
           style: TextStyle(
@@ -1327,11 +1146,6 @@ class _ShortFormToggleState extends State<_ShortFormToggle> {
           ),
         ),
         value: displayValue,
-        activeThumbColor: context.palette.accent,
-        activeTrackColor: context.palette.accent.withValues(alpha: 0.3),
-        inactiveTrackColor: context.palette.onCanvasMuted.withValues(
-          alpha: 0.2,
-        ),
         onChanged: _isUpdating
             ? null
             : (value) {
@@ -1575,15 +1389,12 @@ class _WebsiteTile extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: context.palette.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: context.palette.onCanvas.withValues(alpha: 0.05),
-        ),
+        borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: ListTile(
-        leading: Icon(
-          Icons.public_off,
-          color: context.palette.onCanvasSecondary,
+        leading: _RuleIcon(
+          icon: Icons.public_off_rounded,
+          active: website.isActive,
         ),
         title: Text(
           website.url,
@@ -1602,11 +1413,6 @@ class _WebsiteTile extends ConsumerWidget {
               scale: 0.8,
               child: Switch(
                 value: website.isActive,
-                activeThumbColor: context.palette.accent,
-                activeTrackColor: context.palette.accent.withValues(alpha: 0.3),
-                inactiveTrackColor: context.palette.onCanvasMuted.withValues(
-                  alpha: 0.2,
-                ),
                 onChanged: (value) async {
                   // If enabling, check permissions first
                   if (value) {
@@ -1755,21 +1561,16 @@ class _NotificationBlockingSectionState
           Container(
             decoration: BoxDecoration(
               color: context.palette.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: context.palette.onCanvas.withValues(alpha: 0.05),
-              ),
+              borderRadius: BorderRadius.circular(AppRadius.card),
             ),
             child: SwitchListTile(
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 4,
               ),
-              secondary: Icon(
-                Icons.notifications_off,
-                color: _blockAllNotifications
-                    ? context.palette.accentText
-                    : context.palette.onCanvasMuted,
+              secondary: _RuleIcon(
+                icon: Icons.notifications_off_rounded,
+                active: _blockAllNotifications,
               ),
               title: Text(
                 'Block All Notifications',
@@ -1782,11 +1583,6 @@ class _NotificationBlockingSectionState
                 ),
               ),
               value: _blockAllNotifications,
-              activeThumbColor: context.palette.accent,
-              activeTrackColor: context.palette.accent.withValues(alpha: 0.3),
-              inactiveTrackColor: context.palette.onCanvasMuted.withValues(
-                alpha: 0.2,
-              ),
               onChanged: (value) {
                 setState(() => _blockAllNotifications = value);
                 // TODO: Save to backend via provider
@@ -1817,45 +1613,34 @@ class _BlockSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                color: context.palette.accent.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+                color: context.palette.surface,
+                shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: context.palette.accentText, size: 24),
+              child: Icon(icon, color: context.palette.accentText, size: 20),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: context.palette.onCanvas,
-                    ),
-                  ),
-                  Text(
-                    description,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: context.palette.onCanvas.withValues(alpha: 0.5),
-                    ),
-                  ),
+                  Text(title, style: textTheme.headlineSmall),
+                  Text(description, style: textTheme.bodySmall),
                 ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.lg),
         child,
       ],
     );
@@ -1870,21 +1655,11 @@ class _DiagnosticsButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: context.palette.accentText,
-          side: BorderSide(color: context.palette.accent),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-        ),
-        icon: const Icon(Icons.bug_report, size: 20),
-        label: const Text('Run Diagnostics'),
-      ),
+    return AppPillButton(
+      label: 'Run diagnostics',
+      icon: Icons.bug_report_outlined,
+      variant: PillButtonVariant.outline,
+      onPressed: onPressed,
     );
   }
 }
@@ -2048,6 +1823,32 @@ Future<void> _runWebsiteBlockingDiagnostics(
   }
 }
 
+/// Round icon badge leading a rule row; accent when the rule is on.
+class _RuleIcon extends StatelessWidget {
+  const _RuleIcon({required this.icon, required this.active});
+
+  final IconData icon;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: active ? palette.accentSoft : palette.surfaceTrack,
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        icon,
+        size: 20,
+        color: active ? palette.accentText : palette.onCanvasMuted,
+      ),
+    );
+  }
+}
+
 class _EmptyState extends StatelessWidget {
   final IconData icon;
   final String message;
@@ -2065,30 +1866,21 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(AppSpacing.xxl),
       decoration: BoxDecoration(
         color: context.palette.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: context.palette.onCanvas.withValues(alpha: 0.05),
-        ),
+        borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: Column(
         children: [
-          Icon(
-            icon,
-            size: 48,
-            color: context.palette.onCanvas.withValues(alpha: 0.2),
-          ),
-          const SizedBox(height: 16),
+          Icon(icon, size: 36, color: context.palette.onCanvasDisabled),
+          const SizedBox(height: AppSpacing.md),
           Text(
             message,
-            style: TextStyle(
-              color: context.palette.onCanvas.withValues(alpha: 0.6),
-            ),
+            style: Theme.of(context).textTheme.bodyMedium,
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           _AddButton(label: actionLabel, onPressed: onAction),
         ],
       ),
@@ -2103,17 +1895,22 @@ class _ErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: context.palette.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.palette.error.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline, color: context.palette.error),
-          const SizedBox(width: 12),
-          Text(message, style: TextStyle(color: context.palette.error)),
+          Icon(Icons.error_outline_rounded, color: context.palette.error),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(
+              message,
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: context.palette.error),
+            ),
+          ),
         ],
       ),
     );
@@ -2128,23 +1925,11 @@ class _AddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: context.palette.onCanvas,
-          side: BorderSide(
-            color: context.palette.onCanvas.withValues(alpha: 0.2),
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-        ),
-        icon: const Icon(Icons.add, size: 20),
-        label: Text(label),
-      ),
+    return AppPillButton(
+      label: label,
+      icon: Icons.add_rounded,
+      variant: PillButtonVariant.outline,
+      onPressed: onPressed,
     );
   }
 }

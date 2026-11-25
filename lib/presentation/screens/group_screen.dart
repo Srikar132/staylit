@@ -1,574 +1,140 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:staylit/presentation/providers/group_provider.dart';
-import 'package:staylit/presentation/providers/auth_provider.dart';
-import 'package:staylit/presentation/screens/group_detail_screen.dart';
-import 'package:staylit/presentation/screens/create_group_screen.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
 import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/data/models/group_model.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/presentation/providers/group_provider.dart';
+import 'package:staylit/presentation/screens/create_group_screen.dart';
+import 'package:staylit/presentation/screens/group_detail_screen.dart';
+import 'package:staylit/presentation/screens/groups/groups_view.dart';
+import 'package:staylit/presentation/widgets/design/group_card.dart';
+import 'package:staylit/presentation/widgets/design/message_card.dart';
 
-/// Main Groups screen showing user's groups and search functionality
+GroupTileData _tile(GroupModel group) => GroupTileData(
+  id: group.id,
+  name: group.name,
+  memberCount: group.memberIds.length,
+  focusTimeText: group.getFormattedFocusTime(),
+);
+
+void _openGroup(BuildContext context, String groupId) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => GroupDetailScreen(groupId: groupId)),
+  );
+}
+
+/// The Groups tab: wires providers into [GroupsView].
 class GroupScreen extends ConsumerWidget {
   const GroupScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authStateProvider).value;
-
     if (user == null) {
-      return Scaffold(
-        backgroundColor: context.palette.canvas,
-        body: Center(
-          child: Text(
-            'Please login to view groups',
-            style: TextStyle(color: context.palette.onCanvas, fontSize: 16),
-          ),
-        ),
-      );
+      return const Center(child: Text('Please sign in to view groups'));
     }
 
-    final groupsAsync = ref.watch(userGroupsProvider(user.uid));
+    final groups = ref.watch(userGroupsProvider(user.uid));
+    final suggested = ref.watch(suggestedGroupsProvider(user.uid));
 
-    return Scaffold(
-      backgroundColor: context.palette.canvas,
-      appBar: AppBar(
-        backgroundColor: context.palette.canvas,
-        elevation: 0,
-        title: Text(
-          'Groups',
-          style: TextStyle(
-            color: context.palette.onCanvas,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.search, color: context.palette.onCanvas),
-            onPressed: () {
-              showSearch(context: context, delegate: GroupSearchDelegate());
-            },
-          ),
-        ],
+    return GroupsView(
+      loading: groups.isLoading && !groups.hasValue,
+      error: groups.hasError && !groups.hasValue ? '${groups.error}' : null,
+      yourGroups: [
+        for (final g in groups.value ?? const <GroupModel>[]) _tile(g),
+      ],
+      suggested: [
+        for (final g in suggested.value ?? const <GroupModel>[]) _tile(g),
+      ],
+      onSearch: () =>
+          showSearch(context: context, delegate: GroupSearchDelegate()),
+      onCreate: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CreateGroupScreen()),
       ),
-      body: groupsAsync.when(
-        data: (groups) {
-          final suggestedAsync = ref.watch(suggestedGroupsProvider(user.uid));
-
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // Your Groups Section
-              if (groups.isNotEmpty) ...[
-                Row(
-                  children: [
-                    Container(
-                      width: 3,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: context.palette.accent,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Your Groups',
-                      style: TextStyle(
-                        color: context.palette.onCanvas,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ...groups.map((group) => _GroupCard(group: group)),
-                const SizedBox(height: 24),
-              ],
-
-              // Suggested Groups Section
-              suggestedAsync.when(
-                data: (suggestions) {
-                  if (suggestions.isEmpty && groups.isEmpty) {
-                    return Column(
-                      children: [
-                        _buildEmptyState(context),
-                        const SizedBox(height: 16),
-                      ],
-                    );
-                  }
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 3,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: context.palette.accent,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Suggested Groups',
-                            style: TextStyle(
-                              color: context.palette.onCanvas,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: context.palette.accent.withValues(
-                                alpha: 0.2,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              'PUBLIC',
-                              style: TextStyle(
-                                color: context.palette.accentText,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      if (suggestions.isEmpty)
-                        Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: context.palette.surfaceRaised,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: context.palette.onCanvas.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.search_off,
-                                    size: 40,
-                                    color: context.palette.onCanvasDisabled,
-                                  ),
-                                  SizedBox(height: 12),
-                                  Text(
-                                    'No suggestions yet',
-                                    style: TextStyle(
-                                      color: context.palette.onCanvas,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'Create a demo public group below',
-                                    style: TextStyle(
-                                      color: context.palette.onCanvasMuted,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                          ],
-                        )
-                      else
-                        ...suggestions.map((group) => _GroupCard(group: group)),
-                    ],
-                  );
-                },
-                loading: () => Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: CircularProgressIndicator(
-                      color: context.palette.accent,
-                      strokeWidth: 2,
-                    ),
-                  ),
-                ),
-                error: (_, _) => const SizedBox.shrink(),
-              ),
-            ],
-          );
-        },
-        loading: () => Center(
-          child: CircularProgressIndicator(color: context.palette.accent),
-        ),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: context.palette.error),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Text(
-                  'Error loading groups: $error',
-                  style: TextStyle(color: context.palette.onCanvas),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const CreateGroupScreen()),
-          );
-        },
-        backgroundColor: context.palette.accent,
-        icon: Icon(Icons.add, color: context.palette.onAccent, size: 20),
-        label: Text(
-          'Create Group',
-          style: TextStyle(
-            color: context.palette.onAccent,
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: context.palette.accent.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.group_outlined,
-              size: 60,
-              color: context.palette.accentText,
-            ),
-          ),
-          const SizedBox(height: 32),
-          Text(
-            'No Groups Yet',
-            style: TextStyle(
-              color: context.palette.onCanvas,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 48),
-            child: Text(
-              'Create or join a group to\nstay focused together',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: context.palette.onCanvasMuted,
-                fontSize: 14,
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton.icon(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: context.palette.accent,
-              foregroundColor: context.palette.onAccent,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            icon: Icon(Icons.add, color: context.palette.onAccent, size: 20),
-            label: Text(
-              'Create Group',
-              style: TextStyle(
-                color: context.palette.onAccent,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
-      ),
+      onOpen: (id) => _openGroup(context, id),
     );
   }
 }
 
-/// Card widget displaying group information
-class _GroupCard extends ConsumerWidget {
-  final dynamic group;
-
-  const _GroupCard({required this.group});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Card(
-      color: context.palette.surfaceRaised,
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => GroupDetailScreen(groupId: group.id),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // Group Avatar with First Letter
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      context.palette.groupColor(group.name),
-                      context.palette
-                          .groupColor(group.name)
-                          .withValues(alpha: 0.7),
-                    ],
-                  ),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: context.palette
-                          .groupColor(group.name)
-                          .withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    group.name.isNotEmpty ? group.name[0].toUpperCase() : 'G',
-                    style: TextStyle(
-                      color: context.palette.onCanvas,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-
-              // Group Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      group.name,
-                      style: TextStyle(
-                        color: context.palette.onCanvas,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.people,
-                          color: context.palette.onCanvasMuted,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${group.memberIds.length} members',
-                          style: TextStyle(
-                            color: context.palette.onCanvasMuted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.access_time,
-                          color: context.palette.accentText,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          group.getFormattedFocusTime(),
-                          style: TextStyle(
-                            color: context.palette.accentText,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, color: context.palette.onCanvasMuted),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Search delegate for finding public groups
+/// Search delegate for finding public groups.
 class GroupSearchDelegate extends SearchDelegate<String> {
   @override
-  ThemeData appBarTheme(BuildContext context) {
-    return ThemeData(
-      appBarTheme: AppBarTheme(
-        backgroundColor: context.palette.canvas,
-        elevation: 0,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        hintStyle: TextStyle(color: context.palette.onCanvasMuted),
-        border: InputBorder.none,
-      ),
-      textTheme: TextTheme(
-        titleLarge: TextStyle(color: context.palette.onCanvas, fontSize: 18),
-      ),
-    );
-  }
+  String get searchFieldLabel => 'Search public groups';
 
   @override
-  List<Widget> buildActions(BuildContext context) {
-    return [
+  List<Widget> buildActions(BuildContext context) => [
+    if (query.isNotEmpty)
       IconButton(
-        icon: Icon(Icons.clear, color: context.palette.onCanvas),
-        onPressed: () {
-          query = '';
-        },
+        tooltip: 'Clear',
+        icon: const Icon(Icons.clear_rounded),
+        onPressed: () => query = '',
       ),
-    ];
-  }
+  ];
 
   @override
-  Widget buildLeading(BuildContext context) {
-    return IconButton(
-      icon: Icon(Icons.arrow_back, color: context.palette.onCanvas),
-      onPressed: () {
-        close(context, '');
-      },
-    );
-  }
+  Widget buildLeading(BuildContext context) => IconButton(
+    tooltip: 'Back',
+    icon: const Icon(Icons.arrow_back_rounded),
+    onPressed: () => close(context, ''),
+  );
 
   @override
-  Widget buildResults(BuildContext context) {
-    return _buildSearchResults(context);
-  }
+  Widget buildResults(BuildContext context) => _results(context);
 
   @override
-  Widget buildSuggestions(BuildContext context) {
-    return _buildSearchResults(context);
-  }
+  Widget buildSuggestions(BuildContext context) => _results(context);
 
-  Widget _buildSearchResults(BuildContext context) {
-    return Container(
+  Widget _results(BuildContext context) {
+    return ColoredBox(
       color: context.palette.canvas,
       child: Consumer(
-        builder: (context, ref, child) {
-          if (query.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.search,
-                    size: 64,
-                    color: context.palette.onCanvasDisabled,
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Search for public groups',
-                    style: TextStyle(
-                      color: context.palette.onCanvasMuted,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            );
+        builder: (context, ref, _) {
+          if (query.trim().isEmpty) {
+            return const _Hint('Search for public groups');
           }
-
-          final searchResults = ref.watch(groupSearchProvider(query));
-
-          return searchResults.when(
+          final results = ref.watch(groupSearchProvider(query));
+          return results.when(
             data: (groups) {
-              if (groups.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.search_off,
-                        size: 64,
-                        color: context.palette.onCanvasDisabled,
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'No groups found',
-                        style: TextStyle(
-                          color: context.palette.onCanvasMuted,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: groups.length,
-                itemBuilder: (context, index) {
-                  return _GroupCard(group: groups[index]);
-                },
+              if (groups.isEmpty) return const _Hint('No groups found');
+              return ListView(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                children: [
+                  for (final group in groups) ...[
+                    GroupCard(
+                      name: group.name,
+                      memberCount: group.memberIds.length,
+                      focusTimeText: group.getFormattedFocusTime(),
+                      onTap: () => _openGroup(context, group.id),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                  ],
+                ],
               );
             },
-            loading: () => Center(
-              child: CircularProgressIndicator(color: context.palette.accent),
-            ),
-            error: (error, stack) => Center(
-              child: Text(
-                'Error: $error',
-                style: TextStyle(color: context.palette.onCanvas),
-              ),
-            ),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, _) => const _Hint("Couldn't search right now"),
           );
         },
+      ),
+    );
+  }
+}
+
+class _Hint extends StatelessWidget {
+  const _Hint(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: MessageCard(title: text),
       ),
     );
   }
