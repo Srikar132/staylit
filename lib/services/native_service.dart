@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:staylit/data/models/installed_app_model.dart';
 import 'package:staylit/data/models/scroll_delta.dart';
+import 'package:staylit/data/models/scroll_event.dart';
 import 'package:staylit/presentation/providers/focus_session_provider.dart';
 
 /// Service class to handle all native Android permissions required by the app.
@@ -150,6 +151,20 @@ class NativeService {
   static Future<void> consumeScrollDamage(List<ScrollDelta> deltas) async {
     await _platform.invokeMethod('consumeScrollDamage', {
       'days': [for (final delta in deltas) delta.toMap()],
+    });
+  }
+
+  /// Answers to the break offer that native has not handed over yet.
+  static Future<List<ScrollEvent>> getPendingScrollEvents() async {
+    final result = await _platform.invokeMethod('getPendingScrollEvents');
+    if (result is! List) return [];
+    return [for (final raw in result) ?ScrollEvent.tryParse(raw)];
+  }
+
+  /// Tells native these answers are stored, so it removes them.
+  static Future<void> consumeScrollEvents(List<ScrollEvent> events) async {
+    await _platform.invokeMethod('consumeScrollEvents', {
+      'events': [for (final event in events) event.toMap()],
     });
   }
 

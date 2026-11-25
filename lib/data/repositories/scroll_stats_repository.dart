@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:staylit/data/models/scroll_day.dart';
 import 'package:staylit/data/models/scroll_delta.dart';
+import 'package:staylit/data/models/scroll_event.dart';
 
 /// Reads and writes the per-day Scroll damage counts in
 /// `scrollStats/{uid}/days/{yyyy-MM-dd}`. Counts only.
@@ -57,6 +58,31 @@ class ScrollStatsRepository {
     unawaited(
       batch.commit().catchError((Object error, StackTrace stackTrace) {
         debugPrint('Error saving scroll damage: $error');
+      }),
+    );
+  }
+
+  /// Stores the answers to the "Take a break?" offer in
+  /// `scrollEvents/{uid}/items/{ts}`. The document id is the offer's
+  /// timestamp, so writing the same event twice (a retry after a crash)
+  /// overwrites it instead of double counting. Fire and forget.
+  void addEvents(String userId, List<ScrollEvent> events) {
+    if (events.isEmpty) return;
+    final batch = _firestore.batch();
+    for (final event in events) {
+      batch.set(
+        _firestore
+            .collection('scrollEvents')
+            .doc(userId)
+            .collection('items')
+            .doc('${event.ts}'),
+        {...event.toMap(), 'lastUpdated': FieldValue.serverTimestamp()},
+        SetOptions(merge: true),
+      );
+    }
+    unawaited(
+      batch.commit().catchError((Object error, StackTrace stackTrace) {
+        debugPrint('Error saving scroll events: $error');
       }),
     );
   }

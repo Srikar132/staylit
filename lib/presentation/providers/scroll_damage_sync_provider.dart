@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:staylit/data/models/scroll_delta.dart';
+import 'package:staylit/data/models/scroll_event.dart';
 import 'package:staylit/presentation/providers/auth_provider.dart';
 import 'package:staylit/presentation/providers/scroll_damage_provider.dart';
 import 'package:staylit/presentation/providers/settings_provider.dart';
@@ -34,34 +36,46 @@ final scrollDamageSyncProvider = Provider<void>((ref) {
     userSettingsProvider(uid).select((s) => s.value?.scrollDamageEnabled),
   );
   final repository = ref.read(scrollStatsRepositoryProvider);
-  final flusher = ScrollFlusher(
+  final flusher = ScrollFlusher<ScrollDelta>(
     readPending: NativeService.getPendingScrollDamage,
     write: repository.addDeltas,
     consume: NativeService.consumeScrollDamage,
+    isWorthWriting: (delta) => !delta.isEmpty,
   );
+  final eventFlusher = ScrollFlusher<ScrollEvent>(
+    readPending: NativeService.getPendingScrollEvents,
+    write: repository.addEvents,
+    consume: NativeService.consumeScrollEvents,
+  );
+  Future<void> flushAll() async {
+    await flusher.flush(uid);
+    await eventFlusher.flush(uid);
+  }
 
   final events = NativeService.focusEventStream.listen((event) {
     if (event['event'] == 'scroll_damage_update') {
-      unawaited(flusher.flush(uid));
+      unawaited(flushAll());
     }
   }, onError: (_) {});
-  final lifecycle = AppLifecycleListener(
-    onResume: () => unawaited(flusher.flush(uid)),
-  );
+  final lifecycle = AppLifecycleListener(onResume: () => unawaited(flushAll()));
   ref.onDispose(() {
     events.cancel();
     lifecycle.dispose();
   });
 
-  unawaited(_start(flusher, uid, enabled));
+  unawaited(_start(flushAll, uid, enabled));
 });
 
-Future<void> _start(ScrollFlusher flusher, String uid, bool? enabled) async {
+Future<void> _start(
+  Future<void> Function() flushAll,
+  String uid,
+  bool? enabled,
+) async {
   // Settings still loading: leave native as it is, just collect what it has.
   if (enabled != null) {
     // Flag first so Turn off stops counting immediately, then hand over
     // whatever was counted before it.
     await NativeService.setScrollDamageEnabled(enabled: enabled, uid: uid);
   }
-  await flusher.flush(uid);
+  await flushAll();
 }

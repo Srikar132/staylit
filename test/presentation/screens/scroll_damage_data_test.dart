@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:staylit/data/models/scroll_day.dart';
 import 'package:staylit/data/models/scroll_delta.dart';
+import 'package:staylit/data/models/scroll_event.dart';
 import 'package:staylit/presentation/screens/focus/focus_home_data.dart';
 import 'package:staylit/presentation/screens/focus/scroll_trend.dart';
 import 'package:staylit/services/scroll_flusher.dart';
@@ -153,6 +154,7 @@ void main() {
         readPending: () async => [delta('d', 0, sessions: 0)],
         write: (_, _) => wrote = true,
         consume: (_) async {},
+        isWorthWriting: (d) => !d.isEmpty,
       );
       await flusher.flush('u');
       expect(wrote, isFalse);
@@ -208,5 +210,58 @@ void main() {
       await flusher.flush('u');
       expect(writes, 2);
     });
+  });
+
+  group('ScrollEvent', () {
+    test('parses native maps and round trips', () {
+      final event = ScrollEvent.tryParse({
+        'ts': 1795636800000,
+        'day': '2026-11-26',
+        'tzOffsetMinutes': 330,
+        'pkg': 'com.instagram.android',
+        'sessionCount': 30,
+        'threshold': 30,
+        'response': 'keep',
+      })!;
+      expect(event.ts, 1795636800000);
+      expect(event.response, 'keep');
+      expect(ScrollEvent.tryParse(event.toMap())!.sessionCount, 30);
+    });
+
+    test('rejects maps without a timestamp and tolerates damaged fields', () {
+      expect(ScrollEvent.tryParse({'response': 'keep'}), isNull);
+      expect(ScrollEvent.tryParse(null), isNull);
+      final event = ScrollEvent.tryParse({
+        'ts': 5,
+        'pkg': 7,
+        'sessionCount': 'x',
+      })!;
+      expect(event.pkg, '');
+      expect(event.sessionCount, 0);
+    });
+  });
+
+  test('the flusher also works for events', () async {
+    final written = <int>[];
+    var reads = 0;
+    final flusher = ScrollFlusher<ScrollEvent>(
+      readPending: () async => reads++ == 0
+          ? [
+              const ScrollEvent(
+                ts: 1,
+                day: 'd',
+                tzOffsetMinutes: 0,
+                pkg: 'p',
+                sessionCount: 30,
+                threshold: 30,
+                response: 'break',
+              ),
+            ]
+          : [],
+      write: (_, events) => written.addAll([for (final e in events) e.ts]),
+      consume: (_) async {},
+    );
+    await flusher.flush('u');
+    expect(written, [1]);
   });
 }
