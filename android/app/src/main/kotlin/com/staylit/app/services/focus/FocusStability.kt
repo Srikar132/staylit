@@ -59,3 +59,21 @@ class StableFlag(private val minStableMs: Long) {
         since = null
     }
 }
+
+/**
+ * When may a cover be removed because its window is missing from the window list?
+ *
+ * Seen on a device (Android 15): attaching an accessibility overlay to a picture-in-picture window makes that
+ * window disappear from AccessibilityService.windows for as long as the overlay exists. Removing the cover
+ * because "the window is gone" therefore removes the very thing that hid it, the window comes back, the
+ * cover is attached again, and so on (the on / off flicker). A window-attached cover is tied to its window
+ * by the system and disappears with it, so absence alone is no reason to remove it.
+ */
+object CoverRetention {
+
+    /** How long an attached cover is kept after its window was last seen, before its resources are released. */
+    const val ATTACHED_KEEP_MS = 15_000L
+
+    fun shouldKeep(attached: Boolean, lastSeenMs: Long, nowMs: Long): Boolean =
+        attached && nowMs - lastSeenMs < ATTACHED_KEEP_MS
+}

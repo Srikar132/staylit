@@ -59,6 +59,8 @@ class FocusWindowCover(
         val attached: Attached? = null,
         /** When this cover was built; used to avoid rebuilding it several times a second. */
         val builtAtMs: Long = android.os.SystemClock.elapsedRealtime(),
+        /** Last time its window was seen in the window list (see [CoverRetention]). */
+        var lastSeenMs: Long = builtAtMs,
     )
 
     private val context: Context = service
@@ -102,7 +104,15 @@ class FocusWindowCover(
         try {
             val canAttach = USE_ATTACHED_OVERLAY && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
             val previous = entries[windowId]
-            var compact = CoverLayoutPolicy.isCompactSticky(previous?.compact, bounds.width, bounds.height, density)
+            // A PiP cover is attached with a display-sized host: PiP windows are resized by the user and, once the
+            // cover is on, the window drops out of the window list so its new size is never reported. A host as big
+            // as the display always covers the whole window (the system clips it to the window).
+            val pipStyle = canAttach && passTouches
+            var compact = if (pipStyle) {
+                true // one fixed small layout, so a PiP is never rebuilt when it is resized
+            } else {
+                CoverLayoutPolicy.isCompactSticky(previous?.compact, bounds.width, bounds.height, density)
+            }
             // A window being opened or resized must not rebuild its cover over and over: that is the flicker.
             if (previous != null && previous.compact != compact &&
                 android.os.SystemClock.elapsedRealtime() - previous.builtAtMs < MIN_REBUILD_MS
@@ -110,11 +120,21 @@ class FocusWindowCover(
                 compact = previous.compact
             }
             // Attached covers live in the window's own (unscaled) coordinates; floating ones in screen pixels.
-            val scale = if (canAttach) CoverLayoutPolicy.contentScale(bounds.width, localWidth) else 1f
-            val hostW = if (canAttach && localWidth > 0) localWidth else bounds.width
-            val hostH = if (canAttach && localHeight > 0) localHeight else bounds.height
+            val scale = if (canAttach && !pipStyle) CoverLayoutPolicy.contentScale(bounds.width, localWidth) else 1f
+            val metrics = context.resources.displayMetrics
+            val hostW = when {
+                pipStyle -> metrics.widthPixels
+                canAttach && localWidth > 0 -> localWidth
+                else -> bounds.width
+            }
+            val hostH = when {
+                pipStyle -> metrics.heightPixels
+                canAttach && localHeight > 0 -> localHeight
+                else -> bounds.height
+            }
             val existing = entries[windowId]
             if (existing != null && existing.compact == compact && existing.passTouches == passTouches) {
+                existing.lastSeenMs = android.os.SystemClock.elapsedRealtime()
                 existing.appName = appName
                 existing.title.text = titleText(appName, compact)
                 // A rescale only changes sizes inside the same cover: no rebuild, so no uncovered frame.
@@ -127,13 +147,13 @@ class FocusWindowCover(
             }
             // New cover, or the window changed kind / crossed the compact threshold. Build and attach the
             // replacement FIRST and only then drop the old one, so the window is never left uncovered.
-            var view = buildView(appName, compact, passTouches, scale)
+            var view = buildView(appName, compact, passTouches, scale, topAligned = pipStyle)
             val attached = if (canAttach) tryAttach(windowId, view.root, hostW, hostH) else null
             // A failed attach leaves the first view owned by the released host: build a fresh one.
             var usedScale = scale
             if (canAttach && attached == null) {
                 usedScale = 1f
-                view = buildView(appName, compact, passTouches, usedScale)
+                view = buildView(appName, compact, passTouches, usedScale, topAligned = pipStyle)
             }
             val entry = Entry(
                 view.root, view.title, compact, passTouches, appName, bounds,
@@ -198,9 +218,24 @@ class FocusWindowCover(
         }
     }
 
-    /** Removes every cover whose window is not in [windowIds] anymore. */
-    fun retainOnly(windowIds: Set<Int>) {
-        entries.keys.filter { it !in windowIds }.forEach { remove(it) }
+    /**
+     * Removes the covers whose window is not in [windowIds] anymore, except window-attached ones that were
+     * seen recently: those are tied to their window by the system and a missing window is no reason to drop
+     * them (see [CoverRetention]). They are released after [CoverRetention.ATTACHED_KEEP_MS] without a sighting,
+     * or at once when [releaseIds] says the window is there and no longer shows a blocked app.
+     */
+    fun retainOnly(
+        windowIds: Set<Int>,
+        nowMs: Long = android.os.SystemClock.elapsedRealtime(),
+        releaseIds: Set<Int> = emptySet(),
+    ) {
+        entries.entries
+            .filter { (id, e) ->
+                // [releaseIds]: windows still in the list that now show an allowed app: uncover them at once.
+                id !in windowIds && (id in releaseIds || !CoverRetention.shouldKeep(e.attached != null, e.lastSeenMs, nowMs))
+            }
+            .map { it.key }
+            .forEach { remove(it) }
     }
 
     fun hasCovers(): Boolean = entries.isNotEmpty()
@@ -279,12 +314,18 @@ class FocusWindowCover(
     private fun titleText(appName: String, compact: Boolean) =
         if (compact) "$appName\nblocked" else "$appName is blocked"
 
-    private fun buildView(appName: String, compact: Boolean, passTouches: Boolean, scale: Float): BuiltView {
+    private fun buildView(
+        appName: String,
+        compact: Boolean,
+        passTouches: Boolean,
+        scale: Float,
+        topAligned: Boolean = false,
+    ): BuiltView {
         val title = TextView(context).apply {
             text = titleText(appName, compact)
             setTextColor(TEXT_PRIMARY)
-            gravity = Gravity.CENTER
-            if (compact) {
+            gravity = if (topAligned) Gravity.START else Gravity.CENTER
+            if (compact && !topAligned) {
                 maxLines = 3
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f
@@ -295,7 +336,7 @@ class FocusWindowCover(
         var button: Button? = null
         val root = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
+            gravity = if (topAligned) Gravity.TOP or Gravity.START else Gravity.CENTER
             setBackgroundColor(BACKGROUND)
             addView(title)
             if (!compact) {
@@ -325,7 +366,11 @@ class FocusWindowCover(
             fun sp(v: Float) = v * sc
             val pad = if (compact) px(6) else px(16)
             root.setPadding(pad, pad, pad, pad)
-            if (compact) {
+            if (compact && topAligned) {
+                // Display-sized host over a (possibly small) PiP: the label sits at the top-left corner, where
+                // every PiP size shows it.
+                title.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp(13f))
+            } else if (compact) {
                 // Fill the tiny window and shrink the text to fit instead of clipping it.
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     title.setAutoSizeTextTypeUniformWithConfiguration(

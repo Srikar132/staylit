@@ -136,3 +136,22 @@ class CompactHysteresisTest {
         assertFalse(CoverLayoutPolicy.isCompactSticky(null, 100, 100, 0f))
     }
 }
+
+class CoverRetentionTest {
+    @Test
+    fun `an attached cover survives its window going missing from the list`() {
+        // The PiP vanishes from the list right after the cover attaches: the cover must stay.
+        assertTrue(CoverRetention.shouldKeep(attached = true, lastSeenMs = 0, nowMs = 700))
+        assertTrue(CoverRetention.shouldKeep(attached = true, lastSeenMs = 0, nowMs = 14_999))
+    }
+
+    @Test
+    fun `it is released after a long time without a sighting`() {
+        assertFalse(CoverRetention.shouldKeep(attached = true, lastSeenMs = 0, nowMs = 15_000))
+    }
+
+    @Test
+    fun `a floating overlay cover is never kept for a missing window`() {
+        assertFalse(CoverRetention.shouldKeep(attached = false, lastSeenMs = 0, nowMs = 10))
+    }
+}

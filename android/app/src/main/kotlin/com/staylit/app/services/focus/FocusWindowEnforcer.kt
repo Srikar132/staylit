@@ -36,6 +36,12 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
         /** A covered window missing from a snapshot keeps its cover this long (stops the on / off flicker). */
         const val COVER_GRACE_MS = 600L
 
+        /**
+         * A PiP window drops out of the window list while a cover is attached to it, so it is "missing" by design.
+         * Keep treating it as present for long enough that no new "app opened" interruption is recorded for it.
+         */
+        const val PIP_GRACE_MS = 8000L
+
         /** Staylit is only "floating" after it has looked that way this long (a window opening has partial bounds). */
         const val FLOATING_CONFIRM_MS = 1200L
 
@@ -62,8 +68,10 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
     private var ejectAttempts = 0
     private var lastFullScreenSeenAt = 0L
     private val coverGrace = MissingGrace<Int, Pair<WindowSnapshot, WindowResponse>>(COVER_GRACE_MS)
+    private val pipGrace = MissingGrace<Int, Pair<WindowSnapshot, WindowResponse>>(PIP_GRACE_MS)
     private val floatingGate = StableFlag(FLOATING_CONFIRM_MS)
     private var lastSnapshotLog = ""
+    private var lastPipLog = ""
     private var running = false
     private var coverShowing = false
 
@@ -121,6 +129,7 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
         ejectAttempts = 0
         lastFullScreenSeenAt = 0L
         coverGrace.reset()
+        pipGrace.reset()
         floatingGate.reset()
     }
 
@@ -248,7 +257,10 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
             // A covered window that is missing from one snapshot (the system drops it for a moment while the
             // cover attaches, or while it animates) keeps its cover briefly instead of flickering off and on.
             val coveredNow = responses.filter { it.second.cover }.associateBy { it.first.id }
-            val covered = coverGrace.update(now, coveredNow).values.toList()
+            val covered = (
+                coverGrace.update(now, coveredNow.filterValues { it.first.kind != WindowKind.PIP }) +
+                    pipGrace.update(now, coveredNow.filterValues { it.first.kind == WindowKind.PIP })
+                ).values.toList()
             val effective = responses.filter { !it.second.cover } + covered
             covered.forEach { (v, r) ->
                 cover.show(
@@ -256,11 +268,21 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
                     localWidth = v.localWidth, localHeight = v.localHeight,
                 )
             }
-            cover.retainOnly(covered.map { it.first.id }.toSet())
+            // Window-attached covers outlive a window that is missing from the list (see CoverRetention).
+            // A window that is in the list and clearly shows an allowed app is uncovered at once. A window whose
+            // package cannot be read (or reads as ours) is NOT treated as allowed: that is what a PiP looks like
+            // while a cover is attached to it.
+            val ownPkg = service.applicationContext.packageName
+            val allowedIds = snapshots
+                .filter { it.packageName != null && it.packageName != ownPkg && it.packageName !in blocked }
+                .map { it.id }
+                .toSet()
+            cover.retainOnly(covered.map { it.first.id }.toSet(), now, allowedIds)
+            // Only windows actually in the list are tracked: tracking a missing one would re-snapshot every 50 ms.
             coveredIds.clear()
-            coveredIds.addAll(covered.map { it.first.id })
-            coverShowing = coveredIds.isNotEmpty()
-            if (coverShowing) startTracking()
+            coveredIds.addAll(coveredNow.keys)
+            coverShowing = coveredIds.isNotEmpty() || cover.hasCovers()
+            if (coveredIds.isNotEmpty()) startTracking()
 
             // Stop the blocked apps' audio/video behind the scenes (media sessions only).
             mediaPauser.pause(effective.mapNotNull { it.first.packageName }.toSet())
@@ -322,6 +344,7 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
         ejectAttempts = 0
         lastFullScreenSeenAt = 0L
         coverGrace.reset()
+        pipGrace.reset()
         floatingGate.reset()
     }
 
@@ -349,6 +372,14 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
             }
             @Suppress("DEPRECATION")
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) root?.recycle()
+            // Diagnostic (package names only): a PiP we cannot identify is what the cover-attach loop looks like.
+            if (kind == WindowKind.PIP) {
+                val line = "PiP window ${w.id}: package=${pkg ?: "unreadable"} rootReadable=${root != null}"
+                if (line != lastPipLog) {
+                    lastPipLog = line
+                    Log.d(TAG, line)
+                }
+            }
             WindowSnapshot(
                 id = w.id,
                 packageName = pkg,
