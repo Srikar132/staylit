@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:staylit/core/router/app_router.dart';
 import 'package:staylit/presentation/providers/focus_session_provider.dart';
-import 'package:staylit/core/constants/images.dart';
 import 'package:staylit/core/theme/theme_context.dart';
 
 class SaveSessionScreen extends ConsumerStatefulWidget {
@@ -244,10 +243,8 @@ class _SaveSessionScreenState extends ConsumerState<SaveSessionScreen> {
       canPop: false,
       child: Stack(
         children: [
-          // Background Image
-          Positioned.fill(
-            child: Image.asset(kHomeBackgroundImage, fit: BoxFit.cover),
-          ),
+          // Background
+          Positioned.fill(child: ColoredBox(color: context.palette.ink)),
 
           // Content
           Positioned.fill(

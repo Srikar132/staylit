@@ -36,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
     BottomNavItem(
       icon: Icons.groups_outlined,
-      selectedIcon: Icons.groups_rounded,
+      selectedIcon: Icons.groups,
       label: 'Groups',
     ),
     BottomNavItem(

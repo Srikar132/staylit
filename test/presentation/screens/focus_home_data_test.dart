@@ -102,7 +102,6 @@ void main() {
       autoStartBreaks: true,
       soundEnabled: true,
       vibrationEnabled: true,
-      theme: 'dark',
       dailyGoalMinutes: goal ?? UserSettingsModel.defaultDailyGoalMinutes,
     );
 

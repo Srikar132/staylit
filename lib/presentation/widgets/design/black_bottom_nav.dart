@@ -90,14 +90,7 @@ class _NavButton extends StatelessWidget {
             Icon(
               selected ? item.selectedIcon : item.icon,
               color: color,
-              size: 24,
-            ),
-            const SizedBox(height: 6),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              width: selected ? 5 : 0,
-              height: 5,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              size: 28,
             ),
           ],
         ),

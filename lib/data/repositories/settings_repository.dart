@@ -30,7 +30,6 @@ class SettingsRepository {
               autoStartBreaks: true,
               soundEnabled: true,
               vibrationEnabled: true,
-              theme: 'dark',
             );
 
             _cachedSettings = defaultSettings;
@@ -76,7 +75,6 @@ class SettingsRepository {
           autoStartBreaks: true,
           soundEnabled: true,
           vibrationEnabled: true,
-          theme: 'dark',
         );
 
         await _firestore
@@ -131,7 +129,6 @@ class SettingsRepository {
       autoStartBreaks: true,
       soundEnabled: true,
       vibrationEnabled: true,
-      theme: 'dark',
     );
 
     try {

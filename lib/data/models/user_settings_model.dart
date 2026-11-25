@@ -12,7 +12,6 @@ class UserSettingsModel {
   final bool autoStartBreaks;
   final bool soundEnabled;
   final bool vibrationEnabled;
-  final String theme;
 
   /// Daily focus goal in minutes (Today's Goal card). Documents without the
   /// field read as [defaultDailyGoalMinutes].
@@ -30,7 +29,6 @@ class UserSettingsModel {
     required this.autoStartBreaks,
     required this.soundEnabled,
     required this.vibrationEnabled,
-    required this.theme,
     this.dailyGoalMinutes = defaultDailyGoalMinutes,
   });
 
@@ -46,7 +44,6 @@ class UserSettingsModel {
       autoStartBreaks: data['autoStartBreaks'] ?? true,
       soundEnabled: data['soundEnabled'] ?? true,
       vibrationEnabled: data['vibrationEnabled'] ?? true,
-      theme: data['theme'] ?? 'dark',
       dailyGoalMinutes:
           (data['dailyGoalMinutes'] as num?)?.toInt() ??
           defaultDailyGoalMinutes,
@@ -64,7 +61,6 @@ class UserSettingsModel {
       'autoStartBreaks': autoStartBreaks,
       'soundEnabled': soundEnabled,
       'vibrationEnabled': vibrationEnabled,
-      'theme': theme,
       'dailyGoalMinutes': dailyGoalMinutes,
     };
   }
@@ -80,7 +76,6 @@ class UserSettingsModel {
     bool? autoStartBreaks,
     bool? soundEnabled,
     bool? vibrationEnabled,
-    String? theme,
     int? dailyGoalMinutes,
   }) {
     return UserSettingsModel(
@@ -93,7 +88,6 @@ class UserSettingsModel {
       autoStartBreaks: autoStartBreaks ?? this.autoStartBreaks,
       soundEnabled: soundEnabled ?? this.soundEnabled,
       vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
-      theme: theme ?? this.theme,
       dailyGoalMinutes: dailyGoalMinutes ?? this.dailyGoalMinutes,
     );
   }

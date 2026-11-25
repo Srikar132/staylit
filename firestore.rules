@@ -56,15 +56,41 @@ service cloud.firestore {
         return signedIn() && request.auth.uid in resource.data.memberIds;
       }
 
+      function isAdmin() {
+        return signedIn() && request.auth.uid in resource.data.adminIds;
+      }
+
+      function changed() {
+        return request.resource.data.diff(resource.data).affectedKeys();
+      }
+
       // Joining: a public group may gain exactly one member (the caller).
       function isSelfJoin() {
         return signedIn()
             && resource.data.settings.isPublic == true
-            && request.resource.data.diff(resource.data).affectedKeys()
-                 .hasOnly(['memberIds', 'memberFocusTime'])
+            && changed().hasOnly(['memberIds', 'memberFocusTime'])
             && request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1
             && request.resource.data.memberIds.hasAll(resource.data.memberIds)
             && request.auth.uid in request.resource.data.memberIds;
+      }
+
+      // Leaving: caller removes only themselves (and their own admin slot).
+      function isSelfLeave() {
+        return isMember()
+            && changed().hasOnly(['memberIds', 'adminIds', 'memberFocusTime'])
+            && request.resource.data.memberIds.toSet()
+                 == resource.data.memberIds.toSet().difference([request.auth.uid].toSet())
+            && request.resource.data.adminIds.hasOnly(resource.data.adminIds)
+            && !(request.auth.uid in request.resource.data.adminIds);
+      }
+
+      // Focus-time counters after a session. Never touches membership, admins
+      // or settings.
+      function isStatsUpdate() {
+        return isMember()
+            && changed().hasOnly(['memberFocusTime', 'totalFocusTime'])
+            && request.resource.data.memberIds == resource.data.memberIds
+            && request.resource.data.adminIds == resource.data.adminIds;
       }
 
       // Queries are `memberIds array-contains uid` or `settings.isPublic == true`,
@@ -77,9 +103,9 @@ service cloud.firestore {
                     && request.resource.data.creatorId == request.auth.uid
                     && request.resource.data.memberIds == [request.auth.uid];
 
-      allow update: if isMember() || isSelfJoin();
+      allow update: if isAdmin() || isSelfJoin() || isSelfLeave() || isStatsUpdate();
 
-      allow delete: if signedIn() && request.auth.uid in resource.data.adminIds;
+      allow delete: if isAdmin();
 
       match /members/{memberId} {
         function parentGroup() {
@@ -96,12 +122,18 @@ service cloud.firestore {
 
         allow read: if isGroupMember();
 
-        // Own member doc is created on join (the group doc is updated in the
-        // same batch, so membership is not yet visible here).
-        allow create: if isOwner(memberId);
+        // Own member doc, and only if the group (after this batch) lists the
+        // caller as a member. Join updates the group in the same batch.
+        allow create: if isOwner(memberId)
+                      && request.resource.data.userId == memberId
+                      && request.auth.uid in
+                           getAfter(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;
 
-        // Own doc, or any member refreshing the rank field after a session.
-        allow update: if isOwner(memberId)
+        // Own doc (display name / focus time), or any member refreshing the
+        // rank field after a session.
+        allow update: if (isOwner(memberId)
+                          && request.resource.data.diff(resource.data).affectedKeys()
+                               .hasOnly(['displayName', 'focusTime', 'rank']))
                       || (isGroupMember()
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rank']));
 
