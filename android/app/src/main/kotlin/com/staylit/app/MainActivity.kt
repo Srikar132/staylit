@@ -189,8 +189,9 @@ class MainActivity: FlutterActivity() {
             }
 
             override fun onCancel(arguments: Any?) {
+                // Only let go of OUR sink: a newer Activity may already have registered its own.
+                sessionManager.detachSink(eventSink)
                 eventSink = null
-                sessionManager.setEventSink(null)
                 Log.d(TAG, "Event channel disconnected")
             }
         })
@@ -428,8 +429,27 @@ class MainActivity: FlutterActivity() {
                     }
 
                     "getCurrentSessionStatus" -> {
+                        // A session whose time is up but whose timer was lost is completed here first.
+                        sessionManager.completeIfDue()
                         val status = sessionManager.getCurrentSessionStatus()
                         result.success(status)
+                    }
+
+                    // The completion of a timer session that ended on its own, until Flutter confirms it.
+                    "getPendingCompletion" -> {
+                        result.success(sessionManager.getPendingCompletion())
+                    }
+
+                    "ackCompletion" -> {
+                        val args = arguments as? Map<*, *>
+                        sessionManager.ackCompletion(args?.get("sessionId") as? String ?: "")
+                        result.success(true)
+                    }
+
+                    // Dart's countdown reached 0:00: make sure native ended the session, return its completion.
+                    "completeSessionIfDue" -> {
+                        sessionManager.completeIfDue()
+                        result.success(sessionManager.getPendingCompletion())
                     }
 
                     // =======================
@@ -824,11 +844,13 @@ class MainActivity: FlutterActivity() {
             // Cleanup
             scope.cancel()
 
-                        eventSink = null
+            // The session manager is a process-wide singleton that keeps the session timer and its queued
+            // events alive without an Activity. Only detach this Activity's own sink.
+            sessionManager.detachSink(eventSink)
+            eventSink = null
             eventQueue.clear()
 
             // Cleanup managers
-            sessionManager.cleanup()
             permissionManager.cleanup()
             appLimitManager.cleanup()
 

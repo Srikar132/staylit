@@ -48,6 +48,9 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
     private val eventPackages = mutableMapOf<Int, String>() // windowId -> package, from window events
     private var lastEvaluationAt = 0L
     private var lastEjectAt = 0L
+
+    // How many eject actions were already tried for the full-screen blocked app that is still there.
+    private var ejectAttempts = 0
     private var lastSnapshotLog = ""
     private var running = false
     private var coverShowing = false
@@ -103,6 +106,7 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
         coverShowing = false
         evalPending = false
         tracking = false
+        ejectAttempts = 0
     }
 
     /**
@@ -188,14 +192,28 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
             val raw = violations.map {
                 it to CoverPolicy.responseFor(it, metrics.widthPixels, metrics.heightPixels)
             }
+            // Bringing Staylit to the front does nothing when Staylit is itself a floating window, so each
+            // retry escalates: front -> Home -> cover the blocked window.
+            val floating = EjectPolicy.isStaylitFloating(
+                snapshots, service.applicationContext.packageName, metrics.widthPixels, metrics.heightPixels
+            )
+            val fullScreenPresent = raw.any { it.second.eject }
+            if (!fullScreenPresent) ejectAttempts = 0
+            val coverFullScreen = fullScreenPresent &&
+                EjectPolicy.stepFor(ejectAttempts, floating) == EjectStep.COVER_FULL_SCREEN
             // "Full screen" is only believed after it has looked that way for a moment: a pane or PiP
             // animating in/out briefly has full-screen-looking bounds and must not be ejected.
             val lookingFull = raw.filter { it.second.eject }.mapNotNull { it.first.packageName }.toSet()
             val confirmedFull = fullScreenGate.update(now, lookingFull)
             val responses = raw.map { (v, r) ->
-                if (r.eject && v.packageName !in confirmedFull) {
-                    v to WindowResponse(cover = false, passTouches = false, eject = false)
-                } else v to r
+                when {
+                    r.eject && v.packageName !in confirmedFull ->
+                        v to WindowResponse(cover = false, passTouches = false, eject = false)
+                    // Last resort once front and Home failed: cover the blocked window until it leaves.
+                    r.eject && coverFullScreen ->
+                        v to WindowResponse(cover = true, passTouches = false, eject = false)
+                    else -> v to r
+                }
             }
             if (lookingFull.any { it !in confirmedFull }) scheduleRecheck()
 
@@ -239,7 +257,14 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
                 (fullScreenStillThere && now - lastEjectAt >= EJECT_RETRY_MS)
             if (shouldEject) {
                 lastEjectAt = now
-                bringPaceToForeground()
+                val step = EjectPolicy.stepFor(ejectAttempts, floating)
+                Log.d(TAG, "Eject attempt $ejectAttempts: $step (staylitFloating=$floating)")
+                when (step) {
+                    EjectStep.BRING_STAYLIT_FRONT -> bringPaceToForeground()
+                    EjectStep.GO_HOME -> service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
+                    EjectStep.COVER_FULL_SCREEN -> Unit // drawn by the cover logic above
+                }
+                ejectAttempts++
             }
             lastEvaluationAt = now
         } catch (e: Exception) {
@@ -264,6 +289,7 @@ class FocusWindowEnforcer(private val service: AccessibilityService) {
         recordThrottle.reset()
         coveredIds.clear()
         coverShowing = false
+        ejectAttempts = 0
     }
 
     private fun snapshotWindows(): List<WindowSnapshot> {
