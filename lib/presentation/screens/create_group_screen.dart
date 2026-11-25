@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:staylit/data/models/group_model.dart';
-import 'package:staylit/presentation/providers/group_provider.dart';
-import 'package:staylit/presentation/providers/auth_provider.dart';
-import 'package:staylit/core/theme/theme_context.dart';
 import 'package:staylit/core/constants/app_info.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
+import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/data/models/group_model.dart';
+import 'package:staylit/presentation/providers/auth_provider.dart';
+import 'package:staylit/presentation/providers/group_provider.dart';
+import 'package:staylit/presentation/widgets/design/app_pill_button.dart';
+import 'package:staylit/presentation/widgets/design/icon_circle_button.dart';
+import 'package:staylit/presentation/widgets/design/switch_row_card.dart';
+import 'package:staylit/widgets/bottom_sheet_darg_handler.dart';
 
-/// Screen for creating a new group
+/// Screen for creating a new group.
 class CreateGroupScreen extends ConsumerStatefulWidget {
   const CreateGroupScreen({super.key});
 
@@ -33,126 +38,96 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
     super.dispose();
   }
 
-  void _showShareDialog(
-    BuildContext context,
-    String groupId,
-    String groupName,
-  ) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.palette.surfaceRaised,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: context.palette.accent.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.share,
-                color: context.palette.accentText,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Invite Friends!',
-                style: TextStyle(color: context.palette.onCanvas, fontSize: 18),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Your group "$groupName" is ready! Share it with friends to get them started.',
-              style: TextStyle(
-                color: context.palette.onCanvasSecondary,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: context.palette.onCanvas.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: context.palette.onCanvas.withValues(alpha: 0.1),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.link, color: context.palette.accentText, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Group ID: $groupId',
-                      style: TextStyle(
-                        color: context.palette.onCanvasMuted,
-                        fontSize: 12,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Later',
-              style: TextStyle(color: context.palette.onCanvasMuted),
-            ),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              _shareToWhatsApp(groupId, groupName);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(
-                0xFF25D366,
-              ), // WhatsApp brand color, not app theme
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            icon: Icon(Icons.send, color: context.palette.onCanvas, size: 18),
-            label: Text(
-              'Share via WhatsApp',
-              style: TextStyle(
-                color: context.palette.onCanvas,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
+  static String _goalText(int minutes) {
+    if (minutes == 0) return 'No goal';
+    if (minutes < 60) return '${minutes}m a day';
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    return m == 0 ? '${h}h a day' : '${h}h ${m}m a day';
+  }
+
+  void _shareGroup(String groupId, String groupName) {
+    final message =
+        'Join my focus group "$groupName" on $kAppName.\n\n'
+        'Open the app, search for the group and enter this ID:\n'
+        '$groupId';
+    SharePlus.instance.share(
+      ShareParams(text: message, subject: 'Join my focus group: $groupName'),
     );
   }
 
-  void _shareToWhatsApp(String groupId, String groupName) {
-    final message =
-        '🎯 Join my focus group: "$groupName"!\n\n'
-        '📚 Let\'s stay focused and productive together.\n'
-        '🏆 Track progress on the leaderboard.\n\n'
-        '👉 Open $kAppName app and search for this group:\n'
-        'Group ID: $groupId\n\n'
-        '💪 Let\'s achieve our goals together!';
-
-    SharePlus.instance.share(
-      ShareParams(text: message, subject: 'Join my focus group: $groupName'),
+  void _showShareSheet(BuildContext context, String groupId, String name) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) {
+        final palette = sheetContext.palette;
+        final textTheme = Theme.of(sheetContext).textTheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xl,
+              0,
+              AppSpacing.xl,
+              AppSpacing.xl,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const BottomSheetDragHandle(),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  'Invite your friends',
+                  style: textTheme.displaySmall,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  '"$name" is ready. Share it so they can join.',
+                  style: textTheme.bodyLarge,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  decoration: BoxDecoration(
+                    color: palette.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.link_rounded, color: palette.accentText),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text(
+                          groupId,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                AppPillButton(
+                  label: 'Share',
+                  icon: Icons.ios_share_rounded,
+                  onPressed: () {
+                    Navigator.pop(sheetContext);
+                    _shareGroup(groupId, name);
+                  },
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                TextButton(
+                  onPressed: () => Navigator.pop(sheetContext),
+                  child: const Text('Later'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -165,63 +140,40 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
       final user = ref.read(authStateProvider).value;
       if (user == null) throw Exception('User not logged in');
 
-      final groupActions = ref.read(groupActionsProvider);
-
-      final createdGroupId = await groupActions.createGroup(
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim(),
-        creatorId: user.uid,
-        creatorDisplayName:
-            user.displayName ?? user.email?.split('@')[0] ?? 'User',
-        settings: GroupSettings(
-          isPublic: _isPublic,
-          allowMemberInvites: _allowMemberInvites,
-          focusGoalMinutes: _focusGoalMinutes,
-          showLeaderboard: _showLeaderboard,
-        ),
-      );
-
-      if (mounted) {
-        final groupName = _nameController.text;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: context.palette.onCanvas),
-                const SizedBox(width: 12),
-                Expanded(child: Text('Group "$groupName" created!')),
-              ],
+      final createdGroupId = await ref
+          .read(groupActionsProvider)
+          .createGroup(
+            name: _nameController.text.trim(),
+            description: _descriptionController.text.trim(),
+            creatorId: user.uid,
+            creatorDisplayName:
+                user.displayName ?? user.email?.split('@')[0] ?? 'User',
+            settings: GroupSettings(
+              isPublic: _isPublic,
+              allowMemberInvites: _allowMemberInvites,
+              focusGoalMinutes: _focusGoalMinutes,
+              showLeaderboard: _showLeaderboard,
             ),
-            backgroundColor: context.palette.accent,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
-        Navigator.pop(context);
+          );
 
-        // Show share dialog after successful creation
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            _showShareDialog(context, createdGroupId, groupName);
-          }
-        });
-      }
+      if (!mounted) return;
+      final groupName = _nameController.text.trim();
+      final navigator = Navigator.of(context);
+      final rootContext = navigator.context;
+      navigator.pop();
+
+      // Offer to share once the screen has closed.
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (rootContext.mounted) {
+          _showShareSheet(rootContext, createdGroupId, groupName);
+        }
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error, color: context.palette.onCanvas),
-                const SizedBox(width: 12),
-                Expanded(child: Text('Error: $e')),
-              ],
-            ),
+            content: Text("Couldn't create the group: $e"),
             backgroundColor: context.palette.error,
-            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -230,397 +182,177 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
     }
   }
 
+  InputDecoration _decoration(String label, {String? hint}) {
+    final palette = context.palette;
+    OutlineInputBorder border([Color? color]) => OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      borderSide: color == null ? BorderSide.none : BorderSide(color: color),
+    );
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      filled: true,
+      fillColor: palette.surface,
+      contentPadding: const EdgeInsets.all(AppSpacing.lg),
+      border: border(),
+      enabledBorder: border(),
+      errorBorder: border(palette.error),
+      focusedErrorBorder: border(palette.error),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: context.palette.canvas,
-      appBar: AppBar(
-        backgroundColor: context.palette.canvas,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.close, color: context.palette.onCanvas),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Create Group',
-          style: TextStyle(
-            color: context.palette.onCanvas,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            Center(
-              child: Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      context.palette.accent,
-                      context.palette.accent.withValues(alpha: 0.6),
-                    ],
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xl,
+                    AppSpacing.md,
+                    AppSpacing.xl,
+                    AppSpacing.lg,
                   ),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: context.palette.accent.withValues(alpha: 0.3),
-                      blurRadius: 15,
-                      spreadRadius: 3,
+                  children: [
+                    Row(
+                      children: [
+                        IconCircleButton(
+                          icon: Icons.close_rounded,
+                          semanticLabel: 'Close',
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        const SizedBox(width: AppSpacing.lg),
+                        Expanded(
+                          child: Text(
+                            'New group',
+                            style: textTheme.displaySmall,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.group,
-                  size: 40,
-                  color: context.palette.onCanvas,
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            _buildTextField(
-              controller: _nameController,
-              label: 'Group Name',
-              hint: 'e.g., Study Squad, Gym Warriors',
-              icon: Icons.groups,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter a group name';
-                }
-                if (value.length < 3) {
-                  return 'Name must be at least 3 characters';
-                }
-                if (value.length > 50) {
-                  return 'Name must be less than 50 characters';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 20),
-
-            _buildTextField(
-              controller: _descriptionController,
-              label: 'Description',
-              hint: 'What is this group about?',
-              icon: Icons.description,
-              maxLines: 3,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter a description';
-                }
-                if (value.length < 10) {
-                  return 'Description must be at least 10 characters';
-                }
-                if (value.length > 200) {
-                  return 'Description must be less than 200 characters';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 32),
-
-            Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: context.palette.accent,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'Group Settings',
-                  style: TextStyle(
-                    color: context.palette.onCanvas,
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            _buildSwitchTile(
-              title: 'Public Group',
-              subtitle: 'Anyone can find and join',
-              icon: Icons.public,
-              value: _isPublic,
-              onChanged: (value) => setState(() => _isPublic = value),
-            ),
-
-            _buildSwitchTile(
-              title: 'Member Invites',
-              subtitle: 'Allow members to invite others',
-              icon: Icons.person_add,
-              value: _allowMemberInvites,
-              onChanged: (value) => setState(() => _allowMemberInvites = value),
-            ),
-
-            _buildSwitchTile(
-              title: 'Leaderboard',
-              subtitle: 'Show member rankings',
-              icon: Icons.emoji_events,
-              value: _showLeaderboard,
-              onChanged: (value) => setState(() => _showLeaderboard = value),
-            ),
-
-            const SizedBox(height: 20),
-
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: context.palette.surfaceRaised,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: context.palette.accent.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: context.palette.accent.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.flag,
-                          color: context.palette.accentText,
-                          size: 20,
-                        ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    TextFormField(
+                      controller: _nameController,
+                      textCapitalization: TextCapitalization.words,
+                      textInputAction: TextInputAction.next,
+                      maxLength: 40,
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: palette.onCanvas,
                       ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Daily Focus Goal',
-                        style: TextStyle(
-                          color: context.palette.onCanvas,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      decoration: _decoration('Group name'),
+                      validator: (value) {
+                        final text = value?.trim() ?? '';
+                        if (text.isEmpty) return 'Give your group a name';
+                        if (text.length < 3) return 'Use at least 3 letters';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    TextFormField(
+                      controller: _descriptionController,
+                      textCapitalization: TextCapitalization.sentences,
+                      minLines: 2,
+                      maxLines: 4,
+                      maxLength: 200,
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: palette.onCanvas,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Slider(
-                          value: _focusGoalMinutes.toDouble(),
-                          min: 0,
-                          max: 480,
-                          divisions: 48,
-                          activeColor: context.palette.accent,
-                          inactiveColor: context.palette.onCanvasDisabled,
-                          onChanged: (value) {
-                            setState(() => _focusGoalMinutes = value.toInt());
-                          },
-                        ),
+                      decoration: _decoration(
+                        'Description',
+                        hint: 'What is this group for?',
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: context.palette.accent.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          _focusGoalMinutes == 0
-                              ? 'None'
-                              : _focusGoalMinutes < 60
-                              ? '${_focusGoalMinutes}m'
-                              : '${_focusGoalMinutes ~/ 60}h ${_focusGoalMinutes % 60}m',
-                          style: TextStyle(
-                            color: context.palette.accentText,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    Text('Settings', style: textTheme.headlineSmall),
+                    const SizedBox(height: AppSpacing.md),
+                    SwitchRowCard(
+                      icon: Icons.public_rounded,
+                      title: 'Public group',
+                      subtitle: 'Anyone can find and join',
+                      value: _isPublic,
+                      onChanged: (v) => setState(() => _isPublic = v),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    SwitchRowCard(
+                      icon: Icons.person_add_alt_1_rounded,
+                      title: 'Member invites',
+                      subtitle: 'Members can invite others',
+                      value: _allowMemberInvites,
+                      onChanged: (v) => setState(() => _allowMemberInvites = v),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    SwitchRowCard(
+                      icon: Icons.emoji_events_outlined,
+                      title: 'Leaderboard',
+                      subtitle: 'Show member rankings',
+                      value: _showLeaderboard,
+                      onChanged: (v) => setState(() => _showLeaderboard = v),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      decoration: BoxDecoration(
+                        color: palette.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.card),
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 40),
-
-            SizedBox(
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _createGroup,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: context.palette.accent,
-                  foregroundColor: context.palette.onAccent,
-                  disabledBackgroundColor: context.palette.accent.withValues(
-                    alpha: 0.5,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isLoading
-                    ? SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: context.palette.ink,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.add_circle,
-                            color: context.palette.onAccent,
-                            size: 20,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Daily focus goal',
+                                  style: textTheme.titleMedium,
+                                ),
+                              ),
+                              Text(
+                                _goalText(_focusGoalMinutes),
+                                style: textTheme.titleMedium?.copyWith(
+                                  color: palette.accentText,
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Create Group',
-                            style: TextStyle(
-                              color: context.palette.onAccent,
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
+                          Slider(
+                            value: _focusGoalMinutes.toDouble(),
+                            max: 480,
+                            divisions: 48,
+                            label: _goalText(_focusGoalMinutes),
+                            onChanged: (value) => setState(
+                              () => _focusGoalMinutes = value.toInt(),
                             ),
                           ),
                         ],
                       ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    int maxLines = 1,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, color: context.palette.accentText, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: context.palette.onCanvas,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          maxLines: maxLines,
-          validator: validator,
-          style: TextStyle(color: context.palette.onCanvas, fontSize: 16),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: context.palette.onCanvasDisabled),
-            filled: true,
-            fillColor: context.palette.surfaceRaised,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: context.palette.accent, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: context.palette.error, width: 2),
-            ),
-            contentPadding: const EdgeInsets.all(16),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSwitchTile({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.palette.surfaceRaised,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: value
-              ? context.palette.accent.withValues(alpha: 0.3)
-              : context.palette.onCanvas.withValues(alpha: 0.1),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: context.palette.accent.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: context.palette.accentText, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: context.palette.onCanvas,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: context.palette.onCanvasMuted,
-                    fontSize: 14,
-                  ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  AppSpacing.sm,
+                  AppSpacing.xl,
+                  AppSpacing.xl,
                 ),
-              ],
-            ),
+                child: AppPillButton(
+                  label: _isLoading ? 'Creating...' : 'Create group',
+                  onPressed: _isLoading ? null : _createGroup,
+                ),
+              ),
+            ],
           ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeThumbColor: context.palette.accent,
-            activeTrackColor: context.palette.accent.withValues(alpha: 0.5),
-          ),
-        ],
+        ),
       ),
     );
   }
