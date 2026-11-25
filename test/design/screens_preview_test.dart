@@ -38,7 +38,9 @@ import 'package:staylit/presentation/providers/blocked_content_provider.dart';
 import 'package:staylit/presentation/screens/blocks_screen.dart';
 import 'package:staylit/presentation/screens/focus/focus_home_data.dart';
 import 'package:staylit/presentation/screens/groups/groups_view.dart';
+import 'package:staylit/presentation/screens/profile/profile_view.dart';
 import 'package:staylit/presentation/screens/progress/progress_view.dart';
+import 'package:staylit/widgets/parental_control_dialogs.dart';
 import 'package:staylit/presentation/screens/save_session/save_session_view.dart';
 
 final String? _outDir = Platform.environment['PREVIEW_DIR'];
@@ -487,6 +489,45 @@ void main() {
           brightness: b,
         );
       }
+    }
+  }, skip: !enabled);
+
+  testWidgets('profile and dialog previews', (tester) async {
+    if (!enabled) return;
+    await tester.runAsync(_loadFonts);
+    for (final b in Brightness.values) {
+      await _snapshot(
+        tester,
+        name: 'profile_${b.name}',
+        child: Scaffold(
+          body: ProfileView(
+            data: const ProfileData(
+              name: 'Srikar Chinthala',
+              email: 'srikar@example.com',
+              photoUrl: null,
+              focusMinutes: 735,
+              sessions: 31,
+              currentStreak: 4,
+              parentalEnabled: true,
+              appearanceLabel: 'System',
+            ),
+            onBack: () {},
+            onAppearance: () {},
+            onParentalChanged: (_) {},
+            onChangePassword: () {},
+            onSignOut: () {},
+          ),
+        ),
+        brightness: b,
+      );
+      await _snapshot(
+        tester,
+        name: 'dialog_${b.name}',
+        child: Scaffold(
+          body: Center(child: CreatePasswordDialog(onConfirm: (_) {})),
+        ),
+        brightness: b,
+      );
     }
   }, skip: !enabled);
 }

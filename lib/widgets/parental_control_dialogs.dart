@@ -1,7 +1,162 @@
 import 'package:flutter/material.dart';
+import 'package:staylit/core/theme/app_dimens.dart';
 import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/widgets/design/app_pill_button.dart';
 
-/// Dialog for creating a new parental control password
+/// Rounded password input on a `surface` fill, with a show/hide toggle.
+class _PasswordField extends StatelessWidget {
+  const _PasswordField({
+    required this.controller,
+    required this.hint,
+    required this.visible,
+    required this.onToggleVisible,
+    this.onChanged,
+    this.onSubmitted,
+    this.autofocus = false,
+    this.textInputAction,
+  });
+
+  final TextEditingController controller;
+  final String hint;
+  final bool visible;
+  final VoidCallback onToggleVisible;
+  final VoidCallback? onChanged;
+  final VoidCallback? onSubmitted;
+  final bool autofocus;
+  final TextInputAction? textInputAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
+
+    return TextField(
+      controller: controller,
+      obscureText: !visible,
+      autofocus: autofocus,
+      textInputAction: textInputAction,
+      onChanged: (_) => onChanged?.call(),
+      onSubmitted: (_) => onSubmitted?.call(),
+      style: textTheme.bodyLarge?.copyWith(color: palette.onCanvas),
+      decoration: InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: palette.surface,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.lg,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          borderSide: BorderSide.none,
+        ),
+        prefixIcon: Icon(
+          Icons.lock_outline_rounded,
+          color: palette.onCanvasMuted,
+        ),
+        suffixIcon: IconButton(
+          tooltip: visible ? 'Hide password' : 'Show password',
+          icon: Icon(
+            visible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+            color: palette.onCanvasMuted,
+          ),
+          onPressed: onToggleVisible,
+        ),
+      ),
+    );
+  }
+}
+
+/// Shared frame for the password dialogs: title, description, content, an
+/// optional error line, and the action buttons.
+class _DialogFrame extends StatelessWidget {
+  const _DialogFrame({
+    required this.title,
+    required this.description,
+    required this.fields,
+    required this.errorMessage,
+    required this.confirmLabel,
+    required this.onConfirm,
+    required this.onCancel,
+    this.busy = false,
+  });
+
+  final String title;
+  final String description;
+  final List<Widget> fields;
+  final String? errorMessage;
+  final String confirmLabel;
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.xxl,
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(title, style: textTheme.displaySmall),
+            const SizedBox(height: AppSpacing.sm),
+            Text(description, style: textTheme.bodyLarge),
+            const SizedBox(height: AppSpacing.xl),
+            for (var i = 0; i < fields.length; i++) ...[
+              if (i > 0) const SizedBox(height: AppSpacing.md),
+              fields[i],
+            ],
+            if (errorMessage != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                children: [
+                  Icon(
+                    Icons.error_outline_rounded,
+                    size: 18,
+                    color: palette.error,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      errorMessage!,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: palette.error,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: AppSpacing.xl),
+            AppPillButton(
+              label: confirmLabel,
+              onPressed: busy ? null : onConfirm,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            TextButton(
+              onPressed: busy ? null : onCancel,
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Dialog for creating a new parental control password.
 class CreatePasswordDialog extends StatefulWidget {
   final Function(String password) onConfirm;
 
@@ -25,29 +180,24 @@ class _CreatePasswordDialogState extends State<CreatePasswordDialog> {
     super.dispose();
   }
 
+  void _clearError() {
+    if (_errorMessage != null) setState(() => _errorMessage = null);
+  }
+
   void _handleSetup() {
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
 
-    // Validation
     if (password.isEmpty) {
-      setState(() {
-        _errorMessage = 'Password cannot be empty';
-      });
+      setState(() => _errorMessage = 'Password cannot be empty');
       return;
     }
-
     if (password.length < 4) {
-      setState(() {
-        _errorMessage = 'Password must be at least 4 characters';
-      });
+      setState(() => _errorMessage = 'Use at least 4 characters');
       return;
     }
-
     if (password != confirmPassword) {
-      setState(() {
-        _errorMessage = 'Passwords do not match';
-      });
+      setState(() => _errorMessage = 'Passwords do not match');
       return;
     }
 
@@ -57,190 +207,44 @@ class _CreatePasswordDialogState extends State<CreatePasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: context.palette.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'New Password',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: context.palette.onCanvas,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Create a new parental control password',
-              style: TextStyle(
-                fontSize: 14,
-                color: context.palette.onCanvasSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-
-            // Create Password Field
-            Container(
-              decoration: BoxDecoration(
-                color: context.palette.surfaceRaised,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TextField(
-                controller: _passwordController,
-                obscureText: !_passwordVisible,
-                style: TextStyle(color: context.palette.onCanvas),
-                decoration: InputDecoration(
-                  hintText: 'Create Password',
-                  hintStyle: TextStyle(color: context.palette.onCanvasDisabled),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.lock_outline,
-                    color: context.palette.onCanvasMuted,
-                  ),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _passwordVisible
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: context.palette.onCanvasMuted,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _passwordVisible = !_passwordVisible;
-                      });
-                    },
-                  ),
-                ),
-                onChanged: (_) {
-                  if (_errorMessage != null) {
-                    setState(() {
-                      _errorMessage = null;
-                    });
-                  }
-                },
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Confirm Password Field
-            Container(
-              decoration: BoxDecoration(
-                color: context.palette.surfaceRaised,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TextField(
-                controller: _confirmPasswordController,
-                obscureText: !_confirmPasswordVisible,
-                style: TextStyle(color: context.palette.onCanvas),
-                decoration: InputDecoration(
-                  hintText: 'Confirm Password',
-                  hintStyle: TextStyle(color: context.palette.onCanvasDisabled),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.lock_outline,
-                    color: context.palette.onCanvasMuted,
-                  ),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _confirmPasswordVisible
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: context.palette.onCanvasMuted,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _confirmPasswordVisible = !_confirmPasswordVisible;
-                      });
-                    },
-                  ),
-                ),
-                onChanged: (_) {
-                  if (_errorMessage != null) {
-                    setState(() {
-                      _errorMessage = null;
-                    });
-                  }
-                },
-                onSubmitted: (_) => _handleSetup(),
-              ),
-            ),
-
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _errorMessage!,
-                style: TextStyle(color: context.palette.error, fontSize: 13),
-              ),
-            ],
-
-            const SizedBox(height: 24),
-
-            // Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: context.palette.surfaceRaised,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(
-                        color: context.palette.onCanvasSecondary,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _handleSetup,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: context.palette.accent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      'Setup',
-                      style: TextStyle(
-                        color: context.palette.onAccent,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+    return _DialogFrame(
+      title: 'New password',
+      description:
+          'Choose a password for parental mode. You will need it to '
+          'turn parental mode off or change what is blocked.',
+      errorMessage: _errorMessage,
+      confirmLabel: 'Set password',
+      onConfirm: _handleSetup,
+      onCancel: () => Navigator.of(context).pop(),
+      fields: [
+        _PasswordField(
+          controller: _passwordController,
+          hint: 'Password',
+          autofocus: true,
+          textInputAction: TextInputAction.next,
+          visible: _passwordVisible,
+          onToggleVisible: () =>
+              setState(() => _passwordVisible = !_passwordVisible),
+          onChanged: _clearError,
         ),
-      ),
+        _PasswordField(
+          controller: _confirmPasswordController,
+          hint: 'Confirm password',
+          textInputAction: TextInputAction.done,
+          visible: _confirmPasswordVisible,
+          onToggleVisible: () => setState(
+            () => _confirmPasswordVisible = !_confirmPasswordVisible,
+          ),
+          onChanged: _clearError,
+          onSubmitted: _handleSetup,
+        ),
+      ],
     );
   }
 }
 
-/// Dialog for verifying parental control password
+/// Dialog asking for the parental control password. Pops `true` when
+/// [onVerify] accepts it.
 class VerifyPasswordDialog extends StatefulWidget {
   final String title;
   final String description;
@@ -260,6 +264,7 @@ class VerifyPasswordDialog extends StatefulWidget {
 class _VerifyPasswordDialogState extends State<VerifyPasswordDialog> {
   final _passwordController = TextEditingController();
   bool _passwordVisible = false;
+  bool _busy = false;
   String? _errorMessage;
 
   @override
@@ -272,28 +277,24 @@ class _VerifyPasswordDialogState extends State<VerifyPasswordDialog> {
     final password = _passwordController.text.trim();
 
     if (password.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please enter the PIN';
-      });
+      setState(() => _errorMessage = 'Enter your password');
       return;
     }
 
     setState(() {
       _errorMessage = null;
+      _busy = true;
     });
 
-    // Call onVerify and wait for the result
     final isCorrect = await widget.onVerify(password);
-
     if (!mounted) return;
 
     if (isCorrect) {
-      // Close dialog with success
       Navigator.of(context).pop(true);
     } else {
-      // Show error and keep dialog open
       setState(() {
-        _errorMessage = 'Incorrect PIN';
+        _busy = false;
+        _errorMessage = 'Incorrect password';
         _passwordController.clear();
       });
     }
@@ -301,145 +302,29 @@ class _VerifyPasswordDialogState extends State<VerifyPasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: context.palette.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.lock_open,
-              color: context.palette.onCanvasMuted,
-              size: 48,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              widget.title,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: context.palette.onCanvas,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              widget.description,
-              style: TextStyle(
-                fontSize: 14,
-                color: context.palette.onCanvasSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-
-            // Password Field
-            Container(
-              decoration: BoxDecoration(
-                color: context.palette.surfaceRaised,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TextField(
-                controller: _passwordController,
-                obscureText: !_passwordVisible,
-                autofocus: true,
-                style: TextStyle(color: context.palette.onCanvas),
-                decoration: InputDecoration(
-                  hintText: 'Enter Password',
-                  hintStyle: TextStyle(color: context.palette.onCanvasDisabled),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.lock_outline,
-                    color: context.palette.onCanvasMuted,
-                  ),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _passwordVisible
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: context.palette.onCanvasMuted,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _passwordVisible = !_passwordVisible;
-                      });
-                    },
-                  ),
-                ),
-                onChanged: (_) {
-                  if (_errorMessage != null) {
-                    setState(() {
-                      _errorMessage = null;
-                    });
-                  }
-                },
-                onSubmitted: (_) => _handleVerify(),
-              ),
-            ),
-
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _errorMessage!,
-                style: TextStyle(color: context.palette.error, fontSize: 13),
-              ),
-            ],
-
-            const SizedBox(height: 24),
-
-            // Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: context.palette.surfaceRaised,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(
-                        color: context.palette.onCanvasSecondary,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _handleVerify,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: context.palette.accent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      'Verify',
-                      style: TextStyle(
-                        color: context.palette.onAccent,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+    return _DialogFrame(
+      title: widget.title,
+      description: widget.description,
+      errorMessage: _errorMessage,
+      confirmLabel: _busy ? 'Checking...' : 'Continue',
+      busy: _busy,
+      onConfirm: _handleVerify,
+      onCancel: () => Navigator.of(context).pop(),
+      fields: [
+        _PasswordField(
+          controller: _passwordController,
+          hint: 'Password',
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          visible: _passwordVisible,
+          onToggleVisible: () =>
+              setState(() => _passwordVisible = !_passwordVisible),
+          onChanged: () {
+            if (_errorMessage != null) setState(() => _errorMessage = null);
+          },
+          onSubmitted: _handleVerify,
         ),
-      ),
+      ],
     );
   }
 }
