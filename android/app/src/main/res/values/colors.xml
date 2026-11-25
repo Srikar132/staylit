@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- Scroll damage island and break card. Same family as the Flutter AppPalette
+         (accent 0xFFE8653A, error 0xFFB8321F, ink 0xFF111113). The island is pure black on
+         purpose: it has to blend with the camera hole it wraps. -->
+    <color name="scroll_island_bg">#000000</color>
+    <color name="scroll_island_text">#FFFFFF</color>
+    <color name="scroll_island_accent">#E8653A</color>
+    <color name="scroll_island_alarm">#D13B2F</color>
+    <color name="scroll_card_bg">#111113</color>
+    <color name="scroll_card_muted">#B3FFFFFF</color>
 </resources>

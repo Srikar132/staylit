@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -12,11 +13,13 @@ import android.view.accessibility.AccessibilityNodeInfo
 import com.staylit.app.services.overlay.BlockOverlayActivity
 import com.staylit.app.services.overlay.OverlayLauncher
 import com.staylit.app.services.overlay.SimpleBlockOverlay
+import com.staylit.app.services.focus.FocusSessionManager
 import com.staylit.app.managers.WebsiteBlockManager
 import com.staylit.app.managers.ShortFormBlockManager
 import com.staylit.app.services.limits.AppLimitManager
 import com.staylit.app.services.limits.AppLimitTracker
 import com.staylit.app.services.scroll.ScrollCounterEngine
+import com.staylit.app.services.scroll.ScrollDamageUi
 import com.staylit.app.services.scroll.ScrollDamageStore
 import com.staylit.app.services.scroll.ScrollTargets
 import com.staylit.app.services.scroll.ShortFormCheck
@@ -164,6 +167,7 @@ class StaylitAccessibilityService : AccessibilityService() {
     private val scrollSettleRunnable = Runnable { settleScrollBurst() }
     @Volatile private var scrollDamageEnabled = false
     private var scrollActivePkg: String? = null
+    private var scrollUi: ScrollDamageUi? = null
     private var scrollActiveUntilMs = 0L
 
     // App limit tracking
@@ -190,6 +194,17 @@ class StaylitAccessibilityService : AccessibilityService() {
         appLimitTracker = AppLimitTracker(applicationContext)
         overlayLauncher = OverlayLauncher.getInstance(applicationContext)
         scrollDamageEnabled = ScrollDamageStore.getInstance(applicationContext).isEnabled()
+        scrollUi = ScrollDamageUi(
+            service = this,
+            store = ScrollDamageStore.getInstance(applicationContext),
+            goHome = { performGlobalAction(GLOBAL_ACTION_HOME) },
+            // Blocking has priority: nothing from Scroll damage while a focus session or a block overlay owns the screen.
+            isSuppressed = {
+                FocusSessionManager.getInstance(applicationContext).isSessionActive() ||
+                    SimpleBlockOverlay.isAnyShowing()
+            },
+            stillInShortForm = { pkg -> isShortFormViewActive(pkg, android.os.SystemClock.elapsedRealtime(), useCache = false) },
+        )
 
         // Start as foreground service for persistence
         startForegroundService()
@@ -238,8 +253,15 @@ class StaylitAccessibilityService : AccessibilityService() {
             val eventType = event.eventType
 
             // Scroll damage runs first and on its own: it must never skip or break the blocking below.
-            if (scrollDamageEnabled && eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
-                onScrollForDamage(event, packageName)
+            if (scrollDamageEnabled) {
+                when (eventType) {
+                    AccessibilityEvent.TYPE_VIEW_SCROLLED -> onScrollForDamage(event, packageName)
+                    AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
+                        scrollUi?.onWindowChanged(packageName)
+                        scrollUi?.onPossibleViewChange(packageName)
+                    }
+                    AccessibilityEvent.TYPE_VIEW_CLICKED -> scrollUi?.onPossibleViewChange(packageName)
+                }
             }
 
             Log.d(TAG, "Event: ${AccessibilityEvent.eventTypeToString(eventType)} for $packageName")
@@ -2066,9 +2088,17 @@ class StaylitAccessibilityService : AccessibilityService() {
             val nowMs = android.os.SystemClock.elapsedRealtime()
             val active = isShortFormViewActive(pkg, nowMs)
             val result = scrollEngine.onSettle(nowMs, System.currentTimeMillis(), active)
-            if (result.outcome == ScrollCounterEngine.Outcome.COUNTED) {
-                ScrollDamageStore.getInstance(applicationContext)
-                    .recordCount(result.day, result.tzOffsetMinutes, pkg, result.newSession)
+            when (result.outcome) {
+                ScrollCounterEngine.Outcome.COUNTED -> {
+                    ScrollDamageStore.getInstance(applicationContext)
+                        .recordCount(result.day, result.tzOffsetMinutes, pkg, result.newSession)
+                    scrollUi?.onCounted(pkg, result, nowMs, System.currentTimeMillis())
+                }
+                // Short-form view is on screen, nothing new to count: the session is still alive.
+                ScrollCounterEngine.Outcome.SAME_PAGE,
+                ScrollCounterEngine.Outcome.TOO_FAST -> scrollUi?.onActivity(pkg, nowMs)
+                ScrollCounterEngine.Outcome.NOT_SHORT_FORM -> scrollUi?.onLeftShortForm()
+                ScrollCounterEngine.Outcome.NO_BURST -> Unit
             }
             // Outcome names, package id and a number only. Never anything from the screen.
             Log.d(SCROLL_TAG, "${result.outcome} pkg=$pkg session=${result.sessionCount}")
@@ -2082,14 +2112,14 @@ class StaylitAccessibilityService : AccessibilityService() {
      * check comes first so a swipe that ended by leaving the app (or by one of our own overlays taking
      * over) never counts. A positive tree-walk answer is cached for 3 s.
      */
-    private fun isShortFormViewActive(pkg: String, nowMs: Long): Boolean {
+    private fun isShortFormViewActive(pkg: String, nowMs: Long, useCache: Boolean = true): Boolean {
         val root = rootInActiveWindow ?: return false
         try {
             if (root.packageName?.toString() != pkg) {
                 scrollActivePkg = null
                 return false
             }
-            if (scrollActivePkg == pkg && nowMs < scrollActiveUntilMs) return true
+            if (useCache && scrollActivePkg == pkg && nowMs < scrollActiveUntilMs) return true
 
             val active = when (ScrollTargets.checkFor(pkg)) {
                 ShortFormCheck.YOUTUBE_SHORTS -> detectYouTubeShortsEnhanced()
@@ -2140,11 +2170,18 @@ class StaylitAccessibilityService : AccessibilityService() {
             scrollSettleHandler.removeCallbacksAndMessages(null)
             scrollEngine.reset()
             scrollActivePkg = null
+            scrollUi?.reset()
         }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        scrollUi?.onConfigurationChanged()
     }
 
     override fun onInterrupt() {
         Log.d(TAG, "Accessibility Service Interrupted")
+        scrollUi?.hideAll()
     }
     
     /**
@@ -2196,6 +2233,8 @@ class StaylitAccessibilityService : AccessibilityService() {
         scrollSettleHandler.removeCallbacksAndMessages(null)
         scrollEngine.reset()
         scrollActivePkg = null
+        scrollUi?.release() // removes the pill and card, no answer logged
+        scrollUi = null
 
         // Stop foreground service
         try {

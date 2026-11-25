@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Staylit</string>
-    <string name="accessibility_service_description">Staylit uses accessibility service to detect when you open distracting apps and show a blocking screen to help you stay focused.</string>
+    <string name="accessibility_service_description">Staylit uses the accessibility service to detect when you open distracting apps and show a blocking screen to help you stay focused. If you turn on Scroll damage, it also counts how many short videos you scroll past in Instagram, YouTube, TikTok and Facebook. It stores only the counts, never what is on your screen.</string>
+    <string name="scroll_offer_title">You have scrolled %1$d in a row</string>
+    <string name="scroll_offer_question">Take a break?</string>
+    <string name="scroll_offer_break">Take a break</string>
+    <string name="scroll_offer_keep">Keep scrolling</string>
 </resources>

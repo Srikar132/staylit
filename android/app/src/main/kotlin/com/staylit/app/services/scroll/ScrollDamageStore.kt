@@ -14,7 +14,8 @@ object ScrollDamageNotifier {
 
 /**
  * Persistent side of Scroll damage (SharedPreferences `scroll_damage`): the enabled flag, the account the
- * counts belong to, and the ledger of counts Flutter has not stored yet. Counts and day keys only.
+ * data belongs to, the ledger of counts and the log of break-offer answers that Flutter has not stored yet.
+ * Counts, package ids, enums and timestamps only.
  *
  * Own prefs file on purpose: `BlockingConfig.clearAllConfigs()` must not wipe counts.
  */
@@ -26,8 +27,9 @@ class ScrollDamageStore private constructor(context: Context) {
         private const val KEY_ENABLED = "enabled"
         private const val KEY_UID = "uid"
         private const val KEY_LEDGER = "ledger"
+        private const val KEY_EVENTS = "events"
 
-        /** Batch window for the "new counts" ping to Flutter. */
+        /** Batch window for the "new data" ping to Flutter. */
         private const val PING_DELAY_MS = 5_000L
 
         @Volatile
@@ -41,6 +43,7 @@ class ScrollDamageStore private constructor(context: Context) {
 
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private val ledger = ScrollLedger.fromJson(prefs.getString(KEY_LEDGER, null))
+    private val events = ScrollEventLog.fromJson(prefs.getString(KEY_EVENTS, null))
     private val pingHandler = Handler(Looper.getMainLooper())
     private var pingScheduled = false
 
@@ -50,7 +53,7 @@ class ScrollDamageStore private constructor(context: Context) {
     fun isEnabled(): Boolean = enabled
 
     /**
-     * Mirrors the Flutter setting. A different [uid] than the stored one drops unsynced counts, so one
+     * Mirrors the Flutter setting. A different [uid] than the stored one drops unsynced data, so one
      * account's counts are never written to the next account on a shared device.
      */
     @Synchronized
@@ -58,13 +61,15 @@ class ScrollDamageStore private constructor(context: Context) {
         val storedUid = prefs.getString(KEY_UID, "") ?: ""
         if (uid.isNotEmpty() && storedUid.isNotEmpty() && uid != storedUid) {
             ledger.clear()
-            Log.d(TAG, "account changed, unsynced counts dropped")
+            events.clear()
+            Log.d(TAG, "account changed, unsynced data dropped")
         }
         this.enabled = enabled
         val editor = prefs.edit()
         editor.putBoolean(KEY_ENABLED, enabled)
         if (uid.isNotEmpty()) editor.putString(KEY_UID, uid)
         editor.putString(KEY_LEDGER, ledger.toJson())
+        editor.putString(KEY_EVENTS, events.toJson())
         editor.apply()
     }
 
@@ -72,7 +77,7 @@ class ScrollDamageStore private constructor(context: Context) {
     fun recordCount(day: String, tzOffsetMinutes: Int, pkg: String, newSession: Boolean) {
         ledger.add(day, tzOffsetMinutes, pkg, newSession)
         prefs.edit().putString(KEY_LEDGER, ledger.toJson()).apply()
-        schedulePing(day)
+        schedulePing()
     }
 
     @Synchronized
@@ -84,20 +89,37 @@ class ScrollDamageStore private constructor(context: Context) {
         prefs.edit().putString(KEY_LEDGER, ledger.toJson()).apply()
     }
 
-    private fun schedulePing(day: String) {
+    @Synchronized
+    fun recordEvent(event: ScrollEvent) {
+        events.add(event)
+        prefs.edit().putString(KEY_EVENTS, events.toJson()).apply()
+        schedulePing()
+    }
+
+    @Synchronized
+    fun pendingEvents(): List<ScrollEvent> = events.pending()
+
+    @Synchronized
+    fun consumeEvents(done: List<ScrollEvent>) {
+        events.consume(done)
+        prefs.edit().putString(KEY_EVENTS, events.toJson()).apply()
+    }
+
+    /** Tells Flutter (if its engine is alive) that there is something to pull. Batched. */
+    private fun schedulePing() {
         if (pingScheduled) return
         pingScheduled = true
         pingHandler.postDelayed({
             pingScheduled = false
             val listener = ScrollDamageNotifier.listener ?: return@postDelayed
-            val today = pending().firstOrNull { it.day == day } ?: return@postDelayed
+            val latest = pending().lastOrNull()
             try {
                 listener(
                     mapOf(
-                        "day" to today.day,
-                        "total" to today.total,
-                        "perApp" to today.perApp,
-                        "sessionCount" to today.sessions,
+                        "day" to (latest?.day ?: ""),
+                        "total" to (latest?.total ?: 0),
+                        "perApp" to (latest?.perApp ?: emptyMap<String, Int>()),
+                        "sessionCount" to (latest?.sessions ?: 0),
                     ),
                 )
             } catch (e: Exception) {

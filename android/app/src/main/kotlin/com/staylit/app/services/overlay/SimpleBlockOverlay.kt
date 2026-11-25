@@ -33,6 +33,9 @@ class SimpleBlockOverlay(private val context: Context) {
         
         @Volatile
         private var currentOverlay: SimpleBlockOverlay? = null
+
+        /** True while a block overlay is on screen (Scroll damage stays out of its way). */
+        fun isAnyShowing(): Boolean = currentOverlay?.isShowing() == true
         
         fun show(
             context: Context,

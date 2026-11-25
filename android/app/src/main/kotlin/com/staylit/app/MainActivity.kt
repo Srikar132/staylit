@@ -20,6 +20,7 @@ import com.staylit.app.services.shared.BlockingConfig
 import com.staylit.app.services.scroll.DayDelta
 import com.staylit.app.services.scroll.ScrollDamageNotifier
 import com.staylit.app.services.scroll.ScrollDamageStore
+import com.staylit.app.services.scroll.ScrollEvent
 import com.staylit.app.managers.ShortFormBlockManager
 import com.staylit.app.managers.WebsiteBlockManager
 import com.staylit.app.utils.AppUtils
@@ -374,6 +375,18 @@ class MainActivity: FlutterActivity() {
                         val args = arguments as? Map<*, *>
                         val days = (args?.get("days") as? List<*>)?.mapNotNull { parseDayDelta(it) } ?: emptyList()
                         ScrollDamageStore.getInstance(this@MainActivity).consume(days)
+                        result.success(true)
+                    }
+
+                    "getPendingScrollEvents" -> {
+                        val pending = ScrollDamageStore.getInstance(this@MainActivity).pendingEvents()
+                        result.success(pending.map { it.toMap() })
+                    }
+
+                    "consumeScrollEvents" -> {
+                        val args = arguments as? Map<*, *>
+                        val done = (args?.get("events") as? List<*>)?.mapNotNull { parseScrollEvent(it) } ?: emptyList()
+                        ScrollDamageStore.getInstance(this@MainActivity).consumeEvents(done)
                         result.success(true)
                     }
 
@@ -788,6 +801,21 @@ class MainActivity: FlutterActivity() {
             total = (m["total"] as? Number)?.toInt() ?: 0,
             perApp = perApp,
             sessions = (m["sessions"] as? Number)?.toInt() ?: 0,
+        )
+    }
+
+    /** One break-offer answer from Flutter. */
+    private fun parseScrollEvent(raw: Any?): ScrollEvent? {
+        val m = raw as? Map<*, *> ?: return null
+        val ts = (m["ts"] as? Number)?.toLong() ?: return null
+        return ScrollEvent(
+            ts = ts,
+            day = m["day"] as? String ?: "",
+            tzOffsetMinutes = (m["tzOffsetMinutes"] as? Number)?.toInt() ?: 0,
+            pkg = m["pkg"] as? String ?: "",
+            sessionCount = (m["sessionCount"] as? Number)?.toInt() ?: 0,
+            threshold = (m["threshold"] as? Number)?.toInt() ?: 0,
+            response = m["response"] as? String ?: "",
         )
     }
 
