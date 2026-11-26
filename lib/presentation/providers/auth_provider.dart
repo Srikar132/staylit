@@ -61,7 +61,11 @@ final currentUserProvider = StreamProvider<UserModel?>((ref) {
 
       return ref.watch(userRepositoryProvider).streamUserData(firebaseUser.uid);
     },
-    loading: () => Stream.value(null),
+    // Auth not known yet: stay in AsyncLoading instead of emitting a fake
+    // "signed out" null (flashed "Please login first"). The router already
+    // parks on /splash while this is loading, and this provider rebuilds as
+    // soon as authState resolves.
+    loading: () => const Stream<UserModel?>.empty(),
     error: (error, stack) => Stream.value(null),
   );
 });

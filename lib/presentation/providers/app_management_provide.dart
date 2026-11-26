@@ -2,17 +2,27 @@
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:installed_apps/app_info.dart';
+import 'package:installed_apps/installed_apps.dart';
 import 'package:staylit/data/models/installed_app_model.dart';
 import 'package:staylit/services/native_service.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:staylit/presentation/providers/blocked_content_provider.dart';
 
-final installedAppsProvider = FutureProvider.autoDispose<List<InstalledApp>>((
-  ref,
-) async {
+/// Installed apps from the native bridge. Deliberately NOT autoDispose: the
+/// native package scan is slow, so it runs once per session and is reused by
+/// every sheet. `HomeScreen` invalidates it after the app has been in the
+/// background for a while (installs/uninstalls), so it never goes stale.
+final installedAppsProvider = FutureProvider<List<InstalledApp>>((ref) async {
   // You can add logic here to filter system apps if needed
   final apps = await NativeService.getInstalledApps();
   return apps;
+});
+
+/// Apps (with icons) for the limit picker in the Blocks tab. Same lifetime
+/// rules as [installedAppsProvider]: scanned once, invalidated by `HomeScreen`.
+final pickerAppsProvider = FutureProvider<List<AppInfo>>((ref) {
+  return InstalledApps.getInstalledApps(true, true);
 });
 
 // 2. Family Provider for Icons (Caches icons individually)

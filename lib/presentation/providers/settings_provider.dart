@@ -6,25 +6,11 @@ final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
   return SettingsRepository();
 });
 
-// Stream provider with automatic caching
+/// Realtime user settings. Kept alive for the session; Firestore's offline
+/// cache makes re-subscribing instant, so do not `ref.invalidate` this.
 final userSettingsProvider = StreamProvider.family<UserSettingsModel?, String>((
   ref,
   userId,
 ) {
   return ref.watch(settingsRepositoryProvider).streamSettings(userId);
 });
-
-// Sync provider for instant access (no loading state)
-final cachedSettingsProvider = Provider.family<UserSettingsModel?, String>((
-  ref,
-  userId,
-) {
-  return ref.watch(settingsRepositoryProvider).getCachedSettings(userId);
-});
-
-// Future provider to ensure settings exist and get them
-final ensureSettingsProvider = FutureProvider.family<UserSettingsModel, String>(
-  (ref, userId) async {
-    return ref.watch(settingsRepositoryProvider).ensureSettingsExist(userId);
-  },
-);

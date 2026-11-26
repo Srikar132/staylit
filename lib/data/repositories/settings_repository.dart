@@ -6,91 +6,38 @@ import 'package:staylit/data/models/user_settings_model.dart';
 class SettingsRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Cache settings in memory
-  UserSettingsModel? _cachedSettings;
-  String? _cachedUserId;
+  UserSettingsModel _defaultSettings() => UserSettingsModel(
+    defaultDuration: 25,
+    timerMode: 'timer',
+    pomodoroSettings: PomodoroSettings.defaultSettings(),
+    numberOfBreaks: 1,
+    blockPhoneHomeScreen: false,
+    strictMode: false,
+    autoStartBreaks: true,
+    soundEnabled: true,
+    vibrationEnabled: true,
+  );
 
+  /// Realtime settings. Firestore's disk cache (persistence is on in `main()`)
+  /// serves the first event instantly, and local writes fire it immediately, so
+  /// callers never need to invalidate or keep their own copy.
   Stream<UserSettingsModel?> streamSettings(String userId) {
     return _firestore
         .collection('userSettings')
         .doc(userId)
-        .snapshots(includeMetadataChanges: true)
+        .snapshots()
         .asyncMap((doc) async {
           if (!doc.exists) {
-            await _createDefaultSettings(userId);
-
-            // Return default settings immediately while waiting for Firestore to sync
-            final defaultSettings = UserSettingsModel(
-              defaultDuration: 25,
-              timerMode: 'timer',
-              pomodoroSettings: PomodoroSettings.defaultSettings(),
-              numberOfBreaks: 1,
-              blockPhoneHomeScreen: false,
-              strictMode: false,
-              autoStartBreaks: true,
-              soundEnabled: true,
-              vibrationEnabled: true,
-            );
-
-            _cachedSettings = defaultSettings;
-            _cachedUserId = userId;
-
-            return defaultSettings;
+            // A missing doc seen only from the local cache (e.g. offline on a
+            // fresh install) is not proof it does not exist on the server - do not
+            // write defaults over what may be real data.
+            if (!doc.metadata.isFromCache) {
+              await _createDefaultSettings(userId);
+            }
+            return _defaultSettings();
           }
-
-          final settings = UserSettingsModel.fromFirestore(doc);
-
-          // Update memory cache
-          _cachedSettings = settings;
-          _cachedUserId = userId;
-
-          return settings;
+          return UserSettingsModel.fromFirestore(doc);
         });
-  }
-
-  UserSettingsModel? getCachedSettings(String userId) {
-    if (_cachedUserId == userId) return _cachedSettings;
-    return null;
-  }
-
-  // Method to ensure settings exist for user
-  Future<UserSettingsModel> ensureSettingsExist(String userId) async {
-    try {
-      final doc = await _firestore.collection('userSettings').doc(userId).get();
-
-      if (doc.exists) {
-        final settings = UserSettingsModel.fromFirestore(doc);
-        _cachedSettings = settings;
-        _cachedUserId = userId;
-        return settings;
-      } else {
-        // Create default settings
-        final defaultSettings = UserSettingsModel(
-          defaultDuration: 25,
-          timerMode: 'timer',
-          pomodoroSettings: PomodoroSettings.defaultSettings(),
-          numberOfBreaks: 1,
-          blockPhoneHomeScreen: false,
-          strictMode: false,
-          autoStartBreaks: true,
-          soundEnabled: true,
-          vibrationEnabled: true,
-        );
-
-        await _firestore
-            .collection('userSettings')
-            .doc(userId)
-            .set(defaultSettings.toFirestore());
-
-        _cachedSettings = defaultSettings;
-        _cachedUserId = userId;
-
-        return defaultSettings;
-      }
-    } catch (e) {
-      debugPrint('Error ensuring settings exist: $e');
-      rethrow;
-    }
   }
 
   Future<void> updateSettings(String userId, UserSettingsModel settings) async {
@@ -99,16 +46,11 @@ class SettingsRepository {
           .collection('userSettings')
           .doc(userId)
           .set(settings.toFirestore(), SetOptions(merge: true));
-
-      // Update local cache immediately for UI responsiveness
-      _cachedSettings = settings;
-      _cachedUserId = userId;
     } on FirebaseException catch (e) {
       if (e.code == 'unavailable') {
         debugPrint(
           'Offline: Settings saved locally and will sync when online.',
         );
-        _cachedSettings = settings;
       } else {
         rethrow;
       }
@@ -119,25 +61,13 @@ class SettingsRepository {
   }
 
   Future<void> _createDefaultSettings(String userId) async {
-    final defaultSettings = UserSettingsModel(
-      defaultDuration: 25,
-      timerMode: 'timer',
-      pomodoroSettings: PomodoroSettings.defaultSettings(),
-      numberOfBreaks: 1,
-      blockPhoneHomeScreen: false,
-      strictMode: false,
-      autoStartBreaks: true,
-      soundEnabled: true,
-      vibrationEnabled: true,
-    );
-
     try {
       await _firestore
           .collection('userSettings')
           .doc(userId)
-          .set(defaultSettings.toFirestore());
+          .set(_defaultSettings().toFirestore());
     } catch (e) {
-      debugPrint("Error creating default settings: $e");
+      debugPrint('Error creating default settings: $e');
     }
   }
 }

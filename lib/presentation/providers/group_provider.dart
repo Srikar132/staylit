@@ -3,8 +3,8 @@ import 'package:staylit/data/models/group_memeber_model.dart';
 import 'package:staylit/data/models/group_model.dart';
 import 'package:staylit/data/repositories/group_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// ==================== STREAM PROVIDERS ====================
 
+// ==================== STREAM PROVIDERS ====================
 
 /// Provider for GroupRepository
 final groupRepositoryProvider = Provider<GroupRepository>((ref) {
@@ -12,37 +12,49 @@ final groupRepositoryProvider = Provider<GroupRepository>((ref) {
 });
 
 /// Provides real-time list of groups where user is a member
-final userGroupsProvider = StreamProvider.family<List<GroupModel>, String>((ref, userId) {
+final userGroupsProvider = StreamProvider.family<List<GroupModel>, String>((
+  ref,
+  userId,
+) {
   final repository = ref.watch(groupRepositoryProvider);
   return repository.getUserGroups(userId);
 });
 
 /// Provides real-time data for a specific group
-final groupProvider = StreamProvider.family<GroupModel?, String>((ref, groupId) {
+final groupProvider = StreamProvider.family<GroupModel?, String>((
+  ref,
+  groupId,
+) {
   final repository = ref.watch(groupRepositoryProvider);
   return repository.getGroup(groupId);
 });
 
 /// Provides real-time list of members in a group (sorted by focus time)
-final groupMembersProvider = StreamProvider.family<List<GroupMemberModel>, String>((ref, groupId) {
-  final repository = ref.watch(groupRepositoryProvider);
-  return repository.getGroupMembers(groupId);
-});
+final groupMembersProvider =
+    StreamProvider.family<List<GroupMemberModel>, String>((ref, groupId) {
+      final repository = ref.watch(groupRepositoryProvider);
+      return repository.getGroupMembers(groupId);
+    });
 
-/// Provides search results for public groups
-final groupSearchProvider = StreamProvider.family<List<GroupModel>, String>((ref, query) {
-  if (query.isEmpty) {
-    return Stream.value([]);
-  }
-  final repository = ref.watch(groupRepositoryProvider);
-  return repository.searchPublicGroups(query);
-});
+/// Provides search results for public groups.
+/// autoDispose: each query string opens its own live listener over all public
+/// groups, so it must close when the search UI stops watching it.
+final groupSearchProvider = StreamProvider.autoDispose
+    .family<List<GroupModel>, String>((ref, query) {
+      if (query.isEmpty) {
+        return Stream.value([]);
+      }
+      final repository = ref.watch(groupRepositoryProvider);
+      return repository.searchPublicGroups(query);
+    });
 
 /// Provides suggested public groups that user hasn't joined yet
-final suggestedGroupsProvider = StreamProvider.family<List<GroupModel>, String>((ref, userId) {
-  final repository = ref.watch(groupRepositoryProvider);
-  return repository.getSuggestedGroups(userId);
-});
+final suggestedGroupsProvider = StreamProvider.family<List<GroupModel>, String>(
+  (ref, userId) {
+    final repository = ref.watch(groupRepositoryProvider);
+    return repository.getSuggestedGroups(userId);
+  },
+);
 
 // ==================== ACTION PROVIDERS ====================
 
@@ -75,11 +87,7 @@ class GroupActions {
   }
 
   /// Join an existing group
-  Future<void> joinGroup(
-    String groupId,
-    String userId,
-    String displayName,
-  ) {
+  Future<void> joinGroup(String groupId, String userId, String displayName) {
     return _repository.joinGroup(groupId, userId, displayName);
   }
 
@@ -112,6 +120,3 @@ class GroupActions {
     return _repository.isAdmin(groupId, userId);
   }
 }
-
-
-
