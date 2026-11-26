@@ -229,3 +229,48 @@ class ScrollEventKindTest {
         assertEquals(5, m["minutes"])
     }
 }
+
+class LimitAndWebsiteSheetTest {
+    @Test
+    fun `limit sheet is a modal, passless Got it`() {
+        val s = LitSheetSpec.limitReached("Instagram", 30)
+        assertEquals(SheetMode.LIMIT, s.mode)
+        assertEquals("Instagram limit reached", s.title)
+        assertTrue(s.body.contains("30 min"))
+        assertEquals("Got it", s.primaryLabel)
+        assertTrue(s.passMinutes.isEmpty())
+        assertTrue(s.modal)
+    }
+
+    @Test
+    fun `limit sheet copes with an unknown limit`() {
+        assertFalse(LitSheetSpec.limitReached("Instagram", 0).body.contains("0 min"))
+    }
+
+    @Test
+    fun `website sheet names the site and says why in a focus session`() {
+        val calm = LitSheetSpec.websiteBlocked("reddit.com", focusActive = false)
+        assertEquals(SheetMode.WEBSITE, calm.mode)
+        assertEquals("reddit.com is blocked", calm.title)
+        assertEquals("You asked Lit to keep you off it.", calm.body)
+        assertTrue(calm.passMinutes.isEmpty())
+        assertEquals("Blocked during your focus session.", LitSheetSpec.websiteBlocked("reddit.com", true).body)
+    }
+
+    @Test
+    fun `displayDomain trims scheme, path, query and www`() {
+        assertEquals("reddit.com", LitSheetSpec.displayDomain("https://www.reddit.com/r/all?x=1#top"))
+        assertEquals("discord.com", LitSheetSpec.displayDomain("discord.com"))
+        assertEquals("m.youtube.com", LitSheetSpec.displayDomain("http://m.youtube.com/shorts/abc"))
+        assertEquals("This website", LitSheetSpec.displayDomain("   "))
+    }
+
+    @Test
+    fun `only the limit and website sheets stay until answered`() {
+        assertTrue(SheetMode.LIMIT.staysUntilAnswered)
+        assertTrue(SheetMode.WEBSITE.staysUntilAnswered)
+        assertFalse(SheetMode.BLOCKED.staysUntilAnswered)
+        assertFalse(SheetMode.TIMES_UP.staysUntilAnswered)
+        assertFalse(SheetMode.OFFER.staysUntilAnswered)
+    }
+}

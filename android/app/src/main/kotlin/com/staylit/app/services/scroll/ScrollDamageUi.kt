@@ -195,8 +195,8 @@ class ScrollDamageUi(
             if (pkg == service.packageName || pkg in IGNORED_WINDOW_PACKAGES || pkg.contains("inputmethod")) return
 
             // A blocked / time's-up sheet is dismissed once the user really goes elsewhere.
-            if (sheet.isShown && sheet.mode != SheetMode.OFFER && pkg != sheetPkg &&
-                SystemClock.elapsedRealtime() - sheetShownAt > SHEET_GRACE_MS
+            if (sheet.isShown && sheet.mode != SheetMode.OFFER && sheet.mode?.staysUntilAnswered != true &&
+                pkg != sheetPkg && SystemClock.elapsedRealtime() - sheetShownAt > SHEET_GRACE_MS
             ) {
                 sheet.dismissSilently()
             }
@@ -253,6 +253,38 @@ class ScrollDamageUi(
             shown
         } catch (e: Exception) {
             Log.e(TAG, "blocked sheet failed", e)
+            false
+        }
+    }
+
+    /**
+     * [label] used its daily limit (the app was already sent Home): show the limit sheet.
+     * Returns false if it could not be shown, so the caller can fall back.
+     */
+    fun showLimitReached(label: String, limitMinutes: Int): Boolean {
+        // Already up for this limit: keep it (replacing it would flash it a second time).
+        if (sheet.isShown && sheet.mode == SheetMode.LIMIT) return true
+        return showInfoSheet("limit sheet") { LitSheetSpec.limitReached(label, limitMinutes) }
+    }
+
+    /** A blocked website was opened ([urlOrDomain] is trimmed to the host). False: could not be shown. */
+    fun showWebsiteBlocked(urlOrDomain: String): Boolean =
+        showInfoSheet("website sheet") {
+            LitSheetSpec.websiteBlocked(LitSheetSpec.displayDomain(urlOrDomain), isFocusActive())
+        }
+
+    /** Shared by the limit and website sheets: replace whatever is showing, show [spec], no answer logged. */
+    private fun showInfoSheet(what: String, spec: () -> SheetSpec): Boolean {
+        return try {
+            if (sheet.isShown) {
+                if (sheet.mode == SheetMode.OFFER) sheet.answer(LitSheet.Result(LitSheet.Kind.LEFT)) else sheet.dismissSilently()
+            }
+            hidePill()
+            sheetPkg = ""
+            sheetShownAt = SystemClock.elapsedRealtime()
+            sheet.show(spec(), R.drawable.lit_focused_sheet, 0) { }
+        } catch (e: Exception) {
+            Log.e(TAG, "$what failed", e)
             false
         }
     }
