@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Lit sheet, dark. Values from the Flutter AppPalette.dark (lib/core/theme/app_palette.dart). -->
+    <color name="lit_scrim">#99000000</color>
+    <color name="lit_card">#242427</color>
+    <color name="lit_chip">#303034</color>
+    <color name="lit_text">#F4F4F5</color>
+    <color name="lit_text_secondary">#B4B4BB</color>
+    <color name="lit_text_muted">#9A9AA2</color>
+    <color name="lit_accent">#F0734A</color>
+    <color name="lit_on_accent">#111113</color>
+</resources>

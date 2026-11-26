@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:staylit/data/models/installed_app_model.dart';
+import 'package:staylit/data/models/scroll_delta.dart';
+import 'package:staylit/data/models/scroll_event.dart';
 import 'package:staylit/presentation/providers/focus_session_provider.dart';
 
 /// Service class to handle all native Android permissions required by the app.
@@ -105,6 +107,69 @@ class NativeService {
     }
   }
 
+  // One shared subscription. Every receiveBroadcastStream() call re-runs the
+  // native onListen (replacing its event sink) and cancelling one listener
+  // would cut the others off, so all listeners share this stream.
+  static final Stream<Map<String, dynamic>> _sharedEvents = _eventChannel
+      .receiveBroadcastStream()
+      .map((event) => Map<String, dynamic>.from(event as Map))
+      .asBroadcastStream();
+
+  /// Stream of native events (focus session, scroll damage, ...). Shared.
+  static Stream<Map<String, dynamic>> get focusEventStream => _sharedEvents;
+
+  // ============================================================================
+  // SCROLL DAMAGE
+  // ============================================================================
+
+  /// Tells the native counter whether Scroll damage is on, and for which
+  /// account (a different account drops unsynced counts).
+  static Future<bool> setScrollDamageEnabled({
+    required bool enabled,
+    required String uid,
+    bool? parentalLocked,
+  }) async {
+    try {
+      final result = await _platform.invokeMethod('setScrollDamageEnabled', {
+        'enabled': enabled,
+        'uid': uid,
+        'parentalLocked': ?parentalLocked,
+      });
+      return result as bool? ?? false;
+    } catch (e) {
+      debugPrint('Error setting scroll damage: $e');
+      return false;
+    }
+  }
+
+  /// Counts the native side has not handed over yet.
+  static Future<List<ScrollDelta>> getPendingScrollDamage() async {
+    final result = await _platform.invokeMethod('getPendingScrollDamage');
+    if (result is! List) return [];
+    return [for (final raw in result) ?ScrollDelta.tryParse(raw)];
+  }
+
+  /// Tells native these counts are stored, so it subtracts them.
+  static Future<void> consumeScrollDamage(List<ScrollDelta> deltas) async {
+    await _platform.invokeMethod('consumeScrollDamage', {
+      'days': [for (final delta in deltas) delta.toMap()],
+    });
+  }
+
+  /// Answers to the break offer that native has not handed over yet.
+  static Future<List<ScrollEvent>> getPendingScrollEvents() async {
+    final result = await _platform.invokeMethod('getPendingScrollEvents');
+    if (result is! List) return [];
+    return [for (final raw in result) ?ScrollEvent.tryParse(raw)];
+  }
+
+  /// Tells native these answers are stored, so it removes them.
+  static Future<void> consumeScrollEvents(List<ScrollEvent> events) async {
+    await _platform.invokeMethod('consumeScrollEvents', {
+      'events': [for (final event in events) event.toMap()],
+    });
+  }
+
   /// The completion of a timer session that ended on its own while nothing was listening, or null.
   /// Native keeps it until [ackCompletion], so a missed live event is never lost.
   static Future<Map<String, dynamic>?> getPendingCompletion() async {
@@ -136,13 +201,6 @@ class NativeService {
       debugPrint('Error completing session: $e');
       return null;
     }
-  }
-
-  /// Stream of focus session events from native
-  static Stream<Map<String, dynamic>> get focusEventStream {
-    return _eventChannel.receiveBroadcastStream().map((event) {
-      return Map<String, dynamic>.from(event as Map);
-    });
   }
 
   /// Check if the app has usage stats permission.

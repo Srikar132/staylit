@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -12,10 +13,18 @@ import android.view.accessibility.AccessibilityNodeInfo
 import com.staylit.app.services.overlay.BlockOverlayActivity
 import com.staylit.app.services.overlay.OverlayLauncher
 import com.staylit.app.services.overlay.SimpleBlockOverlay
+import com.staylit.app.services.focus.FocusSessionManager
 import com.staylit.app.managers.WebsiteBlockManager
 import com.staylit.app.managers.ShortFormBlockManager
 import com.staylit.app.services.limits.AppLimitManager
 import com.staylit.app.services.limits.AppLimitTracker
+import com.staylit.app.services.scroll.ScrollCounterEngine
+import com.staylit.app.services.scroll.ScrollDamageUi
+import com.staylit.app.services.scroll.ScrollDamageStore
+import com.staylit.app.services.scroll.ScrollTargets
+import com.staylit.app.services.scroll.ShortFormApps
+import com.staylit.app.services.scroll.ShortFormPassStore
+import com.staylit.app.services.scroll.ShortFormCheck
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import android.os.Handler
@@ -67,6 +76,10 @@ class StaylitAccessibilityService : AccessibilityService() {
         private const val USAGE_CHECK_INTERVAL_MS = 10000L // Check every 10 seconds
         private const val MIN_USAGE_INCREMENT_SECONDS = 10 // Minimum 10 seconds to count
         private const val URL_CHECK_DELAY_MS = 500L // Delay before checking URL to let UI settle
+
+        // Scroll damage
+        private const val SCROLL_TAG = "ScrollDamage"
+        private const val SCROLL_ACTIVE_CACHE_MS = 3000L // Keep a positive short-form check this long
     }
     
     private lateinit var websiteBlockManager: WebsiteBlockManager
@@ -150,6 +163,15 @@ class StaylitAccessibilityService : AccessibilityService() {
         "com.instagram.android:id/main_tab_bar"
     )
     
+    // Scroll damage (counts only, never screen content). See services/scroll/.
+    private val scrollEngine = ScrollCounterEngine()
+    private val scrollSettleHandler = Handler(Looper.getMainLooper())
+    private val scrollSettleRunnable = Runnable { settleScrollBurst() }
+    @Volatile private var scrollDamageEnabled = false
+    private var scrollActivePkg: String? = null
+    private var scrollUi: ScrollDamageUi? = null
+    private var scrollActiveUntilMs = 0L
+
     // App limit tracking
     private var currentForegroundApp: String? = null
     private var lastUsageCheckTime: Long = 0
@@ -173,7 +195,20 @@ class StaylitAccessibilityService : AccessibilityService() {
         appLimitManager = AppLimitManager(applicationContext)
         appLimitTracker = AppLimitTracker(applicationContext)
         overlayLauncher = OverlayLauncher.getInstance(applicationContext)
-        
+        scrollDamageEnabled = ScrollDamageStore.getInstance(applicationContext).isEnabled()
+        scrollUi = ScrollDamageUi(
+            service = this,
+            store = ScrollDamageStore.getInstance(applicationContext),
+            passStore = ShortFormPassStore.getInstance(applicationContext),
+            leaveShortForm = { pkg -> leaveShortFormView(pkg) },
+            // Blocking has priority: no pill, offer or pass while a focus session or a block overlay owns the screen.
+            isFocusActive = { FocusSessionManager.getInstance(applicationContext).isSessionActive() },
+            isBlockOverlayShowing = { SimpleBlockOverlay.isAnyShowing() },
+            isBlockOn = { pkg -> shortFormBlockManager.isPackageBlocked(pkg) },
+            stillInShortForm = { pkg -> isShortFormViewActive(pkg, android.os.SystemClock.elapsedRealtime(), useCache = false) },
+            isSwiping = { scrollEngine.burstPackage != null },
+        )
+
         // Start as foreground service for persistence
         startForegroundService()
         
@@ -219,7 +254,20 @@ class StaylitAccessibilityService : AccessibilityService() {
 
             val packageName = event.packageName?.toString() ?: return
             val eventType = event.eventType
-            
+
+            // Scroll damage runs first and on its own: it must never skip or break the blocking below.
+            if (scrollDamageEnabled && eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
+                onScrollForDamage(event, packageName)
+            }
+            // The blocked sheet must also go away when the user leaves, whether or not Scroll damage is on.
+            when (eventType) {
+                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
+                    scrollUi?.onWindowChanged(packageName)
+                    scrollUi?.onPossibleViewChange(packageName)
+                }
+                AccessibilityEvent.TYPE_VIEW_CLICKED -> scrollUi?.onPossibleViewChange(packageName)
+            }
+
             Log.d(TAG, "Event: ${AccessibilityEvent.eventTypeToString(eventType)} for $packageName")
             
             // Update current foreground app for usage tracking
@@ -273,7 +321,8 @@ class StaylitAccessibilityService : AccessibilityService() {
             
             // Handle short-form content blocking with enhanced detection
             if (shortFormBlockManager.getActiveBlocks().isNotEmpty() && 
-                shortFormBlockManager.isPackageBlocked(packageName)) {
+                shortFormBlockManager.isPackageBlocked(packageName) &&
+                !isShortFormPassActive(packageName)) {
                 
                 // Add cooldown to prevent spam blocking
                 val currentTime = System.currentTimeMillis()
@@ -1455,14 +1504,17 @@ class StaylitAccessibilityService : AccessibilityService() {
             
             // STEP 2: Show simple native overlay (5 second duration with auto-dismiss)
             Handler(Looper.getMainLooper()).postDelayed({
-                SimpleBlockOverlay.show(
-                    context = applicationContext,
-                    platform = "YouTube",
-                    contentType = "shorts",
-                    onDismiss = {
-                        Log.d(TAG, "✅ Overlay dismissed, user is on YouTube Home")
-                    }
-                )
+                // The Lit sheet (Go back + break passes); the old overlay only if it cannot be shown.
+                if (scrollUi?.showBlocked("com.google.android.youtube") != true) {
+                    SimpleBlockOverlay.show(
+                        context = applicationContext,
+                        platform = "YouTube",
+                        contentType = "shorts",
+                        onDismiss = {
+                            Log.d(TAG, "✅ Overlay dismissed, user is on YouTube Home")
+                        }
+                    )
+                }
             }, 200) // Brief delay to let navigation complete
             
         } catch (e: Exception) {
@@ -2016,8 +2068,162 @@ class StaylitAccessibilityService : AccessibilityService() {
         }
     }
 
+    // ------------------------------------------------------------------
+    // Scroll damage: counts short-form items. Numbers only, never content.
+    // ------------------------------------------------------------------
+
+    /** Per scroll event: feed numbers to the engine and re-arm the settle timer. No node access here. */
+    private fun onScrollForDamage(event: AccessibilityEvent, packageName: String) {
+        try {
+            if (!ScrollTargets.isTarget(packageName)) return
+            val deltaY = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) event.scrollDeltaY else 0
+            scrollEngine.onScroll(packageName, event.fromIndex, deltaY)
+            scrollSettleHandler.removeCallbacks(scrollSettleRunnable)
+            scrollSettleHandler.postDelayed(scrollSettleRunnable, scrollEngine.config.debounceMs)
+        } catch (e: Exception) {
+            Log.e(SCROLL_TAG, "scroll event failed", e)
+        }
+    }
+
+    /** The swipe went quiet: confirm short-form view once, then let the engine decide. */
+    private fun settleScrollBurst() {
+        try {
+            val pkg = scrollEngine.burstPackage ?: return
+            if (!scrollDamageEnabled) {
+                scrollEngine.reset()
+                return
+            }
+            val nowMs = android.os.SystemClock.elapsedRealtime()
+            val active = isShortFormViewActive(pkg, nowMs)
+            val result = scrollEngine.onSettle(nowMs, System.currentTimeMillis(), active)
+            when (result.outcome) {
+                ScrollCounterEngine.Outcome.COUNTED -> {
+                    ScrollDamageStore.getInstance(applicationContext)
+                        .recordCount(result.day, result.tzOffsetMinutes, pkg, result.newSession)
+                    scrollUi?.onCounted(pkg, result, nowMs, System.currentTimeMillis())
+                }
+                // Short-form view is on screen, nothing new to count: the session is still alive.
+                ScrollCounterEngine.Outcome.SAME_PAGE,
+                ScrollCounterEngine.Outcome.TOO_FAST -> scrollUi?.onActivity(pkg, nowMs)
+                ScrollCounterEngine.Outcome.NOT_SHORT_FORM -> scrollUi?.onLeftShortForm()
+                ScrollCounterEngine.Outcome.NO_BURST -> Unit
+            }
+            // Outcome names, package id and a number only. Never anything from the screen.
+            Log.d(SCROLL_TAG, "${result.outcome} pkg=$pkg session=${result.sessionCount}")
+        } catch (e: Exception) {
+            Log.e(SCROLL_TAG, "settle failed", e)
+        }
+    }
+
+    /**
+     * True when [pkg] is the app on screen and its short-form view is showing. The cheap window package
+     * check comes first so a swipe that ended by leaving the app (or by one of our own overlays taking
+     * over) never counts. A positive tree-walk answer is cached for 3 s.
+     */
+    private fun isShortFormViewActive(pkg: String, nowMs: Long, useCache: Boolean = true): Boolean {
+        val root = rootInActiveWindow ?: return false
+        try {
+            if (root.packageName?.toString() != pkg) {
+                scrollActivePkg = null
+                return false
+            }
+            if (useCache && scrollActivePkg == pkg && nowMs < scrollActiveUntilMs) return true
+
+            val active = when (ScrollTargets.checkFor(pkg)) {
+                ShortFormCheck.YOUTUBE_SHORTS -> detectYouTubeShortsEnhanced()
+                ShortFormCheck.INSTAGRAM_REELS -> detectInstagramReels()
+                ShortFormCheck.ALWAYS -> true
+                ShortFormCheck.FACEBOOK_REELS_TAB -> detectFacebookReelsTab(root)
+                null -> false
+            }
+            if (active) {
+                scrollActivePkg = pkg
+                scrollActiveUntilMs = nowMs + SCROLL_ACTIVE_CACHE_MS
+            } else {
+                scrollActivePkg = null
+            }
+            return active
+        } finally {
+            root.recycle()
+        }
+    }
+
+    /** Best effort: Facebook ids are obfuscated, so look for the selected tab named "Reels". Logs nothing. */
+    private fun detectFacebookReelsTab(node: AccessibilityNodeInfo, depth: Int = 0): Boolean {
+        if (depth > 12) return false
+        try {
+            if (node.isSelected) {
+                val text = node.text?.toString().orEmpty()
+                val desc = node.contentDescription?.toString().orEmpty()
+                if (text.contains("Reels", ignoreCase = true) || desc.contains("Reels", ignoreCase = true)) {
+                    return true
+                }
+            }
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                val found = detectFacebookReelsTab(child, depth + 1)
+                child.recycle()
+                if (found) return true
+            }
+        } catch (e: Exception) {
+            return false
+        }
+        return false
+    }
+
+    /** A break pass is running for [pkg] (never during a focus session): the block lets it through. */
+    private fun isShortFormPassActive(pkg: String): Boolean =
+        ShortFormPassStore.getInstance(applicationContext).isActive(pkg) &&
+            !FocusSessionManager.getInstance(applicationContext).isSessionActive() &&
+            // A parent PIN protects the blocks: a pass can never loosen one, even a leftover one.
+            !ScrollDamageStore.getInstance(applicationContext).isParentalLocked()
+
+    /** Takes the user out of [pkg]'s short-form view: the app's Home tab, or the launcher. */
+    private fun leaveShortFormView(pkg: String) {
+        try {
+            val done = when (pkg) {
+                "com.google.android.youtube" -> navigateToYouTubeHomeImmediate()
+                "com.instagram.android" -> navigateToInstagramHomeImmediate()
+                else -> false
+            }
+            if (!done) performGlobalAction(GLOBAL_ACTION_HOME)
+        } catch (e: Exception) {
+            Log.e(SCROLL_TAG, "leave failed", e)
+        }
+    }
+
+    /**
+     * The short-form block fired for [pkg]: show the Lit "blocked" sheet. With [navigate] the user is first
+     * taken out of the short-form view (callers that already navigated pass false). Returns false if [pkg]
+     * is not one of the four short-form apps, so the caller can fall back to the old overlay.
+     */
+    fun showShortFormBlockedSheet(pkg: String, navigate: Boolean): Boolean {
+        val ui = scrollUi ?: return false
+        if (ShortFormApps.forPackage(pkg) == null) return false
+        if (navigate) leaveShortFormView(pkg)
+        Handler(Looper.getMainLooper()).postDelayed({ ui.showBlocked(pkg) }, if (navigate) 250L else 0L)
+        return true
+    }
+
+    /** Called from MainActivity when the Flutter setting changes. Turning off cancels everything now. */
+    fun setScrollDamageEnabled(enabled: Boolean) {
+        scrollDamageEnabled = enabled
+        if (!enabled) {
+            scrollSettleHandler.removeCallbacksAndMessages(null)
+            scrollEngine.reset()
+            scrollActivePkg = null
+            scrollUi?.reset()
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        scrollUi?.onConfigurationChanged()
+    }
+
     override fun onInterrupt() {
         Log.d(TAG, "Accessibility Service Interrupted")
+        scrollUi?.hideAll()
     }
     
     /**
@@ -2064,7 +2270,14 @@ class StaylitAccessibilityService : AccessibilityService() {
         
         // Stop shorts detection handler
         shortsDetectionHandler.removeCallbacksAndMessages(null)
-        
+
+        // Stop Scroll damage timers; counts already counted are persisted in the store
+        scrollSettleHandler.removeCallbacksAndMessages(null)
+        scrollEngine.reset()
+        scrollActivePkg = null
+        scrollUi?.release() // removes the pill and card, no answer logged
+        scrollUi = null
+
         // Stop foreground service
         try {
             stopForeground(true)
@@ -2088,14 +2301,17 @@ class StaylitAccessibilityService : AccessibilityService() {
             
             // STEP 2: Show simple native overlay (5 second duration with auto-dismiss)
             Handler(Looper.getMainLooper()).postDelayed({
-                SimpleBlockOverlay.show(
-                    context = applicationContext,
-                    platform = "Instagram",
-                    contentType = "reels",
-                    onDismiss = {
-                        Log.d(TAG, "✅ Overlay dismissed, user is on Instagram Home")
-                    }
-                )
+                // The Lit sheet (Go back + break passes); the old overlay only if it cannot be shown.
+                if (scrollUi?.showBlocked("com.instagram.android") != true) {
+                    SimpleBlockOverlay.show(
+                        context = applicationContext,
+                        platform = "Instagram",
+                        contentType = "reels",
+                        onDismiss = {
+                            Log.d(TAG, "✅ Overlay dismissed, user is on Instagram Home")
+                        }
+                    )
+                }
             }, 200) // Brief delay to let navigation complete
             
         } catch (e: Exception) {

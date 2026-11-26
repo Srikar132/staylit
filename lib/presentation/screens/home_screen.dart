@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:staylit/core/theme/app_dimens.dart';
 import 'package:staylit/core/theme/theme_context.dart';
 import 'package:staylit/presentation/providers/home_tab_provider.dart';
+import 'package:staylit/presentation/providers/scroll_damage_sync_provider.dart';
 import 'package:staylit/presentation/screens/blocks_screen.dart';
 import 'package:staylit/presentation/screens/focus_screen.dart';
 import 'package:staylit/presentation/screens/group_screen.dart';
@@ -66,6 +67,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       setState(() => _selectedIndex = tab);
       ref.read(homeTabRequestProvider.notifier).clear();
     });
+
+    // Keeps the native Scroll damage counter and Firestore in step (no UI).
+    ref.watch(scrollDamageSyncProvider);
 
     _screens[_selectedIndex] ??= _screenBuilders[_selectedIndex](context);
     final palette = context.palette;

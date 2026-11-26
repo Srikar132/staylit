@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:staylit/data/models/focus_session_model.dart';
+import 'package:staylit/data/models/scroll_day.dart';
+import 'package:staylit/presentation/screens/focus/scroll_trend.dart';
 
 /// One row of "Today's sessions".
 @immutable
@@ -53,6 +55,25 @@ class ScrollDamageData {
     this.trendText,
     this.trendGood = true,
   });
+
+  /// From a continuous run of days, oldest first, ending today (as returned
+  /// by `ScrollDay.lastDays`). Fewer than two days gives no trend.
+  factory ScrollDamageData.fromDays(List<ScrollDay> days) {
+    final totals = [for (final day in days) day.total];
+    final today = totals.isEmpty ? 0 : totals.last;
+    final trend = totals.length < 2
+        ? null
+        : ScrollTrend.compare(
+            today: today,
+            yesterday: totals[totals.length - 2],
+          );
+    return ScrollDamageData(
+      todayCount: today,
+      week: totals,
+      trendText: trend?.text,
+      trendGood: trend?.good ?? true,
+    );
+  }
 
   final int todayCount;
 

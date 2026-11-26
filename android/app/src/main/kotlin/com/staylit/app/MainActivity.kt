@@ -17,6 +17,11 @@ import com.staylit.app.services.focus.FocusSessionManager
 import com.staylit.app.services.limits.AppLimitManager
 import com.staylit.app.services.StaylitAccessibilityService
 import com.staylit.app.services.shared.BlockingConfig
+import com.staylit.app.services.scroll.DayDelta
+import com.staylit.app.services.scroll.ScrollDamageNotifier
+import com.staylit.app.services.scroll.ScrollDamageStore
+import com.staylit.app.services.scroll.ScrollEvent
+import com.staylit.app.services.scroll.ShortFormPassStore
 import com.staylit.app.managers.ShortFormBlockManager
 import com.staylit.app.managers.WebsiteBlockManager
 import com.staylit.app.utils.AppUtils
@@ -59,6 +64,12 @@ class MainActivity: FlutterActivity() {
 
     // Event sinks
     private var eventSink: EventChannel.EventSink? = null
+
+    // The Scroll damage "new counts" ping of THIS Activity (compared by identity so a late teardown of an
+    // older Activity cannot clear a newer one's listener).
+    private val scrollPingListener: (Map<String, Any>) -> Unit = { payload ->
+        sendEventToFlutter("scroll_damage_update", payload)
+    }
     private val eventQueue = ConcurrentHashMap<String, Any>()
 
     // SCOPE
@@ -179,6 +190,9 @@ class MainActivity: FlutterActivity() {
                 eventSink = events
                 sessionManager.setEventSink(events)
 
+                // Scroll damage: tell Flutter when new counts exist (it pulls the numbers itself)
+                ScrollDamageNotifier.listener = scrollPingListener
+
                 // Send queued events
                 eventQueue.forEach { (event, data) ->
                     sendEventToFlutter(event, data)
@@ -192,6 +206,8 @@ class MainActivity: FlutterActivity() {
                 // Only let go of OUR sink: a newer Activity may already have registered its own.
                 sessionManager.detachSink(eventSink)
                 eventSink = null
+                // Only clear the Scroll damage ping if it is still ours (a newer Activity may have set its own).
+                if (ScrollDamageNotifier.listener === scrollPingListener) ScrollDamageNotifier.listener = null
                 Log.d(TAG, "Event channel disconnected")
             }
         })
@@ -312,6 +328,9 @@ class MainActivity: FlutterActivity() {
      * [mode] is "light", "dark" or "system" (follow the phone).
      */
     private fun applyNightMode(mode: String?): Boolean {
+        // Remember the in-app Appearance ("light" / "dark" / "system") so native overlays (the Lit sheet) match
+        // the app instead of the system theme. Saved before the API check: it is needed on every Android version.
+        getSharedPreferences("app_appearance", MODE_PRIVATE).edit().putString("mode", mode ?: "system").apply()
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
         val nightMode = when (mode) {
             "light" -> UiModeManager.MODE_NIGHT_NO
@@ -346,6 +365,45 @@ class MainActivity: FlutterActivity() {
                     }
 
                     // ====================
+                    // SCROLL DAMAGE
+                    // ====================
+                    "setScrollDamageEnabled" -> {
+                        val args = arguments as? Map<*, *>
+                        val enabled = args?.get("enabled") as? Boolean ?: false
+                        val uid = args?.get("uid") as? String ?: ""
+                        val parentalLocked = args?.get("parentalLocked") as? Boolean
+                        ScrollDamageStore.getInstance(this@MainActivity).setEnabled(enabled, uid, parentalLocked)
+                        // A parent PIN switched on: end any running break pass right away.
+                        if (parentalLocked == true) ShortFormPassStore.getInstance(this@MainActivity).cancelAll()
+                        StaylitAccessibilityService.getInstance()?.setScrollDamageEnabled(enabled)
+                        result.success(true)
+                    }
+
+                    "getPendingScrollDamage" -> {
+                        val pending = ScrollDamageStore.getInstance(this@MainActivity).pending()
+                        result.success(pending.map { it.toMap() })
+                    }
+
+                    "consumeScrollDamage" -> {
+                        val args = arguments as? Map<*, *>
+                        val days = (args?.get("days") as? List<*>)?.mapNotNull { parseDayDelta(it) } ?: emptyList()
+                        ScrollDamageStore.getInstance(this@MainActivity).consume(days)
+                        result.success(true)
+                    }
+
+                    "getPendingScrollEvents" -> {
+                        val pending = ScrollDamageStore.getInstance(this@MainActivity).pendingEvents()
+                        result.success(pending.map { it.toMap() })
+                    }
+
+                    "consumeScrollEvents" -> {
+                        val args = arguments as? Map<*, *>
+                        val done = (args?.get("events") as? List<*>)?.mapNotNull { parseScrollEvent(it) } ?: emptyList()
+                        ScrollDamageStore.getInstance(this@MainActivity).consumeEvents(done)
+                        result.success(true)
+                    }
+
+                    // ====================
                     // FOCUS SESSION METHODS
                     // ====================
                     "startFocusSession" -> {
@@ -359,6 +417,8 @@ class MainActivity: FlutterActivity() {
                                     // Start monitoring service if session started successfully
                                     if (success) {
                                         FocusMonitoringService.start(this@MainActivity)
+                                        // Focus has priority: any break pass ends when a session starts.
+                                        ShortFormPassStore.getInstance(this@MainActivity).cancelAll()
                                     }
 
                                     withContext(Dispatchers.Main) {
@@ -761,6 +821,40 @@ class MainActivity: FlutterActivity() {
         }
     }
 
+    /** One day's counts from Flutter. Numbers arrive as Int or Long, so go through Number. */
+    private fun parseDayDelta(raw: Any?): DayDelta? {
+        val m = raw as? Map<*, *> ?: return null
+        val day = m["day"] as? String ?: return null
+        val perApp = (m["perApp"] as? Map<*, *>)?.mapNotNull { (k, v) ->
+            val key = k as? String ?: return@mapNotNull null
+            key to ((v as? Number)?.toInt() ?: 0)
+        }?.toMap() ?: emptyMap()
+        return DayDelta(
+            day = day,
+            tzOffsetMinutes = (m["tzOffsetMinutes"] as? Number)?.toInt() ?: 0,
+            total = (m["total"] as? Number)?.toInt() ?: 0,
+            perApp = perApp,
+            sessions = (m["sessions"] as? Number)?.toInt() ?: 0,
+        )
+    }
+
+    /** One break-offer answer from Flutter. */
+    private fun parseScrollEvent(raw: Any?): ScrollEvent? {
+        val m = raw as? Map<*, *> ?: return null
+        val ts = (m["ts"] as? Number)?.toLong() ?: return null
+        return ScrollEvent(
+            ts = ts,
+            day = m["day"] as? String ?: "",
+            tzOffsetMinutes = (m["tzOffsetMinutes"] as? Number)?.toInt() ?: 0,
+            pkg = m["pkg"] as? String ?: "",
+            sessionCount = (m["sessionCount"] as? Number)?.toInt() ?: 0,
+            threshold = (m["threshold"] as? Number)?.toInt() ?: 0,
+            response = m["response"] as? String ?: "",
+            kind = m["kind"] as? String ?: "offer",
+            minutes = (m["minutes"] as? Number)?.toInt() ?: 0,
+        )
+    }
+
     private fun sendEventToFlutter(event: String, data: Any) {
         try {
             val eventData = mapOf(
@@ -848,6 +942,7 @@ class MainActivity: FlutterActivity() {
             // events alive without an Activity. Only detach this Activity's own sink.
             sessionManager.detachSink(eventSink)
             eventSink = null
+            if (ScrollDamageNotifier.listener === scrollPingListener) ScrollDamageNotifier.listener = null
             eventQueue.clear()
 
             // Cleanup managers

@@ -55,7 +55,9 @@ class ScrollDamageSheet extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               'Lit counts the shorts and reels you scroll past, and tells you '
-              'when it is time to stop.',
+              'when it is time to stop. If you take a break, Lit switches that '
+              'app\'s Shorts or Reels block on until you turn it off in Blocks. '
+              'Only counts are kept, never what is on your screen.',
               style: textTheme.bodyLarge,
               textAlign: TextAlign.center,
             ),
