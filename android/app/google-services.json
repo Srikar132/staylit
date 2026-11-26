@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "910469793819-62p2eteinp9mkgaaqvid2f1ss7hj6j9t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.staylit.app",
+            "certificate_hash": "bae5d40e5cad16a410414a2d5812a6aca0e336bf"
+          }
+        },
+        {
           "client_id": "910469793819-t10lj86v4pijddidnm94kmj11affp9lt.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
