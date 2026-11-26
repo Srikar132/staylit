@@ -571,6 +571,13 @@ class WebBlockingVPNService : VpnService() {
                 "This website is blocked"
             }
 
+            // The Lit sheet through the accessibility service; the old overlay if it is not running.
+            if (com.staylit.app.services.StaylitAccessibilityService.getInstance()
+                    ?.showWebsiteBlockedSheet(domain) == true
+            ) {
+                return
+            }
+
             SimpleBlockOverlay.showWebsite(
                 context = applicationContext,
                 url = "https://$domain",
