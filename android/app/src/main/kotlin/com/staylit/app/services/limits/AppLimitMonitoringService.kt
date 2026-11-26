@@ -284,29 +284,9 @@ class AppLimitMonitoringService : Service() {
     }
 
     private fun updateLimitsCache() {
+        // Nothing fills this cache any more: the old `app_limits_map` prefs key it read was never written.
+        // Limits live in StaylitNativeLimitsHolder (persisted); this legacy service does not enforce them.
         limitedAppsCache.clear()
-        // Get limits from AppLimitManager
-        // Note: This would need to be implemented in AppLimitManager
-        // For now, we'll load from SharedPreferences directly
-
-        val prefs = getSharedPreferences("app_limits", Context.MODE_PRIVATE)
-        val limitsJson = prefs.getString("app_limits_map", null)
-
-        if (limitsJson != null) {
-            try {
-                val limitsMap = org.json.JSONObject(limitsJson)
-                limitsMap.keys().forEach { packageName ->
-                    val limitData = limitsMap.getJSONObject(packageName)
-                    val dailyLimit = limitData.optInt("dailyLimit", 0)
-                    if (dailyLimit > 0) {
-                        limitedAppsCache[packageName] = dailyLimit
-                    }
-                }
-                Log.d(TAG, "📋 Updated limits cache: ${limitedAppsCache.size} apps")
-            } catch (e: Exception) {
-                Log.e(TAG, "❌ Error parsing limits", e)
-            }
-        }
 
         // Reset blocked apps at start of new day
         checkAndResetDailyBlocks()

@@ -241,7 +241,8 @@ class MainActivity: FlutterActivity() {
                                 }
                             }
                             
-                            // Update native limits holder
+                            // Update native limits holder (full replace; saved for the next process start)
+                            com.staylit.app.services.limits.StaylitNativeLimitsHolder.init(applicationContext)
                             Log.d(TAG, "Updating StaylitNativeLimitsHolder with ${limitsMap.size} limits")
                             com.staylit.app.services.limits.StaylitNativeLimitsHolder.updateLimits(limitsMap)
                             Log.i(TAG, "✅ Successfully updated ${limitsMap.size} app limits from Flutter")
