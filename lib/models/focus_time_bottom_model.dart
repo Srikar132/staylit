@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:staylit/data/models/installed_app_model.dart';
+import 'package:staylit/data/models/user_settings_model.dart';
 import 'package:staylit/models/block_app_bottom_model.dart';
 import 'package:staylit/models/model_manager.dart';
 import 'package:staylit/presentation/providers/app_management_provide.dart';
@@ -222,39 +223,18 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
   late String _selectedMode;
   bool _isInitialized = false;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    // Initialize settings from provider only once
-    if (!_isInitialized) {
-      final user = ref.read(currentUserProvider).value;
-      if (user != null) {
-        final settingsAsync = ref.read(userSettingsProvider(user.uid));
-        settingsAsync.whenData((settings) {
-          if (settings != null && mounted) {
-            setState(() {
-              _duration = settings.defaultDuration;
-              _breaks = settings.numberOfBreaks;
-              _blockHomeScreen = settings.blockPhoneHomeScreen;
-              _strictMode = settings.strictMode;
-              _selectedMode = settings.timerMode.toLowerCase();
-              _isInitialized = true;
-            });
-          }
-        });
-      }
-
-      // Set defaults if settings not available
-      if (!_isInitialized) {
-        _duration = 25;
-        _breaks = 0;
-        _blockHomeScreen = false;
-        _strictMode = false;
-        _selectedMode = 'timer';
-        _isInitialized = true;
-      }
-    }
+  /// Seeds the local fields exactly once: from the real settings when they have
+  /// arrived, or from defaults when there are none to wait for (error / no
+  /// settings document). Never called while the stream is still loading, so the
+  /// sheet cannot show (and then keep) placeholder values.
+  void _seed(UserSettingsModel? settings) {
+    if (_isInitialized) return;
+    _duration = settings?.defaultDuration ?? 25;
+    _breaks = settings?.numberOfBreaks ?? 0;
+    _blockHomeScreen = settings?.blockPhoneHomeScreen ?? false;
+    _strictMode = settings?.strictMode ?? false;
+    _selectedMode = settings?.timerMode.toLowerCase() ?? 'timer';
+    _isInitialized = true;
   }
 
   Future<void> _updateSettings({
@@ -280,11 +260,12 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
         timerMode: mode ?? _selectedMode,
       );
 
+      // No invalidate: the settings stream is realtime and Firestore fires it
+      // for local writes immediately, so the UI stays in sync without tearing
+      // the subscription down (which caused a loading flash).
       await ref
           .read(settingsRepositoryProvider)
           .updateSettings(user.uid, updated);
-      // Refresh the provider so the UI stays in sync
-      ref.invalidate(userSettingsProvider(user.uid));
     } catch (e) {
       debugPrint('Failed to update settings: $e');
     }
@@ -308,7 +289,10 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
     final settingsAsync = ref.watch(userSettingsProvider(user.uid));
 
     return settingsAsync.when(
-      data: (settings) => _buildContent(context, settings),
+      data: (settings) {
+        _seed(settings);
+        return _buildContent(context);
+      },
       loading: () => Container(
         height: MediaQuery.of(context).size.height * 0.3,
         decoration: BoxDecoration(
@@ -317,27 +301,14 @@ class _FocusTimeBottomSheetState extends ConsumerState<FocusTimeBottomSheet> {
         ),
         child: const Center(child: CircularProgressIndicator()),
       ),
-      error: (_, _) => _buildContent(context, null),
+      error: (_, _) {
+        _seed(null);
+        return _buildContent(context);
+      },
     );
   }
 
-  Widget _buildContent(BuildContext context, settings) {
-    // Update state if settings loaded
-    if (settings != null && !_isInitialized) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {
-            _duration = settings.defaultDuration;
-            _breaks = settings.numberOfBreaks;
-            _blockHomeScreen = settings.blockPhoneHomeScreen;
-            _strictMode = settings.strictMode;
-            _selectedMode = settings.timerMode.toLowerCase();
-            _isInitialized = true;
-          });
-        }
-      });
-    }
-
+  Widget _buildContent(BuildContext context) {
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     final screenHeight = MediaQuery.of(context).size.height;
     final textTheme = Theme.of(context).textTheme;

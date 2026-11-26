@@ -86,11 +86,17 @@ class _WeekBarChartPainter extends CustomPainter {
   static const double _tooltipSpace = 38;
   static const double _minBarHeight = 14;
 
+  bool get _hasTooltip => tooltip.isNotEmpty;
+
   @override
   void paint(Canvas canvas, Size size) {
     if (values.isEmpty) return;
 
-    final chartHeight = size.height - _tooltipSpace;
+    // Room above the bars is only reserved when there is a tooltip to put in
+    // it. Without one (the Scroll damage and mini stat cards) the whole height
+    // is the chart; reserving it anyway left a short chart where every bar was
+    // clamped to the minimum height and looked identical.
+    final chartHeight = _hasTooltip ? size.height - _tooltipSpace : size.height;
     final barWidth = (size.width - _gap * (values.length - 1)) / values.length;
     final maxValue = values.fold<num>(1, (a, b) => math.max(a, b));
     final radius = Radius.circular(math.min(barWidth * 0.4, 16));
@@ -130,7 +136,7 @@ class _WeekBarChartPainter extends CustomPainter {
       }
     }
 
-    if (highlightRect != null && tooltip.isNotEmpty) {
+    if (highlightRect != null && _hasTooltip) {
       _paintTooltip(canvas, size, highlightRect);
     }
   }

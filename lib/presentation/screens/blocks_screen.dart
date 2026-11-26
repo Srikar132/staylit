@@ -11,7 +11,6 @@ import 'package:staylit/data/models/app_limit_model.dart';
 import 'package:staylit/services/blocks_native_service.dart';
 import 'package:staylit/services/app_limit_native_service.dart';
 import 'package:staylit/services/native_service.dart';
-import 'package:installed_apps/installed_apps.dart';
 import 'package:installed_apps/app_info.dart';
 import 'package:staylit/widgets/parental_control_dialogs.dart';
 
@@ -21,7 +20,7 @@ import 'package:staylit/core/theme/theme_context.dart';
 import 'package:staylit/core/constants/app_info.dart';
 import 'package:staylit/core/theme/app_dimens.dart';
 import 'package:staylit/presentation/providers/app_management_provide.dart'
-    show appIconProvider;
+    show appIconProvider, installedAppsProvider, pickerAppsProvider;
 import 'package:staylit/presentation/widgets/design/app_icon_badge.dart';
 import 'package:staylit/presentation/widgets/design/app_limit_card.dart';
 import 'package:staylit/presentation/widgets/design/app_pill_button.dart';
@@ -206,7 +205,6 @@ class _BlocksScreenState extends ConsumerState<BlocksScreen> {
     // Initialize permissions when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(permissionProvider.notifier).checkPermissions();
-      _syncLimitsToNative();
     });
   }
 
@@ -217,27 +215,6 @@ class _BlocksScreenState extends ConsumerState<BlocksScreen> {
         _showAppLimitReachedDialog(packageName);
       }
     });
-  }
-
-  Future<void> _syncLimitsToNative() async {
-    try {
-      final user = ref.read(currentUserProvider).value;
-      if (user == null) return;
-
-      final appLimitsAsync = ref.read(appLimitsProvider(user.uid));
-      appLimitsAsync.whenData((limits) async {
-        final limitsMap = <String, int>{};
-        for (final limit in limits) {
-          if (limit.isActive) {
-            limitsMap[limit.packageName] = limit.dailyLimit;
-          }
-        }
-        await _appLimitNativeService.updateLimits(limitsMap);
-        debugPrint('✅ Synced ${limitsMap.length} app limits to native');
-      });
-    } catch (e) {
-      debugPrint('Error syncing limits to native: $e');
-    }
   }
 
   void _showAppLimitReachedDialog(String packageName) {
@@ -631,7 +608,6 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
                 ? '✅ ${widget.limit.appName} limit enabled'
                 : '🔓 ${widget.limit.appName} limit disabled',
           ),
-          backgroundColor: context.palette.surface,
           duration: const Duration(seconds: 2),
         ),
       );
@@ -747,12 +723,9 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
 
                   if (context.mounted) {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('✅ Limit updated'),
-                        backgroundColor: context.palette.surface,
-                      ),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('✅ Limit updated')));
                   }
                 } catch (e) {
                   debugPrint('Error updating limit: $e');
@@ -810,7 +783,6 @@ class _AppLimitTileState extends ConsumerState<_AppLimitTile> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('✅ ${widget.limit.appName} limit removed'),
-                      backgroundColor: context.palette.surface,
                     ),
                   );
                 }
@@ -846,6 +818,24 @@ class _ShortFormBlocksSection extends ConsumerWidget {
     // Watch the blockedContentProvider directly and extract shortFormBlocks
     final contentAsync = ref.watch(blockedContentProvider(userId));
 
+    // The installed list is cached for the session (see installedAppsProvider)
+    // but leaves out some preinstalled system apps (e.g. a Facebook that ships
+    // with the phone), so an app counts as installed if it is in the list OR
+    // the launcher icon lookup finds it. While anything is still loading, or if
+    // the scan fails, assume installed so rows are never wrongly disabled.
+    final installedApps = ref.watch(installedAppsProvider).value;
+    final installedPackages = installedApps == null
+        ? null
+        : {for (final app in installedApps) app.packageName};
+    bool isInstalled(List<String> packages) {
+      if (installedPackages == null) return true;
+      return packages.any((package) {
+        if (installedPackages.contains(package)) return true;
+        final icon = ref.watch(appIconProvider(package));
+        return icon.isLoading || icon.value != null;
+      });
+    }
+
     return _BlockSection(
       title: 'Short Form Content',
       icon: Icons.video_library_outlined,
@@ -870,6 +860,7 @@ class _ShortFormBlocksSection extends ConsumerWidget {
                 subtitle: 'Block Shorts shelf & feed',
                 icon: Icons.play_circle_outline,
                 packages: const ['com.google.android.youtube'],
+                installed: isInstalled(const ['com.google.android.youtube']),
                 isBlocked: blocks['YouTube_Shorts']?.isBlocked ?? false,
                 onChanged: (value) => _updateBlock(
                   context,
@@ -885,6 +876,7 @@ class _ShortFormBlocksSection extends ConsumerWidget {
                 subtitle: 'Block Reels tab & feed',
                 icon: Icons.camera_alt_outlined,
                 packages: const ['com.instagram.android'],
+                installed: isInstalled(const ['com.instagram.android']),
                 isBlocked: blocks['Instagram_Reels']?.isBlocked ?? false,
                 onChanged: (value) => _updateBlock(
                   context,
@@ -903,6 +895,10 @@ class _ShortFormBlocksSection extends ConsumerWidget {
                   'com.zhiliaoapp.musically',
                   'com.ss.android.ugc.trill',
                 ],
+                installed: isInstalled(const [
+                  'com.zhiliaoapp.musically',
+                  'com.ss.android.ugc.trill',
+                ]),
                 isBlocked: blocks['TikTok_Videos']?.isBlocked ?? false,
                 onChanged: (value) => _updateBlock(
                   context,
@@ -918,6 +914,10 @@ class _ShortFormBlocksSection extends ConsumerWidget {
                 subtitle: 'Block Reels section',
                 icon: Icons.facebook_outlined,
                 packages: const ['com.facebook.katana', 'com.facebook.lite'],
+                installed: isInstalled(const [
+                  'com.facebook.katana',
+                  'com.facebook.lite',
+                ]),
                 isBlocked: blocks['Facebook_Reels']?.isBlocked ?? false,
                 onChanged: (value) => _updateBlock(
                   context,
@@ -1053,7 +1053,6 @@ class _ShortFormBlocksSection extends ConsumerWidget {
                   ? '🚫 $platform $feature blocked'
                   : '✅ $platform $feature unblocked',
             ),
-            backgroundColor: context.palette.surface,
             duration: const Duration(seconds: 2),
           ),
         );
@@ -1084,11 +1083,17 @@ class _ShortFormToggle extends StatefulWidget {
   /// Android packages of the platform, used to show its real launcher icon.
   final List<String> packages;
 
+  /// False when none of [packages] is installed: the row is dimmed and can't
+  /// be switched on. A block that was already saved as on can still be switched
+  /// off, so an uninstalled app never leaves a stuck toggle.
+  final bool installed;
+
   const _ShortFormToggle({
     required this.title,
     required this.subtitle,
     required this.icon,
     required this.packages,
+    this.installed = true,
     required this.isBlocked,
     required this.onChanged,
   });
@@ -1142,12 +1147,11 @@ class _ShortFormToggleState extends State<_ShortFormToggle> {
       '🎨 Toggle ${widget.title}: Rendering with displayValue=$displayValue (optimistic=$_optimisticValue, firestore=${widget.isBlocked})',
     );
 
-    return Container(
+    // Not installed: nothing to block, so don't let it be switched on.
+    final canToggle = widget.installed || displayValue;
+
+    return _SurfaceRow(
       margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: context.palette.surface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-      ),
       child: SwitchListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         secondary: _PlatformIcon(
@@ -1159,18 +1163,20 @@ class _ShortFormToggleState extends State<_ShortFormToggle> {
         title: Text(
           widget.title,
           style: TextStyle(
-            color: context.palette.onCanvas,
+            color: canToggle
+                ? context.palette.onCanvas
+                : context.palette.onCanvasMuted,
             fontWeight: FontWeight.w500,
           ),
         ),
         subtitle: Text(
-          widget.subtitle,
+          widget.installed ? widget.subtitle : 'App not installed',
           style: TextStyle(
             color: context.palette.onCanvas.withValues(alpha: 0.5),
           ),
         ),
         value: displayValue,
-        onChanged: _isUpdating
+        onChanged: (_isUpdating || !canToggle)
             ? null
             : (value) {
                 if (_isUpdating) return;
@@ -1367,12 +1373,9 @@ class _WebsiteBlockingSection extends ConsumerWidget {
 
                   if (context.mounted) {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('✅ $name blocked'),
-                        backgroundColor: context.palette.surface,
-                      ),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('✅ $name blocked')));
                   }
                 } catch (e) {
                   debugPrint('❌ Error adding blocked website: $e');
@@ -1409,12 +1412,8 @@ class _WebsiteTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
+    return _SurfaceRow(
       margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: context.palette.surface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-      ),
       child: ListTile(
         leading: _RuleIcon(
           icon: Icons.public_off_rounded,
@@ -1537,10 +1536,7 @@ class _WebsiteTile extends ConsumerWidget {
 
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('✅ ${website.name} unblocked'),
-                        backgroundColor: context.palette.surface,
-                      ),
+                      SnackBar(content: Text('✅ ${website.name} unblocked')),
                     );
                   }
                 } catch (e) {
@@ -1582,11 +1578,7 @@ class _NotificationBlockingSectionState
       description: 'Control notification access globally',
       child: Column(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: context.palette.surface,
-              borderRadius: BorderRadius.circular(AppRadius.card),
-            ),
+          _SurfaceRow(
             child: SwitchListTile(
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
@@ -1622,6 +1614,31 @@ class _NotificationBlockingSectionState
 // ============================================================================
 // SHARED WIDGETS
 // ============================================================================
+
+/// Rounded `surface` background for a ListTile / SwitchListTile row.
+///
+/// A [Material] (not a decorated Container): ListTile paints its background
+/// and ink splashes on the nearest Material, so a colored DecoratedBox above it
+/// would hide them (and trips a framework assertion).
+class _SurfaceRow extends StatelessWidget {
+  const _SurfaceRow({required this.child, this.margin = EdgeInsets.zero});
+
+  final Widget child;
+  final EdgeInsetsGeometry margin;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: margin,
+      child: Material(
+        color: context.palette.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        clipBehavior: Clip.antiAlias,
+        child: child,
+      ),
+    );
+  }
+}
 
 class _BlockSection extends StatelessWidget {
   final String title;
@@ -1714,7 +1731,8 @@ Future<void> _runWebsiteBlockingDiagnostics(
     // Service status
     final accessibilityEnabled =
         diagnostics['accessibilityServiceEnabled'] as bool? ?? false;
-    final serviceRunning = diagnostics['serviceRunning'] as bool? ?? false;
+    // Native does not report this today, so only show the line when it does.
+    final serviceRunning = diagnostics['serviceRunning'] as bool?;
 
     if (!accessibilityEnabled) {
       result.writeln('⚠️ Accessibility Service: DISABLED');
@@ -1727,18 +1745,29 @@ Future<void> _runWebsiteBlockingDiagnostics(
       result.writeln('');
     } else {
       result.writeln('✅ Accessibility Service: ENABLED');
-      result.writeln('✅ Service Running: ${serviceRunning ? "YES" : "NO"}');
+      if (serviceRunning != null) {
+        result.writeln('✅ Service Running: ${serviceRunning ? "YES" : "NO"}');
+      }
     }
 
-    // Active blocked websites
-    final activeWebsites = diagnostics['activeBlockedWebsites'] as List? ?? [];
+    // Active blocked websites. Native sends `activeBlockedWebsites` as a COUNT
+    // (an int) and the websites themselves in `blockedWebsites` (maps), so read
+    // them as that - casting the count to a List threw "int is not a subtype of
+    // List".
+    final activeWebsites = [
+      for (final site in diagnostics['blockedWebsites'] as List? ?? const [])
+        if (site is Map && site['isActive'] == true) site,
+    ];
+    final activeCount =
+        (diagnostics['activeBlockedWebsites'] as num?)?.toInt() ??
+        activeWebsites.length;
     result.writeln('');
-    result.writeln('🚫 Active Blocked Websites: ${activeWebsites.length}');
+    result.writeln('🚫 Active Blocked Websites: $activeCount');
     if (activeWebsites.isNotEmpty) {
-      for (var website in activeWebsites) {
-        result.writeln('   • $website');
+      for (final website in activeWebsites) {
+        result.writeln('   • ${website['name'] ?? website['url']}');
       }
-    } else {
+    } else if (activeCount == 0) {
       result.writeln('   No websites currently blocked');
     }
 
@@ -1770,7 +1799,7 @@ Future<void> _runWebsiteBlockingDiagnostics(
       result.writeln('1. Enable Accessibility Service (see above)');
       result.writeln('2. Add websites to block');
       result.writeln('3. Test in any supported browser');
-    } else if (activeWebsites.isEmpty) {
+    } else if (activeCount == 0) {
       result.writeln('💡 Next Steps:');
       result.writeln('1. Add websites to block above');
       result.writeln('2. Open a browser');
@@ -1998,9 +2027,7 @@ class _AppSelectionDialog extends ConsumerStatefulWidget {
 }
 
 class _AppSelectionDialogState extends ConsumerState<_AppSelectionDialog> {
-  List<AppInfo> _installedApps = [];
-  List<AppInfo> _filteredApps = [];
-  bool _isLoading = true;
+  String _query = '';
   final _searchController = TextEditingController();
 
   Future<void> _syncAllLimitsToNative(String userId) async {
@@ -2029,55 +2056,33 @@ class _AppSelectionDialogState extends ConsumerState<_AppSelectionDialog> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    _loadInstalledApps();
-  }
-
-  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadInstalledApps() async {
-    try {
-      final apps = await InstalledApps.getInstalledApps(true, true);
-      if (mounted) {
-        setState(() {
-          _installedApps = apps;
-          _filteredApps = apps;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error loading apps: $e');
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  void _filterApps(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        _filteredApps = _installedApps;
-      } else {
-        _filteredApps = _installedApps
-            .where(
-              (app) =>
-                  app.name.toLowerCase().contains(query.toLowerCase()) ||
-                  app.packageName.toLowerCase().contains(query.toLowerCase()),
-            )
-            .toList();
-      }
-    });
-  }
+  void _filterApps(String query) => setState(() => _query = query);
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     final textTheme = Theme.of(context).textTheme;
+
+    // The app list is cached for the session in pickerAppsProvider, so
+    // reopening the picker is instant instead of rescanning every time.
+    final appsAsync = ref.watch(pickerAppsProvider);
+    final isLoading = appsAsync.isLoading && !appsAsync.hasValue;
+    final allApps = appsAsync.value ?? const <AppInfo>[];
+    final q = _query.toLowerCase();
+    final filteredApps = q.isEmpty
+        ? allApps
+        : allApps
+              .where(
+                (app) =>
+                    app.name.toLowerCase().contains(q) ||
+                    app.packageName.toLowerCase().contains(q),
+              )
+              .toList();
 
     return SizedBox(
       height: MediaQuery.sizeOf(context).height * 0.85,
@@ -2132,19 +2137,19 @@ class _AppSelectionDialogState extends ConsumerState<_AppSelectionDialog> {
             ),
             const SizedBox(height: AppSpacing.lg),
             Expanded(
-              child: _isLoading
+              child: isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : _filteredApps.isEmpty
+                  : filteredApps.isEmpty
                   ? Center(
                       child: Text('No apps found', style: textTheme.bodyMedium),
                     )
                   : ListView.separated(
                       padding: const EdgeInsets.only(bottom: AppSpacing.xl),
-                      itemCount: _filteredApps.length,
+                      itemCount: filteredApps.length,
                       separatorBuilder: (_, _) =>
                           const SizedBox(height: AppSpacing.sm),
                       itemBuilder: (context, index) {
-                        final app = _filteredApps[index];
+                        final app = filteredApps[index];
                         return _AppListItem(
                           app: app,
                           onTap: () => _showLimitDialog(app),
@@ -2210,12 +2215,9 @@ class _AppSelectionDialogState extends ConsumerState<_AppSelectionDialog> {
       await _syncAllLimitsToNative(user.uid);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('✅ Limit added for ${app.name}'),
-          backgroundColor: context.palette.surface,
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('✅ Limit added for ${app.name}')));
     } catch (e) {
       debugPrint('Error adding limit: $e');
       if (!mounted) return;

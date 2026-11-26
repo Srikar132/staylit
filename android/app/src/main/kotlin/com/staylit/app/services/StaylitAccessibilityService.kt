@@ -99,6 +99,12 @@ class StaylitAccessibilityService : AccessibilityService() {
     private val limitCheckHandler = Handler(Looper.getMainLooper())
     private var limitCheckRunnable: Runnable? = null
     private val LIMIT_CHECK_INTERVAL_MS = 5000L // Check every 5 seconds
+
+    // Enforcing a limit (BACK x3, HOME, sheet) makes the limited app fire window events of its own while
+    // it closes. Each of them looked like "opened while over the limit" and enforced again: the sheet
+    // appeared twice. Same app within this window = the same enforcement.
+    private val LIMIT_ENFORCE_COOLDOWN_MS = 2500L
+    private val lastLimitEnforceAt = HashMap<String, Long>()
     private var lastUserApp: String? = null // Track last non-system app
     
     // System packages to ignore (don't treat as app switches)
@@ -189,6 +195,10 @@ class StaylitAccessibilityService : AccessibilityService() {
         instance = this
         Log.d(TAG, "Accessibility Service Connected")
         
+        // Saved app limits first: after a reboot or process kill this runs before Flutter does, and
+        // limits must enforce without the user opening Staylit.
+        com.staylit.app.services.limits.StaylitNativeLimitsHolder.init(applicationContext)
+
         // Initialize managers
         websiteBlockManager = WebsiteBlockManager.getInstance(applicationContext)
         shortFormBlockManager = ShortFormBlockManager.getInstance(applicationContext)
@@ -1020,6 +1030,17 @@ class StaylitAccessibilityService : AccessibilityService() {
      */
     private fun enforceAppLimit(packageName: String) {
         try {
+            val now = android.os.SystemClock.elapsedRealtime()
+            val last = lastLimitEnforceAt[packageName]
+            if (last != null && now - last < LIMIT_ENFORCE_COOLDOWN_MS) {
+                Log.d(TAG, "Limit for $packageName already being enforced, skipping duplicate")
+                // A skipped call must not become a bypass: when the cooldown ends, if that app is
+                // still the window in front (the user reopened it), enforce again.
+                scheduleLimitRecheck(packageName, LIMIT_ENFORCE_COOLDOWN_MS - (now - last) + 100)
+                return
+            }
+            lastLimitEnforceAt[packageName] = now
+
             Log.w(TAG, "⚠️⚠️⚠️ ENFORCING APP LIMIT FOR $packageName ⚠️⚠️⚠️")
             
             // Stop periodic checking
@@ -1055,6 +1076,29 @@ class StaylitAccessibilityService : AccessibilityService() {
         }
     }
     
+    private var limitRecheckPending = false
+
+    /** One recheck after a skipped duplicate: enforce again only if [packageName] is really in front. */
+    private fun scheduleLimitRecheck(packageName: String, delayMs: Long) {
+        if (limitRecheckPending) return
+        limitRecheckPending = true
+        limitCheckHandler.postDelayed({
+            limitRecheckPending = false
+            try {
+                val root = rootInActiveWindow
+                val inFront = root?.packageName?.toString() == packageName
+                @Suppress("DEPRECATION")
+                root?.recycle()
+                if (inFront && appLimitTracker.checkLimit(packageName)) {
+                    Log.w(TAG, "Limit app $packageName came back during the cooldown, enforcing again")
+                    enforceAppLimit(packageName)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "limit recheck failed", e)
+            }
+        }, delayMs)
+    }
+
     /**
      * Send limit reached event to Flutter via MethodChannel
      */
@@ -1584,6 +1628,8 @@ class StaylitAccessibilityService : AccessibilityService() {
     private fun showWebsiteBlockOverlay(url: String, appName: String) {
         try {
             Log.d(TAG, "🌐 Showing website block overlay for: $url in $appName")
+            // The Lit sheet; the old overlay only if it cannot be shown.
+            if (scrollUi?.showWebsiteBlocked(url) == true) return
             SimpleBlockOverlay.showWebsite(
                 context = applicationContext,
                 url = url,
@@ -1593,6 +1639,19 @@ class StaylitAccessibilityService : AccessibilityService() {
             }
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error showing website block overlay", e)
+        }
+    }
+
+    /**
+     * For services that are not the accessibility service (the VPN website blocker): show the website
+     * block as a Lit sheet through this service. False if it could not be shown, so the caller falls back.
+     */
+    fun showWebsiteBlockedSheet(urlOrDomain: String): Boolean {
+        return try {
+            scrollUi?.showWebsiteBlocked(urlOrDomain) == true
+        } catch (e: Exception) {
+            Log.e(TAG, "website sheet failed", e)
+            false
         }
     }
 
@@ -1619,6 +1678,7 @@ class StaylitAccessibilityService : AccessibilityService() {
     private fun showBrowserShortsBlockOverlay(packageName: String, url: String) {
         try {
             Log.d(TAG, "🌐 Showing browser shorts block overlay for: $url in $packageName")
+            if (scrollUi?.showWebsiteBlocked(url) == true) return
             SimpleBlockOverlay.showWebsite(
                 context = applicationContext,
                 url = url,
@@ -2042,7 +2102,9 @@ class StaylitAccessibilityService : AccessibilityService() {
             
             Log.d(TAG, "📱 Showing app limit overlay for $appName ($limitMinutes min limit)")
             
-            // Show simple native overlay with 5 second countdown
+            // The Lit sheet; the old overlay only if it cannot be shown.
+            if (scrollUi?.showLimitReached(appName, limitMinutes) == true) return
+
             SimpleBlockOverlay.show(
                 context = applicationContext,
                 platform = appName,

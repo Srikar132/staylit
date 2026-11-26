@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:staylit/core/theme/app_dimens.dart';
 import 'package:staylit/core/theme/theme_context.dart';
+import 'package:staylit/presentation/providers/app_management_provide.dart'
+    show installedAppsProvider, pickerAppsProvider;
+import 'package:staylit/presentation/providers/app_limit_sync_provider.dart';
 import 'package:staylit/presentation/providers/home_tab_provider.dart';
+import 'package:staylit/presentation/providers/usage_stats_provider.dart';
 import 'package:staylit/presentation/providers/scroll_damage_sync_provider.dart';
 import 'package:staylit/presentation/screens/blocks_screen.dart';
 import 'package:staylit/presentation/screens/focus_screen.dart';
@@ -17,8 +21,59 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   int _selectedIndex = 0;
+
+  /// When the app went to the background; null while in the foreground.
+  DateTime? _pausedAt;
+
+  /// Installed-app lists are cached for the session. Rescan after the app has
+  /// been away this long, which is when an install/uninstall may have happened.
+  static const _appListStaleAfter = Duration(minutes: 2);
+
+  // Tab indexes whose content shows today's phone usage.
+  static const _focusTab = 0;
+  static const _progressTab = 3;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _pausedAt ??= DateTime.now();
+    } else if (state == AppLifecycleState.resumed) {
+      final pausedAt = _pausedAt;
+      _pausedAt = null;
+      // Previous value stays visible while it reloads - no spinner flash.
+      ref.invalidate(todayUsageStatsProvider);
+      if (pausedAt != null &&
+          DateTime.now().difference(pausedAt) >= _appListStaleAfter) {
+        ref.invalidate(installedAppsProvider);
+        ref.invalidate(pickerAppsProvider);
+      }
+    }
+  }
+
+  void _selectTab(int index) {
+    // Usage stats are only read once per provider lifetime; refresh when the
+    // user lands on a tab that shows them.
+    if (index != _selectedIndex &&
+        (index == _focusTab || index == _progressTab)) {
+      ref.invalidate(todayUsageStatsProvider);
+    }
+    setState(() => _selectedIndex = index);
+  }
 
   // Lazily built so tabs the user never opens don't pay init/network cost.
   // Once built, kept alive by IndexedStack (index null -> not built yet).
@@ -64,12 +119,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // A tab can ask the shell to switch (e.g. Home -> Blocks).
     ref.listen<int?>(homeTabRequestProvider, (_, tab) {
       if (tab == null) return;
-      setState(() => _selectedIndex = tab);
+      _selectTab(tab);
       ref.read(homeTabRequestProvider.notifier).clear();
     });
 
     // Keeps the native Scroll damage counter and Firestore in step (no UI).
     ref.watch(scrollDamageSyncProvider);
+
+    // Keeps native app-limit enforcement in step with Firestore (no UI), whichever tab is open.
+    ref.watch(appLimitSyncProvider);
 
     _screens[_selectedIndex] ??= _screenBuilders[_selectedIndex](context);
     final palette = context.palette;
@@ -106,7 +164,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       bottomNavigationBar: BlackBottomNav(
         selectedIndex: _selectedIndex,
-        onSelected: (index) => setState(() => _selectedIndex = index),
+        onSelected: _selectTab,
         items: _navItems,
       ),
     );
