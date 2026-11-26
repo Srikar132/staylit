@@ -1,5 +1,4 @@
 import 'package:flutter/services.dart';
-import 'package:staylit/data/models/app_limit_model.dart';
 import 'package:flutter/foundation.dart';
 
 /// Native service for app limit management
@@ -9,9 +8,13 @@ import 'package:flutter/foundation.dart';
 /// - Flutter only manages UI and pushes limits to native
 class AppLimitNativeService {
   static const _limitsChannel = MethodChannel('com.staylit.app/app_limits');
-  static const _eventsChannel = MethodChannel('com.staylit.app/app_limits_events');
+  static const _eventsChannel = MethodChannel(
+    'com.staylit.app/app_limits_events',
+  );
 
-  /// Update limits in native (Kotlin)
+  /// Update limits in native (Kotlin). FULL REPLACE, not a merge: native drops every
+  /// package that is not in [limits], so always send the complete set of active limits
+  /// (see `activeLimitsMap`). Native saves it, so it survives a restart.
   /// @param limits Map of packageName -> limitMinutes
   Future<bool> updateLimits(Map<String, int> limits) async {
     try {
@@ -27,25 +30,6 @@ class AppLimitNativeService {
       debugPrint('Error updating limits: $e');
       return false;
     }
-  }
-
-  /// Set a single app limit (calls updateLimits internally)
-  Future<bool> setAppLimit(String packageName, int limitMinutes) async {
-    return updateLimits({packageName: limitMinutes});
-  }
-
-  /// Push all active app limits to native (calls updateLimits internally)
-  Future<bool> setAppLimits(List<AppLimitModel> limits) async {
-    final limitsMap = <String, int>{
-      for (final limit in limits)
-        if (limit.isActive) limit.packageName: limit.dailyLimit,
-    };
-    return updateLimits(limitsMap);
-  }
-
-  /// Remove an app limit by setting it to 0 or removing from map
-  Future<bool> removeAppLimit(String packageName) async {
-    return updateLimits({packageName: 0});
   }
 
   /// Get today's usage for a specific app (in minutes)
