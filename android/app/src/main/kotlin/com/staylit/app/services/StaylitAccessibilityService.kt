@@ -1034,6 +1034,9 @@ class StaylitAccessibilityService : AccessibilityService() {
             val last = lastLimitEnforceAt[packageName]
             if (last != null && now - last < LIMIT_ENFORCE_COOLDOWN_MS) {
                 Log.d(TAG, "Limit for $packageName already being enforced, skipping duplicate")
+                // A skipped call must not become a bypass: when the cooldown ends, if that app is
+                // still the window in front (the user reopened it), enforce again.
+                scheduleLimitRecheck(packageName, LIMIT_ENFORCE_COOLDOWN_MS - (now - last) + 100)
                 return
             }
             lastLimitEnforceAt[packageName] = now
@@ -1073,6 +1076,29 @@ class StaylitAccessibilityService : AccessibilityService() {
         }
     }
     
+    private var limitRecheckPending = false
+
+    /** One recheck after a skipped duplicate: enforce again only if [packageName] is really in front. */
+    private fun scheduleLimitRecheck(packageName: String, delayMs: Long) {
+        if (limitRecheckPending) return
+        limitRecheckPending = true
+        limitCheckHandler.postDelayed({
+            limitRecheckPending = false
+            try {
+                val root = rootInActiveWindow
+                val inFront = root?.packageName?.toString() == packageName
+                @Suppress("DEPRECATION")
+                root?.recycle()
+                if (inFront && appLimitTracker.checkLimit(packageName)) {
+                    Log.w(TAG, "Limit app $packageName came back during the cooldown, enforcing again")
+                    enforceAppLimit(packageName)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "limit recheck failed", e)
+            }
+        }, delayMs)
+    }
+
     /**
      * Send limit reached event to Flutter via MethodChannel
      */
