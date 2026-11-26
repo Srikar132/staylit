@@ -99,7 +99,7 @@ Project docs: `README.md` is currently empty. This file is the source of truth u
 # 6. Tech stack
 
 - **Frontend:** Flutter (Dart ^3.10), Riverpod 3 (state mgmt — `Provider`/`StreamProvider`/`Notifier`), `go_router` (declared but not fully wired — `MaterialApp` routes are still what's actually used)
-- **Backend:** Firebase — Firestore, Auth, Analytics (declared, not yet wired into `lib/`) + Google Sign-In
+- **Backend:** Firebase — Firestore, Auth + Google Sign-In (no analytics SDK: `firebase_analytics` was unused and removed)
 - **Database:** Cloud Firestore only, with offline persistence enabled (unlimited cache). No local DB — Hive was removed (was declared but never called anywhere in the app).
 - **AI/ML:** none at the moment (no trained model, no LLM calls).
 - **APIs/external services:** Firebase services only
@@ -129,7 +129,7 @@ Project docs: `README.md` is currently empty. This file is the source of truth u
 - **Usage data:** per-app foreground time and daily usage patterns (native `UsageStatsManager`), app-limit break/exceed events (`limitReached` events from `StaylitAccessibilityService`).
 - **Behavioral data:** focus session history (duration, completions, interruptions, pauses), block-trigger events (website/shorts/notification).
 - **ML-related data:** none structured or labeled yet — this is future work; no collection pipeline exists today.
-- **Analytics/evaluation data:** `firebase_analytics` is a declared dependency but is **not** actually wired into `lib/` yet — don't assume analytics events exist anywhere in the code.
+- **Analytics/evaluation data:** none. The unused `firebase_analytics` dependency was removed (issue #38), so no analytics events exist anywhere in the code. Re-add it deliberately if a measurement plan needs it.
 
 ---
 
